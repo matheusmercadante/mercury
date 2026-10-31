@@ -947,6 +947,8 @@ export interface Snapshot {
   // the same reason `restartNeeded` does: it becomes true hours into a session,
   // on a screen she is already looking at.
   update?: UpdateState;
+  /** Whether the Feedback card has somewhere to send (main/feedback.mjs feedbackUrl). */
+  feedback?: boolean;
   /**
    * WHETHER THERE ARE TWO CODING AGENTS TO CHOOSE BETWEEN, AND WHICH ONE EACH
    * ROW RUNS ON. Answered whole by `Supervisor#engineFacts`, because the

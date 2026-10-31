@@ -7,7 +7,7 @@
 // ~/.agentbox/cloud-key; the Mac's cloud.json then names the server, so its
 // runs go there (main/cloud/clients.mjs). The owner's own AWS setup is never
 // replaced by it, and signing out lets the key go on the server too.
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -16,6 +16,8 @@ import { TERMS_VERSION } from '../cloud/gateway/terms.mjs';
 import { cloudAccountConfig, currentCloudTerms, signInToCloud, signOutOfCloud } from '../main/cloud/account.mjs';
 import { cloudConfigPath, cloudKeyPath, readCloudConfig, readCloudKey } from '../main/cloud/config.mjs';
 import { CLOUD_ADDRESS } from '../shared/cloud-address.mjs';
+// These cover the service with its switch on (shared/hosted-services.mjs).
+vi.mock('../shared/hosted-services.mjs', () => ({ HOSTED_SERVICES: Object.freeze({ cloud: true, feedback: true }) }));
 
 const P = '66666666-6666-4666-8666-666666666666';
 let home; let server; let gateway; const env = {};

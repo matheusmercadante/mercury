@@ -570,6 +570,8 @@ export function registerIpc({ store, supervisor, config, window, analytics = NO_
       // offer the restart are ones she may already be looking at. Settings
       // reads the whole of it; ⌘K reads `ready` alone.
       update: updater.state(),
+      // False draws no Feedback row: the card would have nowhere to send.
+      feedback: !!feedbackUrl(config),
       config: {
         // How many of her own Claude Code sessions the inbox takes. It rides
         // the snapshot rather than the settings model because the INBOX reads
