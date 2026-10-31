@@ -17,6 +17,7 @@ import path from 'node:path';
 import { Store } from '../main/store.mjs';
 import { machineryPath } from '../main/store/home.mjs';
 import { traceLines } from '../renderer/src/terminal.ts';
+import { envName } from '../shared/product-name.mjs';
 import {
   PRACTICE_ANSWER, PRACTICE_FLAG, PRACTICE_NAME, PRACTICE_ROWS, PRACTICE_SLUG, PRACTICE_TASK,
 } from '../shared/first-run-practice.mjs';
@@ -31,7 +32,7 @@ async function freshStore() {
   // traces really live now (main/store/home.mjs) and because these tests delete
   // things.
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'zero-practice-home-'));
-  process.env.ASTRAL_HOME = home;
+  process.env[envName('HOME')] = home;
   const store = new Store({ accountRoot: account, products: [], personalProducts: [] });
   await store.init();
   // The watcher is real and this test does not want one running after it.
@@ -409,7 +410,7 @@ describe('putting it away at the end', () => {
     store.stagePracticeRows(PRACTICE_SLUG);
     expect(fs.existsSync(path.join(account, PRACTICE_SLUG))).toBe(true);
     // The next launch: a brand new Store over the same account root.
-    process.env.ASTRAL_HOME = home;
+    process.env[envName('HOME')] = home;
     const next = new Store({ accountRoot: account, products: [], personalProducts: [] });
     next.watch = () => {};
     await next.init();

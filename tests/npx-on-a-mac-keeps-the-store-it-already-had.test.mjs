@@ -5,7 +5,7 @@
 // which on macOS is the desktop config's folder, ~/Agentbox. Every Mac that
 // had used the browser command would have opened an empty inbox, its tasks
 // still on disk in a folder nothing read any more. Found by reading
-// bin/agentbox.mjs against main/store/home.mjs.
+// bin/mercury.mjs against main/store/home.mjs.
 //
 // The command asks appHome(), the lookup the store itself uses: an existing
 // dot-folder first, then on Linux the XDG data directory, and on a Mac the
@@ -19,7 +19,7 @@ import { appHome } from '../main/store/home.mjs';
 import { nameSlug } from '../shared/product-name.mjs';
 
 const bin = fs.readFileSync(
-  path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'bin', 'agentbox.mjs'),
+  path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'bin', 'mercury.mjs'),
   'utf8',
 );
 

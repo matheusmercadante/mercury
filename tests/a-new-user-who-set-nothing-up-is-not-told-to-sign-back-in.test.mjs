@@ -35,7 +35,10 @@ import {
 import { PlanQuestion } from '../renderer/src/components/PlanSetup.tsx';
 import { deadRunCause, deadRunSentence, needsHerHands, refineCause, troubleCause } from '../shared/spawn-trouble.mjs';
 import { Supervisor } from '../main/supervisor.mjs';
-import { Name } from '../shared/product-name.mjs';
+import { Name, envName } from '../shared/product-name.mjs';
+
+// The throwaway home tests/agentbox-home.setup.mjs gives this file, put back after each case.
+const SUITE_HOME = process.env[envName('HOME')];
 
 const r = (engine, found, signedIn) => ({ engine, found, signedIn });
 
@@ -157,7 +160,7 @@ describe('the row a first task leaves behind', () => {
 
   beforeEach(() => {
     home = fs.mkdtempSync(path.join(os.tmpdir(), 'zero-no-plan-'));
-    process.env.ASTRAL_HOME = home;
+    process.env[envName('HOME')] = home;
     items = [{
       id: 'w-hello', product: 'agentbox', status: 'open', kind: 'task', labels: ['founder'],
       title: 'Say hello in a file called hello.txt', wrote: { body: { ts: 1000, source: 'founder' } },
@@ -175,7 +178,7 @@ describe('the row a first task leaves behind', () => {
     sup._fruitless['agentbox:w-hello'] = { runs: 1, endedAt: DIED, founderAt: 0 };
   });
 
-  afterEach(() => { delete process.env.ASTRAL_HOME; });
+  afterEach(() => { process.env[envName('HOME')] = SUITE_HOME; });
 
   it('tells a first-time user where to set a plan up', () => {
     died();

@@ -1,6 +1,6 @@
 # Harness boundary
 
-Agentbox owns task scheduling, isolated folders, delivery, and the approval UI.
+Mercury owns task scheduling, isolated folders, delivery, and the approval UI.
 A harness owns its native protocol, account home, models, commands, and session
 state. The shared definitions contain names, flags, and capabilities; the main
 process registry contains executable adapters. The renderer never imports it.
@@ -139,13 +139,13 @@ recoverable outcome someone can understand.
 The proposed first integration is an optional local task session over Hermes'
 first-party ACP interface. A task has its own conversation and working folder;
 Hermes keeps its own persistent memory and skills in its configured home. No
-gateway, cron, messaging connector, or daemon is started by Agentbox. Users who
+gateway, cron, messaging connector, or daemon is started by Mercury. Users who
 want Hermes' always-on gateway continue to run it separately. Connecting that
 gateway to the inbox would be a distinct integration with explicit ownership
 of scheduling, approvals, and messages, rather than a requirement for support.
 
 Provider credentials stay in the harness' own authentication/configuration
-store. Agentbox does not ask for, copy, or inject provider API keys. Claude and
+store. Mercury does not ask for, copy, or inject provider API keys. Claude and
 Codex keep their existing subscription environment scrubs. Hermes admission
 remains off until native credential loading, configured MCP isolation, and real
 approval/denial are verified. A new provider's networking or permission scope
@@ -206,7 +206,7 @@ tool then ran; `{ response: "reject" }` returned 200 and the tool came back
 refused. Both verified end to end. An `edit` approval therefore arrives with
 more than a Codex patch approval does, and the card can show the change itself.
 
-**What makes it ask** is a permission config, which Agentbox writes per task
+**What makes it ask** is a permission config, which Mercury writes per task
 folder and points `OPENCODE_CONFIG` at. The server reports back what it loaded
 at `GET /config`. A per-session `permission` ruleset also exists on
 `POST /session` and would be cleaner, but in testing it did not produce an ask
@@ -241,7 +241,7 @@ Sources: [OpenCode providers](https://opencode.ai/docs/providers/),
 
 The useful precedent from T3 Code is an adapter between provider behavior and
 orchestration. Herdr keeps agents in normal terminals and uses detection
-manifests or reported states; Agentbox continues to use structured protocols.
+manifests or reported states; Mercury continues to use structured protocols.
 
 Sources: [T3 Code architecture](https://github.com/pingdotgg/t3code/blob/main/docs/internals/overview.md),
 [Herdr agents](https://herdr.dev/docs/agents/),

@@ -49,9 +49,9 @@ describe('the line about diagnostics reads as a sentence', () => {
 
 describe('the line about the terminal binaries reads as a sentence', () => {
   it('counts one and many', () => {
-    const said = (fixed) => `agentbox: made ${fixed} node-pty spawn-helper binar${fixed === 1 ? 'y' : 'ies'} executable, so the terminal works.`;
-    expect(said(1)).toBe('agentbox: made 1 node-pty spawn-helper binary executable, so the terminal works.');
-    expect(said(2)).toBe('agentbox: made 2 node-pty spawn-helper binaries executable, so the terminal works.');
+    const said = (fixed) => `mercury: made ${fixed} node-pty spawn-helper binar${fixed === 1 ? 'y' : 'ies'} executable, so the terminal works.`;
+    expect(said(1)).toBe('mercury: made 1 node-pty spawn-helper binary executable, so the terminal works.');
+    expect(said(2)).toBe('mercury: made 2 node-pty spawn-helper binaries executable, so the terminal works.');
     expect(said(2)).not.toContain('binaryies');
     // And the install prints that exact template, which is the thing that was
     // wrong: the sentence above is only worth anything if it is the one shipped.

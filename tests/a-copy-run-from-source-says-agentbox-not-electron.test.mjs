@@ -1,4 +1,4 @@
-// A COPY RUN FROM SOURCE SAYS AGENTBOX, NOT ELECTRON.
+// A COPY RUN FROM SOURCE SAYS THE APP'S NAME, NOT ELECTRON.
 //
 // Asked before launch (w-db6f5e331e): "For the desktop app, rather than saying
 // Electron, we'd also want it to say Agentbox with our branding."
@@ -21,6 +21,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { brandElectron } from '../scripts/brand-electron.mjs';
+import { Name } from '../shared/product-name.mjs';
 
 const ICON = new URL('../build/icon.icns', import.meta.url).pathname;
 const read = (plist, key) => {
@@ -55,11 +56,11 @@ beforeEach(() => {
 afterEach(() => fs.rmSync(dir, { recursive: true, force: true }));
 
 describe('the bundle a from-source run launches', () => {
-  it('is named Agentbox in the menu bar and the Dock, and wears the Agentbox icon', () => {
+  it(`is named ${Name} in the menu bar and the Dock, and wears the ${Name} icon`, () => {
     const r = brandElectron({ app, run, platform: 'darwin' });
     expect(r.changed).toBe(true);
-    expect(read(plist, 'CFBundleName')).toBe('Agentbox');
-    expect(read(plist, 'CFBundleDisplayName')).toBe('Agentbox');
+    expect(read(plist, 'CFBundleName')).toBe(Name);
+    expect(read(plist, 'CFBundleDisplayName')).toBe(Name);
     const icon = path.join(app, 'Contents', 'Resources', read(plist, 'CFBundleIconFile'));
     expect(fs.readFileSync(icon).equals(fs.readFileSync(ICON))).toBe(true);
   });
@@ -82,13 +83,13 @@ describe('the bundle a from-source run launches', () => {
   //
   // So the from-source run takes the app's own id, the one the downloadable
   // build already uses, and one answer in System Settings now covers both.
-  it('carries the app\'s own bundle id, so macOS asks about Agentbox and not about Electron', () => {
+  it(`carries the app's own bundle id, so macOS asks about ${Name} and not about Electron`, () => {
     brandElectron({ app, run, platform: 'darwin' });
     const pkg = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
     expect(read(plist, 'CFBundleIdentifier')).toBe(pkg.build.appId);
     // Named rather than only compared, so that moving the id in package.json
     // cannot quietly make this test agree with itself about the wrong string.
-    expect(read(plist, 'CFBundleIdentifier')).toBe('ac.astral.app');
+    expect(read(plist, 'CFBundleIdentifier')).toBe('io.github.matheusmercadante.mercury');
   });
 
   it('counts a stale bundle id as work to do, so an already-branded copy is fixed', () => {
@@ -96,10 +97,10 @@ describe('the bundle a from-source run launches', () => {
     // name and icon are already right from an earlier launch, and the id alone
     // is wrong. That must still be a change, or the fix never reaches them.
     brandElectron({ app, run, platform: 'darwin' });
-    const text = fs.readFileSync(plist, 'utf8').replace('ac.astral.app', 'com.github.Electron');
+    const text = fs.readFileSync(plist, 'utf8').replace('io.github.matheusmercadante.mercury', 'com.github.Electron');
     fs.writeFileSync(plist, text);
     expect(brandElectron({ app, run, platform: 'darwin' }).changed).toBe(true);
-    expect(read(plist, 'CFBundleIdentifier')).toBe('ac.astral.app');
+    expect(read(plist, 'CFBundleIdentifier')).toBe('io.github.matheusmercadante.mercury');
   });
 
   it('re-signs it ad hoc once, after the edit', () => {
@@ -143,7 +144,7 @@ describe('what it must never do', () => {
     expect(dev).toMatch(/brandElectron\(/);
   });
 
-  it('has an About box that names Agentbox and its version, not Electron 43', () => {
+  it(`has an About box that names ${Name} and its version, not Electron 43`, () => {
     const main = fs.readFileSync(new URL('../main/main.mjs', import.meta.url), 'utf8');
     expect(main).toMatch(/app\.setAboutPanelOptions\(\{ applicationName: NAME, applicationVersion: app\.getVersion\(\), version: '' \}\)/);
   });

@@ -14,7 +14,7 @@
 //
 // WHAT IT DELIBERATELY DOES NOT TOUCH, each with the thing it would break:
 //
-//   build.appId `ac.astral.app`  macOS keys every permission she has already
+//   build.appId                  macOS keys every permission she has already
 //                                granted off this string. Change it and the
 //                                Accessibility, Desktop and Apple Events grants
 //                                all go back to unasked, silently.
@@ -44,6 +44,7 @@ const USAGE = {
   NSDownloadsFolderUsageDescription: '{Name} needs this to let your agents work in a project you keep in Downloads.',
   NSRemovableVolumesUsageDescription: '{Name} needs this to let your agents work in a project you keep on an external disk.',
   NSAppleEventsUsageDescription: '{Name} needs this when an agent you started asks another app to do something.',
+  NSMicrophoneUsageDescription: '{Name} needs this to record a voice note when you press the microphone button.',
 };
 
 const fill = (s) => s.replaceAll('{Name}', Name).replaceAll('{name}', NAME);

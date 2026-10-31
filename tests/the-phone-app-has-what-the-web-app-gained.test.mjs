@@ -13,6 +13,7 @@ import { describe, it, expect } from 'vitest';
 import { phoneConnectState } from '../renderer/src/phone-rows';
 import { computerLine, versionLine } from '../mobile/src/lib/computer-line';
 import { feedbackAddressOn, sendPhoneFeedback } from '../renderer/src/phone-feedback';
+import { Name } from '../shared/product-name.mjs';
 
 const read = (p) => fs.readFileSync(p, 'utf8');
 const NOW = Date.parse('2026-10-27T12:00:00Z');
@@ -81,7 +82,7 @@ describe('Settings', () => {
   });
   it('names the cloud when the computer is away and the cloud carries on, and only then', () => {
     expect(computerLine(s(NOW - 60_000), NOW, true)).toBe('From Studio.');
-    expect(computerLine(s(NOW - 3 * 3600_000), NOW, true)).toMatch(/waits for it\. Agentbox Cloud starts your new threads and replies meanwhile\.$/);
+    expect(computerLine(s(NOW - 3 * 3600_000), NOW, true)).toMatch(new RegExp(`waits for it\\. ${Name} Cloud starts your new threads and replies meanwhile\\.$`));
     expect(computerLine(s(NOW - 3 * 3600_000), NOW, false)).toMatch(/waits for it\.$/);
   });
   it('sends feedback to the same function the web app and the Mac post to', async () => {

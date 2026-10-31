@@ -19,6 +19,7 @@ import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import { phoneView, phoneSlug, phoneStatusLine, cloudCarriesOn, readCommands, PROJECTS_SELECT } from '../renderer/src/phone-rows';
 import { threadOf } from '../mobile/src/lib/thread';
+import { Name } from '../shared/product-name.mjs';
 
 const NOW = Date.UTC(2026, 9, 24, 12);
 const DEV = 'a1b2c3d4e5f6';
@@ -41,7 +42,7 @@ function rows(commands = [], { cloud = false, seen = NOW } = {}) {
 const yours = (t) => t.events.filter((e) => e.who === 'you' && e.pending);
 
 describe('a reply in its thread', () => {
-  it('the cloud took says it is working in Agentbox Cloud (the reported case)', () => {
+  it('the cloud took says it is working in the cloud (the reported case)', () => {
     const r = rows([reply({ claimed_at: iso(NOW - 60_000), claimed_by: 'cloud:r1' })]);
     const view = phoneView(r, NOW);
     expect(view.waiting).toEqual([expect.objectContaining({ text: 'yes, ship it', cloud: true })]);
@@ -82,7 +83,7 @@ describe('the line over the inbox', () => {
   it('with the computer off and its threads ready for the cloud, says the cloud carries on', () => {
     const r = rows([], { cloud: true, seen: away });
     expect(cloudCarriesOn(r.projects)).toBe(true);
-    expect(phoneStatusLine({ error: null, fetchedAt: NOW, macSeen: away, cloud: cloudCarriesOn(r.projects) }, NOW)).toBe('Your computer is off. Replies carry on in Agentbox Cloud.');
+    expect(phoneStatusLine({ error: null, fetchedAt: NOW, macSeen: away, cloud: cloudCarriesOn(r.projects) }, NOW)).toBe(`Your computer is off. Replies carry on in ${Name} Cloud.`);
   });
   it('with the computer off and no cloud, says what you send waits for it, as before', () => {
     expect(phoneStatusLine({ error: null, fetchedAt: NOW, macSeen: away, cloud: false }, NOW)).toBe('Your computer was last online 3 hours ago. What you send waits for it.');
@@ -137,7 +138,7 @@ describe('on the phone website', () => {
     const mine = built.events.filter((e) => e.pending);
     expect(mine.map((e) => [e.text, !!e.cloud])).toEqual([['yes', true], ['and tests', false]]);
   });
-  it('the thread says Working in Agentbox Cloud for it, and waits for the computer otherwise', () => {
+  it(`the thread says Working in ${Name} Cloud for it, and waits for the computer otherwise`, () => {
     const thread = read('renderer/src/components/Thread.tsx');
     expect(thread).toMatch(/onCloudPhone\(\) \? \(e\.cloud \? `Working in \$\{Name\} Cloud` : 'Waiting for your computer'\)/);
     expect(read('renderer/src/App.tsx')).toMatch(/\.\.\.\(w\.cloud \? \{ cloud: true \} : \{\}\)/);

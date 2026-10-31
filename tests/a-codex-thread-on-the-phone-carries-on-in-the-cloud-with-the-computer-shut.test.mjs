@@ -44,6 +44,7 @@ import { threadSnapshot } from '../shared/phone-snapshot.mjs';
 import { ANSWERED_OUTCOME } from '../cloud/gateway/phone.mjs';
 import { Supervisor } from '../main/supervisor.mjs';
 import { Store } from '../main/store.mjs';
+import { envName } from '../shared/product-name.mjs';
 
 const here = (p) => fileURLToPath(new URL(p, import.meta.url));
 const FAKE_CODEX = here('./fixtures/fake-codex-app-server.mjs');
@@ -319,14 +320,14 @@ describe('the computer, end to end with a real sandbox', () => {
 
   const sandboxCall = async (payload) => (await fetch(`${sandboxUrl}/invocations`, { method: 'POST', body: JSON.stringify(payload), headers: { 'content-type': 'application/json' } })).json();
   const frame = replyFrame(`The founder replied:\n\n${REPLY_MARK}\n\nCarry on.`);
-  const resume = { threadId: 'th-1', cwd: '', approvalPolicy: 'never', sandbox: 'workspace-write', config: { mcp_servers: { agentbox: { command: '/app/mcp/agentbox-mcp.sh', env: { ZERO_ITEM: 'w-1' } } } } };
+  const resume = { threadId: 'th-1', cwd: '', approvalPolicy: 'never', sandbox: 'workspace-write', config: { mcp_servers: { agentbox: { command: '/app/mcp/mercury-mcp.sh', env: { ZERO_ITEM: 'w-1' } } } } };
 
   it('a finished Codex turn leaves a Codex kit, the cloud runs her reply from it alone, and waking makes it a Codex run here', async () => {
     const err = new PassThrough(); let said = ''; err.on('data', (d) => { said += d; });
     const copy = path.join(tmp, 'mac', 'kits', 'alpha--w-1.json');
     const code = await cloudRun({
       argv: [FAKE_CODEX, 'app-server'], engine: 'codex',
-      env: { ...process.env, ZERO_ITEM: 'w-1', ZERO_PRODUCT: 'alpha', CODEX_HOME: codexHome, AGENTBOX_HOME: path.join(tmp, 'mac', 'store') },
+      env: { ...process.env, ZERO_ITEM: 'w-1', ZERO_PRODUCT: 'alpha', CODEX_HOME: codexHome, [envName('HOME')]: path.join(tmp, 'mac', 'store') },
       cwd: mac, transport: { async invoke() { throw new Error('a kit starts nothing'); }, async stop() {} }, storage, login: LOGIN,
       stdout: new PassThrough(), stderr: err, remoteCommand: process.execPath, stubPath: STUB, watchParent: false, signals: new EventEmitter(),
       homeDir: path.join(tmp, 'home'),
@@ -343,7 +344,7 @@ describe('the computer, end to end with a real sandbox', () => {
     const opened = JSON.parse(kit.codex.open[2]);
     expect(opened.params.config.mcp_servers.agentbox.args).toEqual([STUB, 'agentbox']);
     expect(opened.params.developerInstructions).toMatch(/cloud machine/);
-    expect(kit.marker).toMatchObject({ engine: 'codex', mcp: { agentbox: { command: '/app/mcp/agentbox-mcp.sh' } } });
+    expect(kit.marker).toMatchObject({ engine: 'codex', mcp: { agentbox: { command: '/app/mcp/mercury-mcp.sh' } } });
 
     // THE SERVER: the kit and her reply, nothing of this computer's.
     const runId = crypto.randomUUID();

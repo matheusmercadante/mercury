@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// THE COMMAND. `npx agentbox-app`, and the app is in a browser tab.
+// THE COMMAND. `npx mercury-app` from a checkout, and the app is in a browser tab.
 //
 // There is no download, no installer and nothing hosted. This starts the doing
 // half on this machine, binds it to 127.0.0.1, which is the machine's name for
@@ -33,17 +33,17 @@ const flag = (name, fallback) => {
 
 if (args.includes('--help') || args.includes('-h')) {
   console.log(`
-  agentbox, in a browser tab.
+  Mercury, in a browser tab.
 
-    npx agentbox-app                 start it and open a tab
-    npx agentbox-app --port 7777     ask for a particular port
-    npx agentbox-app --dir ~/work    keep the store somewhere else
-    npx agentbox-app --no-open       start it and print the url instead
+    npx mercury-app                  start it and open a tab
+    npx mercury-app --port 7777      ask for a particular port
+    npx mercury-app --dir ~/work     keep the store somewhere else
+    npx mercury-app --no-open        start it and print the url instead
 
   Everything stays on this machine. Nothing is uploaded and nothing is hosted.
 
   The desktop app is the other way to run it, built from the repository:
-  https://github.com/savannahfeder/agentbox#install
+  https://github.com/matheusmercadante/mercury#install
 `);
   process.exit(0);
 }
@@ -51,12 +51,13 @@ if (args.includes('--help') || args.includes('-h')) {
 // WHERE THE STORE LIVES. A copy run out of npm has no folder of its own to
 // write into, and writing inside node_modules would be thrown away by the next
 // install. The default is appHome(): a dot-folder already on disk, else the
-// XDG data directory on Linux and `~/.agentbox` on macOS, where this command
-// has always kept it. Not the desktop config's default, which on macOS is
-// `~/Agentbox` and would open every existing Mac user on an empty inbox.
-// `--dir` and AGENTBOX_HOME are the escape hatches.
+// XDG data directory on Linux and `~/.mercury` on macOS. Not the desktop
+// config's default, which on macOS is `~/Mercury`.
+// `--dir` and MERCURY_HOME are the escape hatches. appHome reads the variable
+// itself, and only under Mercury's name: an Agentbox terminal exports
+// AGENTBOX_HOME pointing at Agentbox's store.
 const dataDir = path.resolve(
-  flag('dir', process.env.AGENTBOX_HOME ?? appHome()),
+  flag('dir', appHome()),
 );
 fs.mkdirSync(dataDir, { recursive: true });
 
@@ -110,7 +111,7 @@ server.listen(wanted, '127.0.0.1', () => {
   // WHICH OF THE TWO THIS IS. There is a desktop app as well, and somebody who
   // ran this line expecting that one has to be told here: the README is not
   // what they are looking at.
-  console.log(`\n  agentbox is running in your browser.\n\n  ${url}\n\n  Store: ${dataDir}\n  The desktop app is built from the repository: https://github.com/savannahfeder/agentbox#install\n  Stop it with control-C.\n`);
+  console.log(`\n  Mercury is running in your browser.\n\n  ${url}\n\n  Store: ${dataDir}\n  The desktop app is built from the repository: https://github.com/matheusmercadante/mercury#install\n  Stop it with control-C.\n`);
   // The install that skipped node-pty may be one npm cached for this command,
   // run once and long scrolled past, so this is said at every start.
   if (!ptyIsHere()) console.log(`  ${NO_TERMINAL}\n`);

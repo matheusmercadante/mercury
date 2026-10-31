@@ -13,6 +13,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterAll } from 'vitest';
 import { setAppHome } from './app-home.mjs';
+import { FORKED_FROM } from '../shared/product-name.mjs';
 import { keepAnswerModesIn } from '../main/answer-modes.mjs';
 
 const home = fs.mkdtempSync(path.join(os.tmpdir(), 'agentbox-home-'));
@@ -21,6 +22,10 @@ const home = fs.mkdtempSync(path.join(os.tmpdir(), 'agentbox-home-'));
 // this line setting only the oldest is how a hermetic suite came to write into
 // her real store. tests/app-home.mjs carries the measurement.
 setAppHome(home);
+// AND UNDER AGENTBOX'S NAMES. An Agentbox thread running this suite inherits
+// its real store root under all four; Mercury never reads them, but older tests
+// do, and none of them may reach that store.
+for (const was of FORKED_FROM) process.env[`${was.toUpperCase()}_HOME`] = home;
 
 // AND A FOLDER OF HER OWN for what a reply may do, as main/main.mjs gives the
 // app at start: until one is named, no mode is kept (main/answer-modes.mjs).

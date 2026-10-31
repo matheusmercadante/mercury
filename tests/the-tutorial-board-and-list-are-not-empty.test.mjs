@@ -36,6 +36,7 @@ import { PRACTICE_BACKDROP, PRACTICE_SLUG } from '../shared/first-run-practice.m
 import { threadState } from '../shared/thread-cards.mjs';
 import { belongsInInbox } from '../renderer/src/list-rules.ts';
 import { START, advance, walkRows } from '../renderer/src/onboarding.ts';
+import { envName } from '../shared/product-name.mjs';
 
 const EXAMPLES = ['w-ex1', 'w-ex2', 'w-ex3', 'w-ex4'];
 const BACKDROP = PRACTICE_BACKDROP.map((_, i) => `w-bd${i + 1}`);
@@ -121,7 +122,7 @@ describe('the walk remembers it', () => {
 describe('each row lands in its column by the app’s own rules', () => {
   it('needs you, in progress and scheduled, read off the rows the store wrote', async () => {
     const account = fs.mkdtempSync(path.join(os.tmpdir(), 'zero-backdrop-'));
-    process.env.ASTRAL_HOME = fs.mkdtempSync(path.join(os.tmpdir(), 'zero-backdrop-home-'));
+    process.env[envName('HOME')] = fs.mkdtempSync(path.join(os.tmpdir(), 'zero-backdrop-home-'));
     const store = new Store({ accountRoot: account, products: [], personalProducts: [] });
     await store.init();
     store.watch = () => {};

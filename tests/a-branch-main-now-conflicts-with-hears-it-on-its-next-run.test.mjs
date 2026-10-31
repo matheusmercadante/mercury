@@ -11,6 +11,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { ShipQueue, SHIP_LABEL } from '../main/ship-queue.mjs';
 import { Supervisor } from '../main/supervisor.mjs';
+import { nameSlug } from '../shared/product-name.mjs';
 import { conflictingBranches, git, threads } from './helpers/conflicting-branches.mjs';
 
 let repo; let userDir;
@@ -84,7 +85,7 @@ describe('after a ship lands', () => {
     const q = queue();
     await landAShip(q, [row('w-mine')]);
     const folder = repo.folders['w-mine'];
-    git(folder, 'merge', '-q', '-X', 'ours', 'origin/main', '-m', 'Merge origin/main into agentbox/w-mine');
+    git(folder, 'merge', '-q', '-X', 'ours', 'origin/main', '-m', `Merge origin/main into ${nameSlug}/w-mine`);
     await landAShip(q, [row('w-mine')]);
     expect(q.takeEarlyConflict(row('w-mine'))).toBeNull();
   });

@@ -53,10 +53,10 @@ describe('the build produces the files an update needs', () => {
     expect(pkg.build.publish).toBeTruthy();
     const [feed] = pkg.build.publish;
     expect(feed.provider).toBe('github');
-    // Public since 2026-10-05: the old Astral-Agent/astral-releases is private,
-    // so no installed copy could ever read an update from it.
-    expect(feed.owner).toBe('agentboxhq');
-    expect(feed.repo).toBe('agentbox-releases');
+    // The fork's own releases: Agentbox's feed would install Agentbox over
+    // Mercury.app.
+    expect(feed.owner).toBe('matheusmercadante');
+    expect(feed.repo).toBe('mercury');
     // The same place scripts/publish-download.mjs uploads to. If these two ever
     // drift the app looks for its updates somewhere nothing is published.
     expect(publish).toContain('const REPO = RELEASE_REPO');

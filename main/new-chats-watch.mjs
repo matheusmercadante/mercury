@@ -98,7 +98,7 @@ export function startNewChatsWatch({
   };
 }
 
-/** The watch as the app runs it, on the desktop (main/main.mjs) and in the browser copy (bin/agentbox.mjs). */
+/** The watch as the app runs it, on the desktop (main/main.mjs) and in the browser copy (bin/mercury.mjs). */
 export function watchNewChatsFor({ store, config, supervisor, ...timing }) {
   return startNewChatsWatch({
     store,

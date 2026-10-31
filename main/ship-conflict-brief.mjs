@@ -3,6 +3,7 @@
 // touches a working tree.
 
 import { execFile } from 'node:child_process';
+import { nameSlug } from '../shared/product-name.mjs';
 
 const GIT_MS = 10_000;
 const MAX_COMMITS = 8;
@@ -11,8 +12,8 @@ const SUMMARY_CHARS = 240;
 export const KEEP_BOTH = 'Resolve it keeping both changes where they fit. Only ask the person if the two changes want opposite things, and then say which you kept and why.';
 
 const CONFLICT_LINE = /^CONFLICT \([^)]*\): .*$/m;
-// Main's own merges from `npm run ship`: "Merge origin/main into agentbox/<id>".
-const SHIPPED_FROM = /\binto agentbox\/([A-Za-z0-9_-]+)\s*$/;
+// Main's own merges from `npm run ship`: "Merge origin/main into mercury/<id>".
+export const SHIPPED_FROM = new RegExp(`\\binto ${nameSlug}\\/([A-Za-z0-9_-]+)\\s*$`);
 
 export const isMergeConflict = (output) => CONFLICT_LINE.test(String(output ?? ''));
 

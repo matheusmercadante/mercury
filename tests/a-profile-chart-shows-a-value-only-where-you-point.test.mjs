@@ -13,6 +13,7 @@ import { describe, it, expect } from 'vitest';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { HoursChart, ProfilePage, chartSeries, pointUnder, pointWords } from '../renderer/src/team/rooms/RoomPerson.tsx';
+import { Name } from '../shared/product-name.mjs';
 globalThis.React = React;
 
 const OCT = Date.parse('2026-10-21T12:00:00');
@@ -78,7 +79,7 @@ describe('every number on the page says what it covers', () => {
   const html = renderToStaticMarkup(React.createElement(ProfilePage, { card, room, rooms: [room], cards: [], rank: 2, onRanks: () => {} }));
   it('the rank in the room is this week, the rank on the app all time', () => {
     expect(html).toContain('In Astral this week');
-    expect(html).toContain('On Agentbox all time');
+    expect(html).toContain(`On ${Name} all time`);
   });
   // The label floating over the chart read as "a little weird" (2026-10-21);
   // option A of five was picked: the total above the chart, and since when.

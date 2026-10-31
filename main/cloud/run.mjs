@@ -59,7 +59,7 @@ import { pipeline } from 'node:stream/promises';
 import { spawn } from 'node:child_process';
 import { run } from './exec.mjs';
 import { readMarker, writeMarker, clearMarker, addCloudNews, commonGitDirOf } from './marker.mjs';
-import { Name, nameSlug } from '../../shared/product-name.mjs';
+import { ENV_PREFIX, Name, nameSlug, readEnv } from '../../shared/product-name.mjs';
 import { KEPT_ASIDE } from '../../shared/not-shipped.mjs';
 import { codexTranscriptFile } from '../codex-session.mjs';
 import { CLIENT_INFO } from '../codex-app-server.mjs';
@@ -695,7 +695,7 @@ export async function cloudRun({
   let startCursor = 0; let startN = 0; let stdinClosed = false; let startConns = {};
   const kitPrefix = kit ? kitKey(kit.device, kit.project, kit.item).replace(/\.json$/, '') : null;
   const key = (name) => (kitPrefix ? `${kitPrefix}/${name}` : keyOf(runId, name));
-  const roots = [env.AGENTBOX_HOME, env.ZERO_STORE_ROOT, env.STORE_HOME].filter(Boolean).map((r) => path.resolve(r));
+  const roots = [readEnv('HOME', env), env.ZERO_STORE_ROOT, env.STORE_HOME].filter(Boolean).map((r) => path.resolve(r));
   // A QUIT WHILE THE RUN IS STILL STARTING is held until it has started, and
   // then leaves it going like any other (`leave`); one whose start never
   // answered is marked to be joined, not stopped.
@@ -1918,7 +1918,7 @@ export function exitCodeOf(record) {
 export function toolVariables(env) {
   const out = {};
   for (const [k, v] of Object.entries(env || {})) {
-    if (/^(ZERO_|STORE_|AGENTBOX_)/.test(k) && !/(KEY|TOKEN|SECRET|PASSWORD)/.test(k)) out[k] = v;
+    if ((/^(ZERO_|STORE_|AGENTBOX_)/.test(k) || k.startsWith(`${ENV_PREFIX}_`)) && !/(KEY|TOKEN|SECRET|PASSWORD)/.test(k)) out[k] = v;
   }
   return out;
 }

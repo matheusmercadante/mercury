@@ -9,6 +9,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { buildPhoneSite } from '../scripts/build-phone-site.mjs';
+import { nameSlug } from '../shared/product-name.mjs';
 
 let dir, dist, out, configFile, icon;
 const write = (file, text) => { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, text); };
@@ -85,8 +86,8 @@ describe('where the build finds the cloud', () => {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), 'home-'));
     const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'repo-'));
     expect(teamConfigFile(repo, home)).toBeNull();
-    write(path.join(home, '.agentbox', 'team.config.json'), '{}');
-    expect(teamConfigFile(repo, home)).toBe(path.join(home, '.agentbox', 'team.config.json'));
+    write(path.join(home, `.${nameSlug}`, 'team.config.json'), '{}');
+    expect(teamConfigFile(repo, home)).toBe(path.join(home, `.${nameSlug}`, 'team.config.json'));
     write(path.join(repo, 'cloud', 'team.config.json'), '{}');
     expect(teamConfigFile(repo, home)).toBe(path.join(repo, 'cloud', 'team.config.json'));
   });

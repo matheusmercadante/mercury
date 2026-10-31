@@ -163,9 +163,9 @@ Three mechanics, because sessions rediscover them at a cycle each:
   THERE. The app keeps its own records in its own home, the way Claude Code
   does, so that nothing of ours lands in the folder they upload files to. The
   path is
-  `$ASTRAL_HOME/projects/<the product folder's full path, with every character
+  `$MERCURY_HOME/projects/<the product folder's full path, with every character
   that is not a letter or a digit turned into a dash>/work-items.jsonl`. The app
-  sets `ASTRAL_HOME` for the sessions it starts, and it is `~/.astral` when it is
+  sets `MERCURY_HOME` for the sessions it starts, and it is `~/.mercury` when it is
   unset (`main/store/home.mjs`). Print that path and read it before you append to
   it. A session that hunts for a ledger instead finds one sitting beside the
   ACCOUNT folder, one level above the product, left over from when there was one
@@ -293,4 +293,4 @@ next moves (for example: 1. Merge and continue to X (recommended) 2. Revise Y
 first 3. Park it), so the founder always has somewhere to go from the message
 itself. Merge nothing the founder has not approved; when they approve, a
 continuation session enacts the approved option. Note the branch name in the
-review body (agentbox/<item-id> is the convention the diff viewer picks up).
+review body (mercury/<item-id> is the convention the diff viewer picks up).

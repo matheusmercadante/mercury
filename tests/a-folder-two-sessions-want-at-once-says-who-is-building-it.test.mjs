@@ -43,6 +43,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { nameSlug } from '../shared/product-name.mjs';
 import { execFileSync, fork } from 'node:child_process';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
@@ -73,7 +74,7 @@ describe('reading a failed `worktree add` for what it actually means', () => {
   // the measured run and from `git worktree add` on a path it already knows.
   it('calls it building when git says the staging path already exists', () => {
     const staging = buildingFolderPath(dir, 'w-x');
-    const out = `Preparing worktree (checking out 'agentbox/w-x')\nfatal: '${staging}' already exists`;
+    const out = `Preparing worktree (checking out '${nameSlug}/w-x')\nfatal: '${staging}' already exists`;
     expect(somebodyIsBuilding(out)).toBe(true);
   });
 
@@ -87,11 +88,11 @@ describe('reading a failed `worktree add` for what it actually means', () => {
   // The first measurement only ever showed `already exists`, which is exactly
   // how a one-phrase guard would have shipped half-working.
   it('calls it building when the branch is already checked out somewhere', () => {
-    expect(somebodyIsBuilding(`Preparing worktree (checking out 'agentbox/w-x')\nfatal: 'agentbox/w-x' is already checked out at '${buildingFolderPath(dir, 'w-x')}'`)).toBe(true);
+    expect(somebodyIsBuilding(`Preparing worktree (checking out '${nameSlug}/w-x')\nfatal: '${nameSlug}/w-x' is already checked out at '${buildingFolderPath(dir, 'w-x')}'`)).toBe(true);
   });
 
   it('calls it building when the branch is already used by another worktree', () => {
-    expect(somebodyIsBuilding(`fatal: 'agentbox/w-x' is already used by worktree at '${buildingFolderPath(dir, 'w-x')}'`)).toBe(true);
+    expect(somebodyIsBuilding(`fatal: '${nameSlug}/w-x' is already used by worktree at '${buildingFolderPath(dir, 'w-x')}'`)).toBe(true);
   });
 
   // A FIFTH WORDING, AND IT TOOK A BUSY MACHINE TO SHOW IT. Measured 2026-10-17
@@ -118,7 +119,7 @@ describe('reading a failed `worktree add` for what it actually means', () => {
   it('does not call a branch collision somebody else building', () => {
     // A branch that exists is handled on its own road (`hasBranch()` then
     // attach), and it is a different failure with a different answer.
-    expect(somebodyIsBuilding("fatal: a branch named 'agentbox/w-x' already exists")).toBe(false);
+    expect(somebodyIsBuilding(`fatal: a branch named '${nameSlug}/w-x' already exists`)).toBe(false);
   });
 
   // THE ONE THIS GUARD GOT WRONG, caught by a test main gained on 2026-10-15
@@ -130,8 +131,8 @@ describe('reading a failed `worktree add` for what it actually means', () => {
   // session that will never arrive.
   it('does not call a branch checked out in a finished folder somebody else building', () => {
     const elsewhere = path.join(dir, 'elsewhere');
-    expect(somebodyIsBuilding(`fatal: 'agentbox/w-x' is already checked out at '${elsewhere}'`)).toBe(false);
-    expect(somebodyIsBuilding(`fatal: 'agentbox/w-x' is already used by worktree at '${elsewhere}'`)).toBe(false);
+    expect(somebodyIsBuilding(`fatal: '${nameSlug}/w-x' is already checked out at '${elsewhere}'`)).toBe(false);
+    expect(somebodyIsBuilding(`fatal: '${nameSlug}/w-x' is already used by worktree at '${elsewhere}'`)).toBe(false);
   });
 
   it('says nothing about an empty or missing message', () => {
@@ -237,7 +238,7 @@ describe('a folder somebody else is part way through making', () => {
     // staging registered and locked by another LIVE process.
     const staging = buildingFolderPath(dir, 'w-mid');
     fs.mkdirSync(path.dirname(staging), { recursive: true });
-    git(dir, 'worktree', 'add', '--no-checkout', '-q', staging, '-b', 'agentbox/w-mid', 'refs/heads/main');
+    git(dir, 'worktree', 'add', '--no-checkout', '-q', staging, '-b', `${nameSlug}/w-mid`, 'refs/heads/main');
     git(dir, 'worktree', 'lock', '--reason', `agentbox pid=${process.pid}`, staging);
 
     const asked = ensureTaskFolder(dir, 'w-mid', { pid: process.pid + 1 });
@@ -344,7 +345,7 @@ describe('six sessions wanting the same folder at once', () => {
       const made = ensureTaskFolder(dir, id, { dependencies: false });
       expect(made.taken, id).toBe(true);
       expect(made.path).toBe(taskFolderPath(dir, id));
-      expect(git(made.path, 'rev-parse', '--abbrev-ref', 'HEAD').trim()).toBe(`agentbox/${id}`);
+      expect(git(made.path, 'rev-parse', '--abbrev-ref', 'HEAD').trim()).toBe(`${nameSlug}/${id}`);
     }
     expect(new Set(ids.map((id) => taskFolderPath(dir, id))).size).toBe(6);
   }, 60_000);

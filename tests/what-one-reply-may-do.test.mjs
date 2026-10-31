@@ -29,7 +29,7 @@ import { buildLine, foldWorkItems, normalizeLine, pickFields, CLAUDE_PERMISSION_
 import { machineryPath } from '../main/store/home.mjs';
 import { answerModesFile } from '../main/answer-modes.mjs';
 import { buildSessionArgs, parseSessionArgs, permissionMode } from '../main/settings.mjs';
-import { nameSlug } from '../shared/product-name.mjs';
+import { nameSlug, envName } from '../shared/product-name.mjs';
 
 let appDir;
 let storeRoot;
@@ -172,7 +172,7 @@ describe('a forged ledger line cannot grant a permission', () => {
     const kept = JSON.parse(fs.readFileSync(answerModesFile(), 'utf8'));
     expect(kept[`${slug}/${row.id}`].mode).toBe('plan');
     expect(answerModesFile().startsWith(tmp + path.sep)).toBe(false);
-    expect(answerModesFile().startsWith(process.env.ASTRAL_HOME + path.sep)).toBe(false);
+    expect(answerModesFile().startsWith(process.env[envName('HOME')] + path.sep)).toBe(false);
     // Not in her product folder, which is what a worker's cwd is on a product
     // with no code repo registered.
     expect(fs.readdirSync(dir)).not.toContain('answer-modes.json');

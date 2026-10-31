@@ -26,7 +26,10 @@ import path from 'node:path';
 import { deadRunSentence, deadRunCause } from '../shared/spawn-trouble.mjs';
 import { machineryPath } from '../main/store/home.mjs';
 import { Supervisor } from '../main/supervisor.mjs';
-import { Name } from '../shared/product-name.mjs';
+import { Name, envName } from '../shared/product-name.mjs';
+
+// The throwaway home tests/agentbox-home.setup.mjs gives this file, put back after each case.
+const SUITE_HOME = process.env[envName('HOME')];
 
 const TWENTY_MINUTES = 20 * 60_000;
 
@@ -69,7 +72,7 @@ function layDownTrace(id, text) {
 beforeEach(() => {
   home = fs.mkdtempSync(path.join(os.tmpdir(), 'zero-back-home-'));
   docs = fs.mkdtempSync(path.join(os.tmpdir(), 'zero-back-docs-'));
-  process.env.ASTRAL_HOME = home;
+  process.env[envName('HOME')] = home;
   clock = DIED;
   items = [row('w-limit')];
   store = {
@@ -85,7 +88,7 @@ beforeEach(() => {
   layDownTrace('w-limit', LIMIT_TRACE);
 });
 
-afterEach(() => { delete process.env.ASTRAL_HOME; });
+afterEach(() => { process.env[envName('HOME')] = SUITE_HOME; });
 
 describe('a row the exit handler already spoke on still counts', () => {
   it('is counted, which is the bug she filed', () => {

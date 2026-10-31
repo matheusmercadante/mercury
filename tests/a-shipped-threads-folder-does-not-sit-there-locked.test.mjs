@@ -20,6 +20,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { nameSlug } from '../shared/product-name.mjs';
 import { ensureTaskFolder, taskFolderPath } from '../main/task-folders.mjs';
 import { shippedNote } from '../shared/shipped-note.mjs';
 import { Supervisor } from '../main/supervisor.mjs';
@@ -43,7 +44,7 @@ function folderWhoseWorkLanded(dir, id, what = 'the change itself\n') {
   fs.writeFileSync(path.join(made.path, 'app.txt'), what);
   git(made.path, 'add', '.');
   git(made.path, 'commit', '-q', '-m', 'the change itself');
-  git(dir, 'merge', '-q', '--ff-only', `agentbox/${id}`);
+  git(dir, 'merge', '-q', '--ff-only', `${nameSlug}/${id}`);
   return made.path;
 }
 
@@ -172,7 +173,7 @@ describe('what is kept whatever happens', () => {
     await sup.parkClosedFolders(product);
 
     expect(fs.existsSync(folder)).toBe(false);
-    expect(git(dir, 'show', 'agentbox/w-kept:app.txt')).toBe('the change itself');
+    expect(git(dir, 'show', `${nameSlug}/w-kept:app.txt`)).toBe('the change itself');
     expect(taskFolderPath(dir, 'w-kept')).toBe(folder);
   }, 30_000);
 });

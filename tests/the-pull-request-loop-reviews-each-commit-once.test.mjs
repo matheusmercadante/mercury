@@ -24,6 +24,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { reviewBrief, reviewRow, whatNeedsReview, headLabel } from '../.claude/skills/review-pull-requests/scan.mjs';
 import { fileReview } from '../.claude/skills/review-pull-requests/file.mjs';
+import { envName } from '../shared/product-name.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const skill = path.join(root, '.claude', 'skills', 'review-pull-requests');
@@ -104,19 +105,21 @@ describe('the inbox row', () => {
 describe('filing a finished review', () => {
   let home;
   let work;
+  let wasHome;
   const ACCOUNT = 'acct-test';
   beforeEach(async () => {
     home = fs.mkdtempSync(path.join(os.tmpdir(), 'pr-loop-'));
     const dir = path.join(home, 'accounts', ACCOUNT, 'acme');
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(path.join(dir, 'project.json'), JSON.stringify({ schemaVersion: 2, id: 'acme', name: 'Acme' }));
-    process.env.AGENTBOX_HOME = home;
+    wasHome = process.env[envName('HOME')];
+    process.env[envName('HOME')] = home;
     const { resolveAccount } = await import('../mcp/core/account.mjs');
     resolveAccount({ accountId: ACCOUNT });
     work = await import('../mcp/core/work.mjs');
   });
   afterEach(() => {
-    delete process.env.AGENTBOX_HOME;
+    process.env[envName('HOME')] = wasHome;
     fs.rmSync(home, { recursive: true, force: true });
   });
 

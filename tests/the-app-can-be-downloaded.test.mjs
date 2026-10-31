@@ -10,12 +10,12 @@ import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { unpacked } from '../main/supervisor.mjs';
-import { NAME, Name, WAS } from '../shared/product-name.mjs';
+import { NAME, Name, WAS, FORKED_FROM } from '../shared/product-name.mjs';
 
 const repo = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const pkg = JSON.parse(fs.readFileSync(path.join(repo, 'package.json'), 'utf8'));
 
-describe('the app a stranger downloads is called Powerup', () => {
+describe(`the app a stranger downloads is called ${Name}`, () => {
   it(`names itself ${NAME} everywhere a person can see the name`, () => {
     // package.json cannot import the name, so scripts/product-name.mjs carries
     // it across and this is the guard that the crossing happened. A rename that
@@ -33,14 +33,13 @@ describe('the app a stranger downloads is called Powerup', () => {
     for (const was of WAS) expect(main).not.toContain(`title: '${was}'`);
   });
 
-  // THE NAME MOVED AND THE BUNDLE ID DID NOT, ON PURPOSE.The Dock reads
-  // productName, so that is what moved. This string is what macOS keys the
-  // login item, the notarisation ticket and EVERY permission the user has
-  // already granted off, and it is invisible to them. Moving it too would
-  // have made the rename cost every user their accessibility and
-  // notification grants for nothing anyone can see. It stays.
+  // macOS keys the login item, the notarisation ticket and EVERY permission
+  // the user has granted off this string, and it is invisible to them. The
+  // fork took its own so it never shares Agentbox's grants on a Mac that runs
+  // both; moving it again would cost every user their accessibility and
+  // notification grants for nothing anyone can see.
   it('keeps a bundle id that is ours and never changes by accident', () => {
-    expect(pkg.build.appId).toBe('ac.astral.app');
+    expect(pkg.build.appId).toBe('io.github.matheusmercadante.mercury');
   });
 });
 
@@ -291,11 +290,11 @@ describe('the founder’s own writing does not go inside a signed bundle', () =>
     expect(main).toContain("app.setPath('userData', legacy)");
     expect(main).toMatch(/!fs\.existsSync\(named\)/);
     expect(main).toMatch(/fs\.existsSync\(legacy\)/);
-    // The names this app has actually shipped under. Losing one of these loses
-    // real people their settings, silently, on the release that drops it.
     expect(main).toMatch(/for \(const was of WAS\)/);
-    expect(WAS).toContain('Astral');
-    expect(WAS).toContain('Zero');
+    // Mercury has shipped under no other name, so the list is empty. Agentbox's
+    // names never go on it: that folder belongs to the Agentbox installed
+    // beside it.
+    for (const forked of FORKED_FROM) expect(WAS).not.toContain(forked);
     // And the current name is never on the list of former ones, which would
     // make the fallback point an existing install at itself.
     expect(WAS).not.toContain(NAME);

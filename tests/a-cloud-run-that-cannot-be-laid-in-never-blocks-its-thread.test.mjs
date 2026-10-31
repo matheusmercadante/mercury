@@ -31,6 +31,7 @@ import { createSandbox } from '../cloud/sandbox/server.mjs';
 import { cloudRun, IMPORT_FAILED } from '../main/cloud/run.mjs';
 import { readMarker, writeMarker, takeCloudNews, addCloudNews } from '../main/cloud/marker.mjs';
 import { Supervisor } from '../main/supervisor.mjs';
+import { envName } from '../shared/product-name.mjs';
 
 const here = (p) => fileURLToPath(new URL(p, import.meta.url));
 const FAKE_CLAUDE = here('./fixtures/cloud/fake-claude.mjs');
@@ -103,7 +104,7 @@ function launch(message) {
   stderr.on('data', (d) => { err += d; });
   const done = cloudRun({
     argv: [FAKE_CLAUDE, '-p', '--output-format', 'stream-json', '--mcp-config', mcpFile],
-    env: { ...process.env, ZERO_ITEM: 'w-1', ZERO_PRODUCT: 'p', CLAUDE_CONFIG_DIR: configDir(), AGENTBOX_HOME: path.join(tmp, 'mac') },
+    env: { ...process.env, ZERO_ITEM: 'w-1', ZERO_PRODUCT: 'p', CLAUDE_CONFIG_DIR: configDir(), [envName('HOME')]: path.join(tmp, 'mac') },
     cwd: mac, transport, storage, login: LOGIN,
     stdin, stdout, stderr, remoteCommand: process.execPath, stubPath: STUB, pollWaitMs: 200, resultsWaitMs: 8000, watchParent: false, signals: new EventEmitter(),
     homeDir: path.join(tmp, 'home'),

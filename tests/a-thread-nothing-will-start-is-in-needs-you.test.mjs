@@ -21,6 +21,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { belongsInInbox, belongsInProgress, belongsOnTheRail, stoppable, gaveUpOnTheAnswer } from '../renderer/src/list-rules.ts';
 import { Supervisor } from '../main/supervisor.mjs';
+import { Name } from '../shared/product-name.mjs';
 
 const ANSWERED = Date.parse('2026-10-23T21:55:03Z');
 const HELD = Date.parse('2026-10-23T22:24:03Z');
@@ -30,7 +31,7 @@ const NOW = Date.parse('2026-10-24T00:53:00Z');
 const row = (extra = {}) => ({
   id: 'w-71923d522e', product: 'p', title: 'Routines', kind: 'task', status: 'open', labels: ['stickiness'],
   parent: 'w-13147e8f68', answer: 'Try again with that context.',
-  result: 'Agentbox stopped starting this thread: it was started 6 times in 10 minutes, and every run ended before its agent began. The last one said: "agentbox cloud: no Claude account is signed in for the cloud yet (the cloud button)". Reply here to try again.',
+  result: `${Name} stopped starting this thread: it was started 6 times in 10 minutes, and every run ended before its agent began. The last one said: "agentbox cloud: no Claude account is signed in for the cloud yet (the cloud button)". Reply here to try again.`,
   wrote: {
     answer: { ts: ANSWERED, source: 'founder' },
     result: { ts: HELD, source: 'agent' },
@@ -52,7 +53,7 @@ describe('the four rows as they were', () => {
 
   it('the hold sentence reads as a run that got nowhere, in its old words and its new ones', () => {
     expect(gaveUpOnTheAnswer(row())).toBe(true);
-    const newer = 'Agentbox stopped starting this thread. It was started 6 times in 10 minutes, and each run ended before its agent began. Reply here to try again.';
+    const newer = `${Name} stopped starting this thread. It was started 6 times in 10 minutes, and each run ended before its agent began. Reply here to try again.`;
     expect(gaveUpOnTheAnswer(row({ result: newer }))).toBe(true);
   });
 });

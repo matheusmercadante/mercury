@@ -47,7 +47,7 @@ push hook and CI already run them.
 
 ## Launch
 
-The live layer runs `bin/agentbox.mjs`, the browser copy of the app: the same
+The live layer runs `bin/mercury.mjs`, the browser copy of the app: the same
 store, supervisor, IPC handlers and renderer as the desktop, no Electron. It is
 the only way to run a second Agentbox on a Mac without touching the one being
 used.

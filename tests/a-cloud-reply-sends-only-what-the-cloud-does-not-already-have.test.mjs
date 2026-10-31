@@ -34,6 +34,7 @@ import { pickBase, periodOf, CACHE_PERIOD_MS, sendConversation, sentRecordPath, 
 import { transcriptFolderName } from '../main/cloud/run.mjs';
 import { copyRanges } from '../main/cloud/aws.mjs';
 import { imageCaps, noteImageCaps } from '../main/cloud/config.mjs';
+import { envName } from '../shared/product-name.mjs';
 
 const here = (p) => fileURLToPath(new URL(p, import.meta.url));
 const FAKE_CLAUDE = here('./fixtures/cloud/fake-claude.mjs');
@@ -122,7 +123,7 @@ function launch({ message = 'please do it', caps = TAKES_A_BASE, args = [] } = {
   stderr.on('data', (d) => { err += d; });
   const done = cloudRun({
     argv: [FAKE_CLAUDE, '-p', '--output-format', 'stream-json', '--mcp-config', mcpFile, ...args],
-    env: { ...process.env, ZERO_ITEM: 'w-1', ZERO_PRODUCT: 'p', CLAUDE_CONFIG_DIR: configDir(), AGENTBOX_HOME: path.join(tmp, 'mac') },
+    env: { ...process.env, ZERO_ITEM: 'w-1', ZERO_PRODUCT: 'p', CLAUDE_CONFIG_DIR: configDir(), [envName('HOME')]: path.join(tmp, 'mac') },
     cwd: mac, transport, storage, login: LOGIN,
     stdin, stdout, stderr, remoteCommand: process.execPath, stubPath: STUB, pollWaitMs: 200, resultsWaitMs: 8000, watchParent: false, signals: new EventEmitter(),
     homeDir: path.join(tmp, 'home'),

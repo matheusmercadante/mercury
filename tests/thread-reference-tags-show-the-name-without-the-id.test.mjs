@@ -4,6 +4,7 @@ import {describe, it, expect} from 'vitest';
 import {createElement as h} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {TicketLink, TicketNavigation, TicketText} from '../renderer/src/components/TicketReference.tsx';
+import {nameSlug} from '../shared/product-name.mjs';
 
 const id='w-a123456789';
 const name='Shared engine interface';
@@ -13,13 +14,13 @@ const visible=html=>html.replace(/<[^>]+>/g,'');
 
 describe('a thread tag is its name and icon',()=>{
   it('replaces both a bare ID and a copied branch with the thread name',()=>{
-    const html=render(h(TicketText,{text:`Review ${id}, then agentbox/${id}-engine.`}));
+    const html=render(h(TicketText,{text:`Review ${id}, then ${nameSlug}/${id}-engine.`}));
     expect(visible(html)).toBe(`Review ${name}, then ${name}.`);
     expect(html).toContain('<svg');
     expect(html).toContain(`href="#ticket/${id}"`);
   });
   it('replaces inline-code or authored link labels without nesting code in the tag',()=>{
-    const html=render(h(TicketLink,{id},h('code',null,'agentbox/'+id)));
+    const html=render(h(TicketLink,{id},h('code',null,`${nameSlug}/${id}`)));
     expect(visible(html)).toBe(name);
     expect(html).not.toContain('<code');
     expect(html).toContain('Open thread: '+name);

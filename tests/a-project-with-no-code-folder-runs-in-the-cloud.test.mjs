@@ -31,6 +31,7 @@ import { taskFolderPath } from '../main/task-folders.mjs';
 import { fillNewThreadKit, NEW_THREAD, NEW_ITEM_MARK, newThreadKitKey, startPayload } from '../shared/cloud-kit.mjs';
 import { markerForCloudRun } from '../main/cloud/kit.mjs';
 import { waitFor } from './waiting.mjs';
+import { envName } from '../shared/product-name.mjs';
 
 const here = (p) => fileURLToPath(new URL(p, import.meta.url));
 const FAKE_CLAUDE = here('./fixtures/cloud/fake-claude.mjs');
@@ -176,7 +177,7 @@ describe('a cloud run with no repository', () => {
     stderr.on('data', (d) => { err += d; });
     const done = cloudRun({
       argv: [FAKE_CLAUDE, '-p', '--output-format', 'stream-json', '--mcp-config', mcpFile],
-      env: { ...process.env, ZERO_ITEM: 'w-1', ZERO_PRODUCT: 'notes', CLAUDE_CONFIG_DIR: configDir, AGENTBOX_HOME: path.join(tmp, 'mac', 'store'), AGENTBOX_DOCS: docs, AGENTBOX_CLOUD_MARKER: marker },
+      env: { ...process.env, ZERO_ITEM: 'w-1', ZERO_PRODUCT: 'notes', CLAUDE_CONFIG_DIR: configDir, [envName('HOME')]: path.join(tmp, 'mac', 'store'), AGENTBOX_DOCS: docs, AGENTBOX_CLOUD_MARKER: marker },
       cwd: docs, transport: transport(answer), storage: storage(), login: LOGIN,
       stdin, stdout, stderr, remoteCommand: process.execPath, stubPath: STUB, pollWaitMs: 200, resultsWaitMs: 8000, watchParent: false, signals: new EventEmitter(),
       homeDir: path.join(tmp, 'home'), docsEveryMs: 200, imageCaps: caps, onCaps: (c) => heard.push(c),
@@ -215,7 +216,7 @@ describe('a cloud run with no repository', () => {
     fs.mkdirSync(configDir, { recursive: true });
     const mcpFile = path.join(tmp, 'mac', 'mcp.json');
     fs.writeFileSync(mcpFile, JSON.stringify({ mcpServers: { agentbox: { command: process.execPath, args: [FAKE_STORE], env: { FAKE_STORE_LOG: path.join(tmp, 'store.log') } } } }));
-    const env = { ...process.env, ZERO_ITEM: NEW_ITEM_MARK, ZERO_PRODUCT: 'notes', CLAUDE_CONFIG_DIR: configDir, AGENTBOX_HOME: path.join(tmp, 'mac', 'store'), AGENTBOX_DOCS: docs, AGENTBOX_CLOUD_MARKER: marker };
+    const env = { ...process.env, ZERO_ITEM: NEW_ITEM_MARK, ZERO_PRODUCT: 'notes', CLAUDE_CONFIG_DIR: configDir, [envName('HOME')]: path.join(tmp, 'mac', 'store'), AGENTBOX_DOCS: docs, AGENTBOX_CLOUD_MARKER: marker };
     const common = { cwd: docs, storage: storage(), remoteCommand: process.execPath, stubPath: STUB, imageCaps: NOW_CAPS, watchParent: false, signals: new EventEmitter(), homeDir: path.join(tmp, 'home'), stdout: new PassThrough(), stderr: new PassThrough() };
     const device = 'a1b2c3d4e5f6';
     expect(await cloudRun({ ...common, argv: [FAKE_CLAUDE, '-p', '--output-format', 'stream-json', '--mcp-config', mcpFile], env, transport: transport(), login: LOGIN,

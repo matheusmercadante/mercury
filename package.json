@@ -1,16 +1,16 @@
 {
-  "name": "agentbox-app",
-  "productName": "Agentbox",
+  "name": "mercury-app",
+  "productName": "Mercury",
   "version": "0.1.19",
   "description": "An inbox for managing dozens of Claude Code and Codex agents.",
   "author": "Savannah Feder",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/savannahfeder/agentbox.git"
+    "url": "git+https://github.com/matheusmercadante/mercury.git"
   },
-  "homepage": "https://github.com/savannahfeder/agentbox#readme",
+  "homepage": "https://github.com/matheusmercadante/mercury#readme",
   "bugs": {
-    "url": "https://github.com/savannahfeder/agentbox/issues"
+    "url": "https://github.com/matheusmercadante/mercury/issues"
   },
   "keywords": [
     "claude-code",
@@ -26,7 +26,7 @@
   "type": "module",
   "main": "main/main.mjs",
   "bin": {
-    "agentbox": "bin/agentbox.mjs"
+    "mercury": "bin/mercury.mjs"
   },
   "files": [
     "bin/",
@@ -74,7 +74,7 @@
     "phone:build": "vite build renderer --logLevel warn && node scripts/build-phone-site.mjs",
     "phone:deploy": "npm run phone:build && node scripts/deploy-phone-site.mjs",
     "prepare": "node scripts/install-hooks.mjs",
-    "serve": "node bin/agentbox.mjs",
+    "serve": "node bin/mercury.mjs",
     "prepack": "npm run build",
     "postinstall": "node scripts/after-install.mjs",
     "prepublishOnly": "node scripts/before-publish.mjs",
@@ -142,9 +142,9 @@
     "electron-winstaller": false
   },
   "build": {
-    "appId": "ac.astral.app",
-    "productName": "Agentbox",
-    "copyright": "Copyright © 2026 Agentbox",
+    "appId": "io.github.matheusmercadante.mercury",
+    "productName": "Mercury",
+    "copyright": "Copyright © 2026 Mercury",
     "directories": {
       "output": "release",
       "buildResources": "build"
@@ -174,20 +174,20 @@
     ],
     "protocols": [
       {
-        "name": "Agentbox",
+        "name": "Mercury",
         "schemes": [
-          "agentbox"
+          "mercury"
         ]
       }
     ],
     "mac": {
       "extendInfo": {
-        "NSDesktopFolderUsageDescription": "Agentbox needs this to let your agents work in a project you keep on the Desktop.",
-        "NSDocumentsFolderUsageDescription": "Agentbox needs this to let your agents work in a project you keep in Documents.",
-        "NSDownloadsFolderUsageDescription": "Agentbox needs this to let your agents work in a project you keep in Downloads.",
-        "NSRemovableVolumesUsageDescription": "Agentbox needs this to let your agents work in a project you keep on an external disk.",
-        "NSAppleEventsUsageDescription": "Agentbox needs this when an agent you started asks another app to do something.",
-        "NSMicrophoneUsageDescription": "Agentbox needs this to record a voice note when you press the microphone button."
+        "NSDesktopFolderUsageDescription": "Mercury needs this to let your agents work in a project you keep on the Desktop.",
+        "NSDocumentsFolderUsageDescription": "Mercury needs this to let your agents work in a project you keep in Documents.",
+        "NSDownloadsFolderUsageDescription": "Mercury needs this to let your agents work in a project you keep in Downloads.",
+        "NSRemovableVolumesUsageDescription": "Mercury needs this to let your agents work in a project you keep on an external disk.",
+        "NSAppleEventsUsageDescription": "Mercury needs this when an agent you started asks another app to do something.",
+        "NSMicrophoneUsageDescription": "Mercury needs this to record a voice note when you press the microphone button."
       },
       "category": "public.app-category.productivity",
       "icon": "build/icon.icns",
@@ -213,7 +213,7 @@
       "notarize": false
     },
     "dmg": {
-      "title": "Agentbox",
+      "title": "Mercury",
       "contents": [
         {
           "x": 140,
@@ -231,8 +231,8 @@
     "publish": [
       {
         "provider": "github",
-        "owner": "agentboxhq",
-        "repo": "agentbox-releases"
+        "owner": "matheusmercadante",
+        "repo": "mercury"
       }
     ]
   },

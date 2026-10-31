@@ -17,6 +17,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { createServer, newToken, fileKey } from '../main/serve.mjs';
 import { phoneFileUrl } from '../renderer/src/phone-files';
+import { DOC_SCHEME, IMG_SCHEME, IMG_SCHEMES } from '../shared/schemes.mjs';
 
 let server, base, token, root, outside, dist;
 const allowedRoot = () => root;
@@ -133,9 +134,9 @@ describe('a design page on a phone', () => {
 describe('the phone points the desktop\'s addresses at its server', () => {
   const key = 'k3y';
   it('a picture and a page, on every spelling the app has used', () => {
-    expect(phoneFileUrl('agentbox-img://file/Users/x/a%20b/shot.png', key)).toBe('/f/k3y/img/Users/x/a%20b/shot.png');
-    expect(phoneFileUrl('agentbox-doc://file/Users/x/page.html', key)).toBe('/f/k3y/doc/Users/x/page.html');
-    expect(phoneFileUrl('astral-img://file/Users/x/old.png', key)).toBe('/f/k3y/img/Users/x/old.png');
+    expect(phoneFileUrl(`${IMG_SCHEME}://file/Users/x/a%20b/shot.png`, key)).toBe('/f/k3y/img/Users/x/a%20b/shot.png');
+    expect(phoneFileUrl(`${DOC_SCHEME}://file/Users/x/page.html`, key)).toBe('/f/k3y/doc/Users/x/page.html');
+    for (const old of IMG_SCHEMES.slice(1)) expect(phoneFileUrl(`${old}://file/Users/x/old.png`, key)).toBe('/f/k3y/img/Users/x/old.png');
   });
 
   it('leaves every other address alone', () => {

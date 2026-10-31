@@ -59,7 +59,7 @@ describe('starting with no outside checkout on the machine', () => {
   // was the thing to stay out of. But the developer's own copy of THIS repo
   // lives at ~/Desktop/dev/zero, and the pre-push hook runs the suite there, so
   // once the store server and the approval server shipped inside this repo the
-  // boot quite correctly read `<repo>/mcp/agentbox-mcp.sh` and
+  // boot quite correctly read `<repo>/mcp/mercury-mcp.sh` and
   // `<repo>/scripts/approval-server.sh` and this test called them foreign.
   // Measured 2026-09-23: green in a worktree under /tmp and red in that
   // checkout, on the same commit, which is a test that can only fail where it

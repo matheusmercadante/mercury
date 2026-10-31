@@ -445,7 +445,7 @@ scenarios.resume = async () => {
 
 /** Where the store server lives, for the two scenarios that need one. */
 function storeServerFor(item = 'w-36c51443df', product = 'agentbox-team') {
-  const command = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..', 'mcp', 'agentbox-mcp.sh');
+  const command = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..', 'mcp', 'mercury-mcp.sh');
   if (!fs.existsSync(command)) throw new Error(`no store launcher at ${command}`);
   const accountId = process.env.QA_STORE_ACCOUNT_ID;
   const root = process.env.QA_STORE_ROOT;

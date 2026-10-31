@@ -26,6 +26,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { Name, nameSlug } from '../shared/product-name.mjs';
 import { ensureTaskFolder, parkTaskFolder, restoreTaskFolder } from '../main/task-folders.mjs';
 
 const git = (cwd, ...args) => execFileSync('git', args, { cwd, encoding: 'utf8' }).trim();
@@ -74,7 +75,7 @@ describe('parking a task folder when git has no name for anybody', () => {
 
     expect(parked).toMatchObject({ parked: true, kept: 'work in progress' });
     expect(fs.existsSync(made.path)).toBe(false);
-    expect(author('agentbox/w-nobody')).toBe('Agentbox <agentbox@localhost>');
+    expect(author(`${nameSlug}/w-nobody`)).toBe(`${Name} <${nameSlug}@localhost>`);
     const back = restoreTaskFolder(dir, 'w-nobody');
     expect(fs.readFileSync(path.join(back.path, 'work.txt'), 'utf8')).toBe('half done\n');
   }, 30_000);
@@ -86,7 +87,7 @@ describe('parking a task folder when git has no name for anybody', () => {
     const { parked } = parkSomeWork('w-half');
 
     expect(parked).toMatchObject({ parked: true });
-    expect(author('agentbox/w-half')).toBe('Half Known <agentbox@localhost>');
+    expect(author(`${nameSlug}/w-half`)).toBe(`Half Known <${nameSlug}@localhost>`);
   }, 30_000);
 
   it('a person git knows is who the park commit is by', () => {
@@ -97,6 +98,6 @@ describe('parking a task folder when git has no name for anybody', () => {
     const { parked } = parkSomeWork('w-known');
 
     expect(parked).toMatchObject({ parked: true });
-    expect(author('agentbox/w-known')).toBe('Known Person <known@example.com>');
+    expect(author(`${nameSlug}/w-known`)).toBe('Known Person <known@example.com>');
   }, 30_000);
 });

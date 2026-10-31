@@ -46,19 +46,19 @@ async function fromCheckout(file) {
 const launcher = await fromCheckout('linux-launcher.mjs');
 if (launcher) {
   const { changed, why } = launcher.installLinuxLauncher({ env: process.env });
-  if (changed) console.log('agentbox: this checkout is in the app launcher.');
+  if (changed) console.log('mercury: this checkout is in the app launcher.');
   // A launcher that did not happen says so. Before this, a fresh clone whose
   // Electron binary was not downloaded yet got no launcher and no word about
   // it, and `which agentbox` answered nothing.
-  else if (why) console.log(`agentbox: no app launcher was written: ${why}.`);
+  else if (why) console.log(`mercury: no app launcher was written: ${why}.`);
 }
 
-// And the checkout's own command, so `npx agentbox-app` from here starts the
-// browser rather than looking for `agentbox` on PATH.
+// And the checkout's own command, so `npx mercury-app` from here starts the
+// browser rather than looking for `mercury` on PATH.
 const own = await fromCheckout('link-own-bin.mjs');
 if (own) {
   const { why } = own.linkOwnBin();
-  if (why) console.log(`agentbox: \`npx agentbox-app\` will not work from this checkout: ${why}.`);
+  if (why) console.log(`mercury: \`npx mercury-app\` will not work from this checkout: ${why}.`);
 }
 
 function prebuildsDir() {
@@ -89,7 +89,7 @@ try {
     fs.chmodSync(helper, 0o755);
     fixed += 1;
   }
-  if (fixed) console.log(`agentbox: made ${fixed} node-pty spawn-helper binar${fixed === 1 ? 'y' : 'ies'} executable, so the terminal works.`);
+  if (fixed) console.log(`mercury: made ${fixed} node-pty spawn-helper binar${fixed === 1 ? 'y' : 'ies'} executable, so the terminal works.`);
 } catch {
   // Nothing here is worth stopping an install for.
 }

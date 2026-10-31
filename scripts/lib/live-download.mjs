@@ -6,13 +6,17 @@
 // A release that simply has no download file on it is a live release serving
 // nothing, `missing: true`, and publishing is exactly what fixes that.
 
+
+import { Name } from '../../shared/product-name.mjs';
+
 // THE ONE PUBLIC REPO the website downloads from and installed copies update
 // from (2026-10-05). It replaced Astral-Agent/astral-releases, which is private,
 // so its files 404 for everyone signed out of GitHub, and whose older releases
 // carried personal details. package.json build.publish must name the same repo;
 // tests/the-download-lives-in-a-public-release-repo checks they agree.
-export const RELEASE_REPO = 'agentboxhq/agentbox-releases';
-export const DOWNLOAD_ASSET = 'Agentbox.dmg';
+// Mercury's is the fork itself; Agentbox's would install Agentbox over it.
+export const RELEASE_REPO = 'matheusmercadante/mercury';
+export const DOWNLOAD_ASSET = `${Name}.dmg`;
 
 // A repo with no release at all yet: gh says exactly this. Nothing is served,
 // and publishing is what fixes it. Any other gh failure still stops.

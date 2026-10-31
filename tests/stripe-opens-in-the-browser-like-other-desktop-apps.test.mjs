@@ -18,6 +18,7 @@ import { paidPage } from '../cloud/gateway/gateway.mjs';
 import { ourLink, JOIN_SCHEME } from '../shared/room-links.mjs';
 import { CloudPlanCards } from '../renderer/src/components/CloudPlanCards.tsx';
 import { SETUP } from '../renderer/src/cloud-setup.ts';
+import { Name } from '../shared/product-name.mjs';
 
 const read = (p) => fs.readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 const exists = (p) => fs.existsSync(new URL(`../${p}`, import.meta.url));
@@ -79,7 +80,7 @@ describe("Stripe's last page", () => {
   const page = (q) => paidPage(new URLSearchParams(q));
   it('names the plan that was paid for, and goes back to the app', () => {
     const html = page('plan=pro');
-    expect(text(html)).toContain('You’re on Agentbox Cloud Pro');
+    expect(text(html)).toContain(`You’re on ${Name} Cloud Pro`);
     expect(html).toContain(`href="${JOIN_SCHEME}://cloud"`);
   });
   it('says nothing was charged when checkout was cancelled', () => {
@@ -93,7 +94,7 @@ describe("Stripe's last page", () => {
     expect(html).toContain(`href="${JOIN_SCHEME}://cloud"`);
   });
   it('names only a plan the server sells, never what the address says', () => {
-    expect(text(page('plan=gold'))).toContain('You’re on Agentbox Cloud');
+    expect(text(page('plan=gold'))).toContain(`You’re on ${Name} Cloud`);
     expect(text(page('plan=gold'))).not.toContain('gold');
     expect(page('plan=%3Cscript%3Ealert(1)%3C%2Fscript%3E')).not.toContain('<script>');
     expect(page('plan=none')).not.toMatch(/Cloud None|Cloud none/);

@@ -91,7 +91,7 @@ export function buildPhoneSite({ dist = path.join(root, 'renderer', 'dist'), out
   // The worker that shows an alert while the app is closed (renderer/src/phone-alerts.ts registers it).
   fs.writeFileSync(path.join(out, 'phone-sw.js'), fs.readFileSync(path.join(root, 'main', 'phone-sw.js'), 'utf8').replaceAll('__APP_NAME__', Name));
   fs.writeFileSync(path.join(out, 'manifest.webmanifest'), JSON.stringify({
-    name: 'Agentbox', short_name: 'Agentbox', start_url: '/', scope: '/', display: 'standalone',
+    name: Name, short_name: Name, start_url: '/', scope: '/', display: 'standalone',
     background_color: '#1e1b1a', theme_color: '#1e1b1a',
     icons: [{ src: '/phone-icon.png', sizes: '512x512', type: 'image/png', purpose: 'any' }],
   }));

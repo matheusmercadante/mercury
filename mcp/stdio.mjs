@@ -72,7 +72,7 @@ async function main() {
   process.on('SIGTERM', goodbye);
 }
 
-// Started as a program (mcp/agentbox-mcp.sh), not imported by a cloud run's relay.
+// Started as a program (mcp/mercury-mcp.sh), not imported by a cloud run's relay.
 const startedAsProgram = path.basename(process.argv[1] || '') === 'stdio.mjs';
 if (startedAsProgram) main().catch((err) => {
   // A startup failure is almost always configuration (no account, wrong

@@ -24,18 +24,20 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
-import { NAME, Name, WAS, nameSlug, fillName } from '../shared/product-name.mjs';
+import { NAME, Name, WAS, FORKED_FROM, nameSlug, fillName } from '../shared/product-name.mjs';
 import { drift } from '../scripts/product-name.mjs';
 
 const repo = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => fs.readFileSync(path.join(repo, p), 'utf8');
+// Mercury's own old names and Agentbox's, which it was forked from.
+const OLD = [...WAS, ...FORKED_FROM];
 
 describe('the two spellings', () => {
   // Capitalised mid-sentence too since 2026-10-02 (w-23fa810982), so the two
   // spellings are the same word; the rule still holds for the next name.
   it('is the plain word mid-sentence and the same word raised at a sentence start', () => {
-    expect(NAME).toBe('Agentbox');
-    expect(Name).toBe('Agentbox');
+    expect(NAME).toBe('Mercury');
+    expect(Name).toBe('Mercury');
     expect(Name).toBe(NAME.charAt(0).toUpperCase() + NAME.slice(1));
   });
 
@@ -43,7 +45,7 @@ describe('the two spellings', () => {
   // the rule costs nothing when it does not apply.
   it('leaves a name that is already capitalised alone', () => {
     const raise = (w) => w.charAt(0).toUpperCase() + w.slice(1);
-    for (const was of WAS) expect(raise(was)).toBe(was);
+    for (const was of OLD) expect(raise(was)).toBe(was);
   });
 
   it('gives a slug safe for a folder or a package name', () => {
@@ -56,9 +58,10 @@ describe('the names this app has had', () => {
   // writes to. Losing an entry loses real people their theme, their zoom and
   // their project order, silently, on the release that drops it.
   it('is newest first and never has the current name on it', () => {
-    expect(WAS).toEqual(['Powerup', 'Astral', 'Zero']);
-    expect(WAS).not.toContain(NAME);
-    expect(WAS).not.toContain(Name);
+    expect(WAS).toEqual([]);
+    expect(FORKED_FROM).toEqual(['Agentbox', 'Powerup', 'Astral', 'Zero']);
+    expect(OLD).not.toContain(NAME);
+    expect(OLD).not.toContain(Name);
   });
 
   it('is what the data folder fallback actually reads', () => {
@@ -149,7 +152,7 @@ describe('nothing spells a name this app has had', () => {
         if (SKIP.has(file)) continue;
         let src = codeOnly(read(file));
         for (const ok of ALLOWED) src = src.replaceAll(ok, '');
-        for (const was of [...WAS, Name]) {
+        for (const was of [...OLD, Name]) {
           const at = src.indexOf(was);
           if (at > -1) guilty.push(`${file}: ${src.slice(Math.max(0, at - 40), at + 40).trim()}`);
         }
@@ -171,7 +174,9 @@ describe('nothing spells a name this app has had', () => {
   // English word and a number, and this would fail on every `slice(0)` comment
   // in the repo. That is a real gap, stated rather than papered over; it is
   // narrow, because the names that follow a proper noun are the ones that leak.
-  const LOWER = WAS.filter((was) => was.toLowerCase() !== 'zero').map((was) => was.toLowerCase());
+  // Nor `agentbox`: it is in the wire names Mercury shares with Agentbox's
+  // cloud, relay and phone site, and renaming one breaks that connection.
+  const LOWER = OLD.map((was) => was.toLowerCase()).filter((was) => was !== 'zero' && was !== 'agentbox');
 
   for (const dir of DIRS) {
     it(`does not type a lowercase one in ${dir} either`, () => {
@@ -207,12 +212,15 @@ describe('nothing on disk is named after a name this app has had', () => {
   // The one exception is the script that PERFORMED a rename, kept as history.
   // Renaming it would be renaming the record of the thing it did.
   const KEPT = new Set(['scripts/rename-to-powerup.mjs']);
+  // `agentbox` is left out: the developer tooling and tests carried from
+  // Agentbox keep its name in their file names, which nothing in the app reads.
+  const LOWER_FILE_NAMES = OLD.map((w) => w.toLowerCase()).filter((was) => was !== 'zero' && was !== 'agentbox');
 
   it('has no file whose own name carries one', () => {
     const named = tracked().filter((f) => {
       if (KEPT.has(f)) return false;
       const base = f.toLowerCase();
-      return WAS.map((w) => w.toLowerCase()).some((was) => was !== 'zero' && base.includes(was));
+      return LOWER_FILE_NAMES.some((was) => base.includes(was));
     });
     expect(named).toEqual([]);
   });
@@ -236,7 +244,7 @@ describe('the briefs, which are markdown and cannot import it either', () => {
   it('leaves no old name in prose that is not a quote of hers', () => {
     for (const file of BRIEFS) {
       const prose = fillName(read(file)).replace(/"[^"]*"/g, '');
-      for (const was of WAS) expect(prose, `${file} still says ${was}`).not.toContain(was);
+      for (const was of OLD) expect(prose, `${file} still says ${was}`).not.toContain(was);
     }
   });
 

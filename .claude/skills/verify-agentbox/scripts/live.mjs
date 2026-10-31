@@ -10,7 +10,7 @@
 //   node .claude/skills/verify-agentbox/scripts/live.mjs down
 //   node .claude/skills/verify-agentbox/scripts/live.mjs drives      (list them)
 //
-// WHAT IT RUNS. `bin/agentbox.mjs`, the browser copy of the app: the same
+// WHAT IT RUNS. `bin/mercury.mjs`, the browser copy of the app: the same
 // store, supervisor, IPC handlers and renderer as the desktop, with no
 // Electron. It is the only way to have a second Agentbox on this Mac that
 // cannot touch the one somebody is using: its own store, its own port, its
@@ -305,7 +305,7 @@ async function prepare(real, setupName = null, { logins = 2, codex = true, proje
  * Eleven of the 36 bugs that reached people lived only in the packaged app:
  * paths inside app.asar, a worker started with its cwd inside the bundle, a
  * Finder launch whose cwd is `/`, a keychain prompt, a bundle id. None of that
- * exists in `bin/agentbox.mjs`. So `up --installed` builds the real .app (this
+ * exists in `bin/mercury.mjs`. So `up --installed` builds the real .app (this
  * Mac's chip only, no installer image, unsigned, which keeps it to a minute or
  * two) under its own bundle id, `ac.astral.verify`, so macOS never confuses it
  * with the Agentbox somebody uses, and opens it with `open`, the way the Dock
@@ -456,7 +456,7 @@ async function start(state) {
 
   const fd = fs.openSync(state.log, 'a');
   const before = fs.existsSync(state.log) ? fs.statSync(state.log).size : 0;
-  const child = spawn(process.execPath, [path.join(REPO, 'bin', 'agentbox.mjs'), '--dir', state.data, '--no-open'], {
+  const child = spawn(process.execPath, [path.join(REPO, 'bin', 'mercury.mjs'), '--dir', state.data, '--no-open'], {
     cwd: REPO, detached: true, stdio: ['ignore', fd, fd], env,
   });
   child.unref();
@@ -575,7 +575,7 @@ export async function doctor({ quiet = false } = {}) {
     else ok('it was opened with a Dock launch\'s environment');
     return wrong;
   }
-  if (cmd.includes('bin/agentbox.mjs') && cmd.includes(state.data)) ok('it is our copy (bin/agentbox.mjs on our data folder)');
+  if (cmd.includes('bin/mercury.mjs') && cmd.includes(state.data)) ok('it is our copy (bin/mercury.mjs on our data folder)');
   else if (alive(state.pid)) bad(`pid ${state.pid} is something else now: ${cmd}`);
   try {
     const res = await fetch(state.url);

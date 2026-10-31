@@ -57,7 +57,7 @@ describe('the push itself', () => {
     const r = spawnSync(process.execPath, [GUARD, 'origin', 'https://github.com/Astral-Agent/zero.git'], { encoding: 'utf8' });
     expect(r.status).toBe(1);
     expect(r.stderr).toContain('PUSH REFUSED');
-    expect(r.stderr).toContain('git remote set-url origin https://github.com/savannahfeder/agentbox.git');
+    expect(r.stderr).toContain('git remote set-url origin https://github.com/matheusmercadante/mercury.git');
   });
 
   it('is let through by the guard when it goes to the public repository', () => {

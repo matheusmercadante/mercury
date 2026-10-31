@@ -34,6 +34,7 @@ import { readKitCopy, kitCopyPath } from '../main/cloud/kit.mjs';
 import { readMarker } from '../main/cloud/marker.mjs';
 import { Supervisor } from '../main/supervisor.mjs';
 import { Store } from '../main/store.mjs';
+import { envName } from '../shared/product-name.mjs';
 
 const A = '11111111-1111-4111-8111-111111111111';
 const DEVICE = 'a1b2c3d4e5f6';
@@ -585,7 +586,7 @@ describe('end to end, through the real sandbox', () => {
         async put(k, body) { objects.set(k, Buffer.from(body)); }, async get(k) { return objects.get(k) ?? null; },
         async getUrl(k) { return `${s3Url}/${encodeURIComponent(k)}`; }, async putUrl(k) { return `${s3Url}/${encodeURIComponent(k)}`; },
       };
-      const env = (item) => ({ ...process.env, ZERO_ITEM: item, ZERO_PRODUCT: 'alpha', CLAUDE_CONFIG_DIR: configDir, AGENTBOX_HOME: path.join(tmp, 'mac', 'store') });
+      const env = (item) => ({ ...process.env, ZERO_ITEM: item, ZERO_PRODUCT: 'alpha', CLAUDE_CONFIG_DIR: configDir, [envName('HOME')]: path.join(tmp, 'mac', 'store') });
       const common = { stdout: new PassThrough(), remoteCommand: process.execPath, stubPath: here('../cloud/sandbox/mcp-stub.mjs'), watchParent: false, signals: new EventEmitter(), homeDir: path.join(tmp, 'home') };
       const folderMark = path.join(repo, '.claude', 'worktrees', NEW_ITEM_MARK);
       const err1 = new PassThrough(); let said1 = ''; err1.on('data', (d) => { said1 += d; });

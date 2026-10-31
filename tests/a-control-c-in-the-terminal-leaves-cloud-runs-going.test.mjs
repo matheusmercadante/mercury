@@ -10,7 +10,7 @@
 // going, and took it as Stop.
 //
 // A cloud relay now starts in a process group of its own. Control-C reaches
-// the app, which quits as it always does (bin/agentbox.mjs), and the relay
+// the app, which quits as it always does (bin/mercury.mjs), and the relay
 // hears only what the app sends it.
 import { describe, it, expect, afterEach } from 'vitest';
 import fs from 'node:fs';

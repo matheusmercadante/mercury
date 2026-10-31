@@ -30,7 +30,7 @@ const repo = path.join(path.dirname(new URL(import.meta.url).pathname), '..');
 let appDir;
 
 /** A checkout as npm leaves it: a package.json with a bin, and a node_modules. */
-function checkout({ bin = { agentbox: 'bin/agentbox.mjs' }, mode = 0o644 } = {}) {
+function checkout({ bin = { agentbox: 'bin/mercury.mjs' }, mode = 0o644 } = {}) {
   fs.mkdirSync(path.join(appDir, 'bin'), { recursive: true });
   fs.mkdirSync(path.join(appDir, 'node_modules'), { recursive: true });
   fs.writeFileSync(path.join(appDir, 'package.json'), JSON.stringify({ name: 'agentbox-app', bin }));
@@ -52,16 +52,16 @@ describe('npx from a checkout starts the browser', () => {
     const result = linkOwnBin({ appDir, platform: 'linux' });
     expect(result).toEqual({ linked: ['agentbox'], why: null });
     // Relative, so a checkout that is moved or copied still resolves.
-    expect(fs.readlinkSync(linkAt('agentbox'))).toBe(path.join('..', '..', 'bin', 'agentbox.mjs'));
+    expect(fs.readlinkSync(linkAt('agentbox'))).toBe(path.join('..', '..', 'bin', 'mercury.mjs'));
     expect(fs.existsSync(linkAt('agentbox'))).toBe(true);
     // npm exec runs the name through a shell, so the exec bit is as
     // load-bearing as the link: without it the shell says Permission denied.
-    expect(fs.statSync(path.join(appDir, 'bin', 'agentbox.mjs')).mode & 0o111).not.toBe(0);
+    expect(fs.statSync(path.join(appDir, 'bin', 'mercury.mjs')).mode & 0o111).not.toBe(0);
     expect(execFileSync(linkAt('agentbox'), { encoding: 'utf8' }).trim()).toBe('browser');
   });
 
   it('links every bin the package names, and leaves a good link alone', () => {
-    checkout({ bin: { agentbox: 'bin/agentbox.mjs', 'agentbox-serve': 'bin/serve.mjs' } });
+    checkout({ bin: { agentbox: 'bin/mercury.mjs', 'agentbox-serve': 'bin/serve.mjs' } });
     expect(linkOwnBin({ appDir, platform: 'linux' }).linked).toEqual(['agentbox', 'agentbox-serve']);
     const before = fs.lstatSync(linkAt('agentbox')).mtimeMs;
     expect(linkOwnBin({ appDir, platform: 'linux' }).linked).toEqual(['agentbox', 'agentbox-serve']);
@@ -81,7 +81,7 @@ describe('npx from a checkout starts the browser', () => {
     // node_modules, where npm links the bin itself.
     const installed = path.join(appDir, 'node_modules', 'agentbox-app');
     fs.mkdirSync(installed, { recursive: true });
-    fs.writeFileSync(path.join(installed, 'package.json'), '{"name":"agentbox-app","bin":{"agentbox":"bin/agentbox.mjs"}}');
+    fs.writeFileSync(path.join(installed, 'package.json'), '{"name":"agentbox-app","bin":{"agentbox":"bin/mercury.mjs"}}');
     expect(linkOwnBin({ appDir: installed, platform: 'linux' })).toEqual({
       linked: [],
       why: 'this copy is installed under node_modules, where npm links the bin itself',
@@ -101,7 +101,7 @@ describe('npx from a checkout starts the browser', () => {
 
   it('is run by the install, and is never shipped in the browser package', () => {
     const pkg = JSON.parse(fs.readFileSync(path.join(repo, 'package.json'), 'utf8'));
-    expect(pkg.bin).toEqual({ agentbox: 'bin/agentbox.mjs' });
+    expect(pkg.bin).toEqual({ mercury: 'bin/mercury.mjs' });
     expect(pkg.files.join('\n')).not.toMatch(/link-own-bin/);
     expect(pkg.build.files.join('\n')).not.toMatch(/link-own-bin/);
     const after = fs.readFileSync(path.join(repo, 'scripts', 'after-install.mjs'), 'utf8');
@@ -109,7 +109,7 @@ describe('npx from a checkout starts the browser', () => {
     expect(after).toMatch(/linkOwnBin\(\)/);
     // And what that link reaches is the browser, not the desktop app: the
     // doing half with no Electron in it, on a port on this machine.
-    const bin = fs.readFileSync(path.join(repo, 'bin', 'agentbox.mjs'), 'utf8');
+    const bin = fs.readFileSync(path.join(repo, 'bin', 'mercury.mjs'), 'utf8');
     expect(bin).toMatch(/bootHeadless/);
     expect(bin).toMatch(/127\.0\.0\.1/);
   });

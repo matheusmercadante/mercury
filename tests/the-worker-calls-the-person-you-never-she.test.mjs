@@ -58,7 +58,7 @@ describe('the worker brief', () => {
   });
 
   it('reaches a worker that has store tools', () => {
-    const s = makeSupervisor({ storeMcpCommand: path.join(REPO, 'mcp', 'agentbox-mcp.sh') });
+    const s = makeSupervisor({ storeMcpCommand: path.join(REPO, 'mcp', 'mercury-mcp.sh') });
     expect(s.storeMcpCommand()).toBeTruthy();
     expect(s.buildBrief(item(), product(), { continuation: false })).toMatch(RULE);
   });

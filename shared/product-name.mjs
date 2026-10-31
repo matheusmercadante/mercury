@@ -33,18 +33,26 @@
 // menu item and a button label take `Name`; anywhere else in a sentence takes
 // `name`.
 
-/** The name, spelled as it reads in the middle of a sentence. Capitalised
- *  since 2026-10-02 (w-23fa810982): "agentbox is restarting" read wrong, and
- *  the ask was for a capital A everywhere in the app. */
-export const NAME = 'Agentbox';
+/** The name, spelled as it reads in the middle of a sentence. */
+export const NAME = 'Mercury';
 
 /**
  * Every name this app has had, newest first. main/main.mjs walks this to find
  *  the data folder an existing install already writes to, because Chromium
  *  names that folder after the app and a rename would otherwise hand her an
  *  empty one and lose her theme, her zoom and her project order. HISTORY IS
- *  NEVER REWRITTEN: add to the front, never edit an entry. */
-export const WAS = Object.freeze(['Powerup', 'Astral', 'Zero']);
+ *  NEVER REWRITTEN: add to the front, never edit an entry.
+ *
+ *  Empty because Mercury has had no other name. */
+export const WAS = Object.freeze([]);
+
+/**
+ * The names of Agentbox, which Mercury is a fork of, newest first. Never read
+ *  for a data folder, an env var or a store: Agentbox can be installed beside
+ *  Mercury, it exports its store root under all four names to everything it
+ *  starts, and reading any of them would run a second supervisor on its store.
+ *  Read only to tell a run Agentbox started from one a person started. */
+export const FORKED_FROM = Object.freeze(['Agentbox', 'Powerup', 'Astral', 'Zero']);
 
 /** The name at the start of a sentence, in a heading, or on a button. */
 export const Name = NAME.charAt(0).toUpperCase() + NAME.slice(1);
@@ -77,6 +85,9 @@ export const nameSlug = slugOf(NAME);
  * folder and its env vars, read one more way.
  */
 export const WAS_SLUGS = Object.freeze(WAS.map(slugOf));
+
+/** Agentbox's slugs, under every name it has had. */
+export const FORKED_FROM_SLUGS = Object.freeze(FORKED_FROM.map(slugOf));
 
 /** The current slug and every slug it has had, current first. */
 export const nameSlugs = Object.freeze([nameSlug, ...WAS_SLUGS]);

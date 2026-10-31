@@ -154,7 +154,7 @@ coach it: the point is what a person in their shoes notices.
 - **The phone**: the phone app is a plan (`docs/mobile/PLAN.md`) and the
   phone site needs the team cloud. When the app's web build exists, a
   phone-sized surface for `browse.mjs` is the next step.
-- **The installed app**: copies are the browser copy (`bin/agentbox.mjs`),
+- **The installed app**: copies are the browser copy (`bin/mercury.mjs`),
   the same store, supervisor and screen without Electron's shell.
 - **A Codex login on real tools other than this computer's**, and accounts
   past four Claude logins.

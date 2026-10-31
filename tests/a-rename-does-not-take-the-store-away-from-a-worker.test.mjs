@@ -40,6 +40,8 @@ import { listPending } from '../main/approvals.mjs';
 
 const ELICIT = 'mcpServer/elicitation/request';
 const WAS_CALLED = WAS_SLUGS[0];
+// Mercury has had no other name yet; these run once it has one.
+const afterARename = it.runIf(WAS_SLUGS.length > 0);
 
 const askToCall = (serverName, tool = 'claim_work_item') => ({
   threadId: 'T-1',
@@ -54,7 +56,7 @@ const askToCall = (serverName, tool = 'claim_work_item') => ({
 const root = () => fs.mkdtempSync(path.join(os.tmpdir(), 'rename-store-'));
 
 describe('the names this app has answered to', () => {
-  it('lists the current one first and keeps the old ones', () => {
+  afterARename('lists the current one first and keeps the old ones', () => {
     expect(nameSlugs[0]).toBe(nameSlug);
     expect(nameSlugs).toEqual([nameSlug, ...WAS_SLUGS]);
     expect(WAS_SLUGS.length).toBeGreaterThan(0);
@@ -62,7 +64,7 @@ describe('the names this app has answered to', () => {
 
   it('claims no name this app has never had', () => {
     expect(isOurSlug(nameSlug)).toBe(true);
-    expect(isOurSlug(WAS_CALLED)).toBe(true);
+    if (WAS_CALLED) expect(isOurSlug(WAS_CALLED)).toBe(true);
     expect(isOurSlug('playwright')).toBe(false);
     expect(isOurSlug('')).toBe(false);
     expect(isOurSlug(undefined)).toBe(false);
@@ -70,14 +72,14 @@ describe('the names this app has answered to', () => {
 });
 
 describe('a store grant her config still spells the old way', () => {
-  it('reaches the worker as a grant for the store server that exists', () => {
+  afterARename('reaches the worker as a grant for the store server that exists', () => {
     const args = ['--allowedTools', `mcp__${WAS_CALLED}`, '--permission-mode', 'auto'];
     expect(storeGrantUnderAnyOfOurNames(args)).toEqual(
       ['--allowedTools', `mcp__${nameSlug}`, '--permission-mode', 'auto'],
     );
   });
 
-  it('is corrected inside a comma-separated list and at tool level', () => {
+  afterARename('is corrected inside a comma-separated list and at tool level', () => {
     const args = ['--allowedTools', `mcp__${WAS_CALLED}__claim_work_item,mcp__playwright,Bash`];
     expect(storeGrantUnderAnyOfOurNames(args)).toEqual(
       ['--allowedTools', `mcp__${nameSlug}__claim_work_item,mcp__playwright,Bash`],
@@ -106,7 +108,7 @@ describe('a store grant her config still spells the old way', () => {
 });
 
 describe('a Codex thread that started before the rename', () => {
-  it('is recognised as the store when it calls the old name', () => {
+  afterARename('is recognised as the store when it calls the old name', () => {
     expect(isStoreElicitation(askToCall(WAS_CALLED), nameSlug)).toBe(true);
     expect(isStoreElicitation(askToCall(nameSlug), nameSlug)).toBe(true);
   });
@@ -118,7 +120,7 @@ describe('a Codex thread that started before the rename', () => {
     expect(isStoreElicitation(askToCall(WAS_CALLED), null)).toBe(false);
   });
 
-  it('claims its row with no card in front of the founder', async () => {
+  afterARename('claims its row with no card in front of the founder', async () => {
     const storeRoot = root();
     const approvals = createCodexApprovals({ storeRoot });
     const cards = approvals.scope({ product: 'astral', item: 'w-1', storeServer: nameSlug });

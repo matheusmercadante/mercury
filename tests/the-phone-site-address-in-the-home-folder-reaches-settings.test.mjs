@@ -12,6 +12,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { loadCloudConfig } from '../main/team/session.mjs';
+import { envName, nameSlug } from '../shared/product-name.mjs';
 
 const tmp = (name) => fs.mkdtempSync(path.join(os.tmpdir(), `phone-site-${name}-`));
 const CLOUD = { url: 'https://hers.test', anonKey: 'anon' };
@@ -20,8 +21,8 @@ function aMac({ inHome = null, inFolder = null } = {}) {
   const home = tmp('home');
   const appDir = tmp('app');
   if (inHome) {
-    fs.mkdirSync(path.join(home, '.agentbox'), { recursive: true });
-    fs.writeFileSync(path.join(home, '.agentbox', 'team.config.json'), JSON.stringify(inHome));
+    fs.mkdirSync(path.join(home, `.${nameSlug}`), { recursive: true });
+    fs.writeFileSync(path.join(home, `.${nameSlug}`, 'team.config.json'), JSON.stringify(inHome));
   }
   if (inFolder) {
     fs.mkdirSync(path.join(appDir, 'cloud'), { recursive: true });
@@ -31,14 +32,14 @@ function aMac({ inHome = null, inFolder = null } = {}) {
 }
 
 const was = process.env.AGENTBOX_TEAM_CONFIG;
-const wasHome = process.env.AGENTBOX_HOME;
+const wasHome = process.env[envName('HOME')];
 beforeEach(() => {
   delete process.env.AGENTBOX_TEAM_CONFIG;
-  delete process.env.AGENTBOX_HOME;
+  delete process.env[envName('HOME')];
 });
 afterEach(() => {
   if (was === undefined) delete process.env.AGENTBOX_TEAM_CONFIG; else process.env.AGENTBOX_TEAM_CONFIG = was;
-  if (wasHome === undefined) delete process.env.AGENTBOX_HOME; else process.env.AGENTBOX_HOME = wasHome;
+  if (wasHome === undefined) delete process.env[envName('HOME')]; else process.env[envName('HOME')] = wasHome;
 });
 
 describe('the phone site address', () => {

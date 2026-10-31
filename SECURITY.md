@@ -1,6 +1,6 @@
 # Security
 
-Agentbox starts coding agents on your machine, so a security problem in it can
+Mercury starts coding agents on your machine, so a security problem in it can
 matter a great deal. Thank you for reporting one privately.
 
 ## How to report
@@ -19,7 +19,7 @@ with credit to you unless you ask otherwise.
 
 ## What counts
 
-Anything that lets something other than the person using Agentbox act on their
+Anything that lets something other than the person using Mercury act on their
 machine or read their data, including:
 
 - an agent getting past an approval it should have needed;
