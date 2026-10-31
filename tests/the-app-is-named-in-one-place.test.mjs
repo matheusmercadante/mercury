@@ -82,7 +82,7 @@ describe('package.json, which cannot import the name', () => {
 describe('nothing spells a name this app has had', () => {
   // The directories the sweep walked. A literal here is a thing the NEXT
   // rename has to find by hand, which is the cost this whole change removes.
-  const DIRS = ['main', 'shared', 'renderer/src'];
+  const DIRS = ['main', 'shared', 'renderer/src', 'mobile/src'];
 
   // Each of these is allowed to hold an old name, and the reason is the thing
   // that breaks if it stops. They are the same list scripts/name-from-one-place

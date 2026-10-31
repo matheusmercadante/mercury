@@ -131,3 +131,28 @@ describe('the branches Mercury makes', () => {
     expect('Merge origin/main into agentbox/w-0123456789'.match(SHIPPED_FROM)).toBeNull();
   });
 });
+
+// The phone app's defaults were Agentbox's own: its App Store bundle id, its
+// Expo account and project, and its App Store Connect app, so a Mercury build
+// or submit would have gone to Agentbox's.
+describe('the phone app', () => {
+  const ENV = ['MOBILE_BUNDLE_ID', 'EAS_PROJECT_ID', 'EAS_OWNER'];
+
+  it('is its own app, not built or sent to Agentbox\'s accounts', async () => {
+    const held = Object.fromEntries(ENV.map((k) => [k, process.env[k]]));
+    for (const k of ENV) delete process.env[k];
+    try {
+      const { default: config } = await import('../mobile/app.config.ts');
+      expect(config.name).toBe('Mercury');
+      expect(config.ios.bundleIdentifier).toBe(pkg.build.appId);
+      expect(config.android.package).toBe(pkg.build.appId);
+      expect(config.owner).toBeUndefined();
+      expect(config.extra.eas.projectId).toBeUndefined();
+    } finally {
+      for (const [k, v] of Object.entries(held)) if (v === undefined) delete process.env[k]; else process.env[k] = v;
+    }
+    const eas = JSON.parse(fs.readFileSync(path.join(repo, 'mobile', 'eas.json'), 'utf8'));
+    expect(eas.submit?.production?.ios?.ascAppId).toBeUndefined();
+    expect(JSON.parse(fs.readFileSync(path.join(repo, 'mobile', 'package.json'), 'utf8')).name).toBe('mercury-mobile');
+  });
+});

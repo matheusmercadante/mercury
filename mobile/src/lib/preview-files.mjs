@@ -2,6 +2,8 @@
 // copy (main/phone-uploads.mjs), each with a link a browser loads by itself:
 // the preview has no storage behind it.
 
+import { nameSlug } from '../../../shared/product-name.mjs';
+
 const nameOf = (seed, ext) => `${seed.repeat(64 / seed.length)}.${ext}`;
 const svg = (body, w = 1200, h = 750) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${body}</svg>`)}`;
 
@@ -43,7 +45,7 @@ files['recordings/session.mov'] = { s: 812_000_000, big: true };
 
 /** The project's files as its threads' copies carry them. */
 export const PREVIEW_ATTACHED = {
-  dir: '~/docs/agentbox',
+  dir: `~/docs/${nameSlug}`,
   files,
   folders: { [`${ROUND}/`]: SHOTS.map(([name]) => `${ROUND}/${name}.png`) },
 };

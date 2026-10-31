@@ -4,7 +4,7 @@ Pod::Spec.new do |s|
   s.summary        = "Live dictation with Apple's on-device SpeechAnalyzer"
   s.description    = "Live dictation with Apple's on-device SpeechAnalyzer, on iOS 26 and newer iPhones."
   s.license        = 'MIT'
-  s.author         = 'Agentbox'
+  s.author         = 'Mercury'
   s.homepage       = 'https://docs.expo.dev/modules/'
   s.platforms      = { :ios => '15.1' }
   s.swift_version  = '5.9'

@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCloud } from '../state/cloud';
 import { T, Wall } from '../ui/parts';
 import { color, font, size } from '../ui/theme';
+import { NAME } from '../../../shared/product-name.mjs';
 
 const leave = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
@@ -18,9 +19,9 @@ export default function AiNotice() {
     <Wall>
       <ScrollView contentContainerStyle={{ flexGrow: 1, paddingTop: inset.top + 48, paddingHorizontal: size.inset + 8, paddingBottom: 24 }}>
         <T style={{ fontFamily: font.medium, fontSize: 22, lineHeight: 28, letterSpacing: -0.4 }}>Where your messages go</T>
-        <T style={para}>What you write here goes to your computer, or to Agentbox Cloud when your computer is off. Either one hands it to the coding agent you choose for the thread.</T>
+        <T style={para}>What you write here goes to your computer, or to {NAME} Cloud when your computer is off. Either one hands it to the coding agent you choose for the thread.</T>
         <T style={para}>That agent is Claude Code, made by Anthropic, or Codex, made by OpenAI, signed in to your own account with them. Your words, the files you attach and the thread they belong to go to that company under its terms.</T>
-        <T style={para}>Nothing goes to them from this phone directly, and Agentbox sends your messages nowhere else. You can turn this off in Settings, under General.</T>
+        <T style={para}>Nothing goes to them from this phone directly, and {NAME} sends your messages nowhere else. You can turn this off in Settings, under General.</T>
       </ScrollView>
       <View style={{ paddingHorizontal: size.inset + 8, paddingBottom: Math.max(16, inset.bottom) + 8, gap: 10 }}>
         <Pressable onPress={() => answer(true)} accessibilityRole="button"

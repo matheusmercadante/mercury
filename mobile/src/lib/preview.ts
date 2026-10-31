@@ -3,6 +3,7 @@
 // stand-in for the cloud that keeps what the phone sends in memory.
 import type { PhoneRows } from '../../../renderer/src/phone-rows';
 import { PREVIEW_ATTACHED, previewLink } from './preview-files.mjs';
+import { NAME, nameSlug } from '../../../shared/product-name.mjs';
 
 const DEV = '0a1b2c3d4e5f';
 const MIN = 60_000;
@@ -21,28 +22,28 @@ export function previewRows(now = Date.now()): PhoneRows {
   // The files a Mac lists for a project, as main/phone-inbox.mjs sends them.
   const attached = PREVIEW_ATTACHED;
   const roundAsk = 'Draw three versions of the inbox for the phone.';
-  const roundNote = "Three versions of the inbox are in the folder below. I'd go with the quiet one: it reads fastest at arm's length.\n\n~/docs/agentbox/designs/w-8b9c0d1e2f/\n\nWhat each one changes is in `designs/w-8b9c0d1e2f/inbox-versions.md`, and `designs/w-8b9c0d1e2f/compare.html` sets them side by side.\n\nThe walk-through is a short film: `designs/w-8b9c0d1e2f/walkthrough.mp4`\n\nThe full recording, `recordings/session.mov`, is too big for the phone.\n\n## Options\n1. Go with the quiet one (recommended)\n2. Try a fourth version";
+  const roundNote = "Three versions of the inbox are in the folder below. I'd go with the quiet one: it reads fastest at arm's length.\n\n~/docs/" + nameSlug + "/designs/w-8b9c0d1e2f/\n\nWhat each one changes is in `designs/w-8b9c0d1e2f/inbox-versions.md`, and `designs/w-8b9c0d1e2f/compare.html` sets them side by side.\n\nThe walk-through is a short film: `designs/w-8b9c0d1e2f/walkthrough.mp4`\n\nThe full recording, `recordings/session.mov`, is too big for the phone.\n\n## Options\n1. Go with the quiet one (recommended)\n2. Try a fourth version";
   const stuckAsk = 'Threads stuck on a Codex limit should land in Needs you.';
   const stuckNote = 'I found where a run that hits its limit is put back. Two ways to fix it:\n\n- Mark it stopped, so it shows in Needs you with the reason.\n- Retry on another account first, and only then show it.\n\n## Options\n1. Mark it stopped (recommended)\n2. Retry on another account first';
   const meterResult = 'Shipped. Each account meter now ends with its reset time, like 6:19pm.\n\n## Options\n1. Close this task';
   const qualityNote = '**Sign-up fails on a slow connection.**\n\nOn a throttled connection the email step gives up after 10 seconds and the form clears what you typed. The fix keeps your words and waits 30 seconds.\n\n## Options\n1. Ship the fix (recommended)\n2. Show me the steps first';
   return {
     projects: [
-      { device: DEV, project: 'agentbox', name: 'Agentbox', updated_at: iso(at(1)) },
+      { device: DEV, project: nameSlug, name: NAME, updated_at: iso(at(1)) },
       { device: DEV, project: 'film', name: 'Launch film', updated_at: iso(at(1)) },
       { device: DEV, project: 'site', name: 'Website', updated_at: iso(at(1)) },
     ],
     threads: [
-      thread('agentbox', { id: 'w-1a2b3c4d5e', title: 'Plan the phone app', status: 'done', priority: 7, body: planAsk, result: planResult, createdAt: at(300), updatedAt: at(6), wrote: { body: her(at(300)), status: agent(at(6)), result: agent(at(6)) } }, [
+      thread(nameSlug, { id: 'w-1a2b3c4d5e', title: 'Plan the phone app', status: 'done', priority: 7, body: planAsk, result: planResult, createdAt: at(300), updatedAt: at(6), wrote: { body: her(at(300)), status: agent(at(6)), result: agent(at(6)) } }, [
         { ts: at(300), source: 'founder', patch: { body: planAsk } },
         { ts: at(120), source: 'agent', patch: { note: 'Read the phone site and the team messaging code. Checking what App Review asks of an app like this next.' } },
         { ts: at(6), source: 'agent', patch: { status: 'done', result: planResult } },
       ], { attached }),
-      thread('agentbox', { id: 'w-2b3c4d5e6f', title: 'Stuck threads should land in Needs you', status: 'blocked', priority: 5, body: stuckAsk, note: stuckNote, createdAt: at(90), updatedAt: at(14), wrote: { body: her(at(90)), status: agent(at(14)), note: agent(at(14)) } }, [
+      thread(nameSlug, { id: 'w-2b3c4d5e6f', title: 'Stuck threads should land in Needs you', status: 'blocked', priority: 5, body: stuckAsk, note: stuckNote, createdAt: at(90), updatedAt: at(14), wrote: { body: her(at(90)), status: agent(at(14)), note: agent(at(14)) } }, [
         { ts: at(90), source: 'founder', patch: { body: stuckAsk } },
         { ts: at(14), source: 'agent', patch: { status: 'blocked', note: stuckNote } },
       ]),
-      thread('agentbox', { id: 'w-8b9c0d1e2f', title: 'Draw three versions of the inbox', status: 'blocked', pinned: true, priority: 5, body: roundAsk, note: roundNote, createdAt: at(70), updatedAt: at(9), wrote: { body: her(at(70)), status: agent(at(9)), note: agent(at(9)) } }, [
+      thread(nameSlug, { id: 'w-8b9c0d1e2f', title: 'Draw three versions of the inbox', status: 'blocked', pinned: true, priority: 5, body: roundAsk, note: roundNote, createdAt: at(70), updatedAt: at(9), wrote: { body: her(at(70)), status: agent(at(9)), note: agent(at(9)) } }, [
         { ts: at(70), source: 'founder', patch: { body: roundAsk } },
         { ts: at(9), source: 'agent', patch: { status: 'blocked', note: roundNote } },
       ], { attached }),
@@ -50,7 +51,7 @@ export function previewRows(now = Date.now()): PhoneRows {
         { ts: at(200), source: 'founder', patch: { body: 'I need to see when my limits reset.' } },
         { ts: at(52), source: 'agent', patch: { status: 'done', result: meterResult } },
       ]),
-      thread('agentbox', { id: 'w-4d5e6f7a8b', title: 'Draw the sign-in screen', status: 'claimed', priority: 5, body: 'Draw five sign-in screens on the real app.', createdAt: at(40), updatedAt: at(2), wrote: { body: her(at(40)) } }, [
+      thread(nameSlug, { id: 'w-4d5e6f7a8b', title: 'Draw the sign-in screen', status: 'claimed', priority: 5, body: 'Draw five sign-in screens on the real app.', createdAt: at(40), updatedAt: at(2), wrote: { body: her(at(40)) } }, [
         { ts: at(40), source: 'founder', patch: { body: 'Draw five sign-in screens on the real app.' } },
       ], {
         live: { since: at(12), at: at(0.5), where: 'cloud', doing: [{ label: 'Read the sign-in page', startedAt: at(9) }, { label: 'Wrote the five screens', startedAt: at(6) }, { label: 'Ran the screenshot script', startedAt: at(3) }, { label: 'Drawing the third screen', startedAt: at(1) }] },
@@ -58,15 +59,15 @@ export function previewRows(now = Date.now()): PhoneRows {
         approvals: [{ id: 'ap-preview-1', at: at(1), tool: 'Bash', input: { command: 'npx eas-cli init --non-interactive', description: 'Link this folder to the Expo project' }, card: 'cHJldmlldy1jYXJk' }],
       }),
       // Two threads the phone plan filed: one waiting on you, one finished.
-      thread('agentbox', { id: 'w-a1b2c3d4e6', parent: 'w-1a2b3c4d5e', labels: [], title: 'Add a report button to messages', status: 'open', priority: 5, body: 'App Review asks that people can report a message. Add a Report row to the message menu that files it for review.', createdAt: at(5), updatedAt: at(5), wrote: { body: agent(at(5)) } }, [
+      thread(nameSlug, { id: 'w-a1b2c3d4e6', parent: 'w-1a2b3c4d5e', labels: [], title: 'Add a report button to messages', status: 'open', priority: 5, body: 'App Review asks that people can report a message. Add a Report row to the message menu that files it for review.', createdAt: at(5), updatedAt: at(5), wrote: { body: agent(at(5)) } }, [
         { ts: at(5), source: 'agent', patch: { body: 'App Review asks that people can report a message. Add a Report row to the message menu that files it for review.' } },
       ]),
-      thread('agentbox', { id: 'w-b2c3d4e5f7', parent: 'w-1a2b3c4d5e', labels: [], title: 'Check what App Review asks of a messaging app', status: 'done', priority: 5, body: 'Read the App Review rules for apps where people message each other.', result: 'Two rules apply: a way to report a message, and a way to block someone.', createdAt: at(110), updatedAt: at(80), wrote: { body: agent(at(110)), status: agent(at(80)), result: agent(at(80)) } }, [
+      thread(nameSlug, { id: 'w-b2c3d4e5f7', parent: 'w-1a2b3c4d5e', labels: [], title: 'Check what App Review asks of a messaging app', status: 'done', priority: 5, body: 'Read the App Review rules for apps where people message each other.', result: 'Two rules apply: a way to report a message, and a way to block someone.', createdAt: at(110), updatedAt: at(80), wrote: { body: agent(at(110)), status: agent(at(80)), result: agent(at(80)) } }, [
         { ts: at(110), source: 'agent', patch: { body: 'Read the App Review rules for apps where people message each other.' } },
         { ts: at(80), source: 'agent', patch: { status: 'done', result: 'Two rules apply: a way to report a message, and a way to block someone.' } },
       ]),
       // A conversation long enough that its middle is left out, put off after its answer.
-      thread('agentbox', { id: 'w-c3d4e5f6a8', title: 'Move the inbox to the cloud', status: 'open', priority: 5, body: 'Move the inbox to the cloud, one table at a time.', result: 'All four tables are in the cloud and the Mac reads them from there.', snoozedUntil: now + 26 * 60 * MIN, createdAt: at(2400), updatedAt: at(28), wrote: { body: her(at(2400)), result: agent(at(30)), snoozedUntil: her(at(28)) } }, [
+      thread(nameSlug, { id: 'w-c3d4e5f6a8', title: 'Move the inbox to the cloud', status: 'open', priority: 5, body: 'Move the inbox to the cloud, one table at a time.', result: 'All four tables are in the cloud and the Mac reads them from there.', snoozedUntil: now + 26 * 60 * MIN, createdAt: at(2400), updatedAt: at(28), wrote: { body: her(at(2400)), result: agent(at(30)), snoozedUntil: her(at(28)) } }, [
         { ts: at(2400), source: 'founder', patch: { body: 'Move the inbox to the cloud, one table at a time.' } },
         ...Array.from({ length: 24 }, (_, n) => [
           { ts: at(2300 - n * 90), source: 'agent', patch: { note: `Step ${n + 1} is done. Next it moves ${['the rows', 'the commands', 'the files', 'the alerts'][n % 4]}.` } },
@@ -86,23 +87,23 @@ export function previewRows(now = Date.now()): PhoneRows {
         { ts: at(800), source: 'founder', patch: { body: 'Try a light theme.' } },
       ]),
       // Two runs of the daily report (previewSettings' repeating tasks): one quiet, one with news.
-      thread('agentbox', { id: 'w-r1a2b3c4d5', title: 'Daily report', labels: ['repeat:r-preview-1', 'clean'], status: 'done', priority: 5, body: 'Write the daily report.', result: 'Nothing new since yesterday.', createdAt: at(26 * 60), updatedAt: at(26 * 60 - 6), wrote: { status: agent(at(26 * 60 - 6)) } }, []),
-      thread('agentbox', { id: 'w-r2b3c4d5e6', title: 'Daily report', labels: ['repeat:r-preview-1'], status: 'done', priority: 5, body: 'Write the daily report.', result: 'Two sign-ups failed at the email step. The fix is in its own thread.', createdAt: at(120), updatedAt: at(112), wrote: { status: agent(at(112)) } }, []),
+      thread(nameSlug, { id: 'w-r1a2b3c4d5', title: 'Daily report', labels: ['repeat:r-preview-1', 'clean'], status: 'done', priority: 5, body: 'Write the daily report.', result: 'Nothing new since yesterday.', createdAt: at(26 * 60), updatedAt: at(26 * 60 - 6), wrote: { status: agent(at(26 * 60 - 6)) } }, []),
+      thread(nameSlug, { id: 'w-r2b3c4d5e6', title: 'Daily report', labels: ['repeat:r-preview-1'], status: 'done', priority: 5, body: 'Write the daily report.', result: 'Two sign-ups failed at the email step. The fix is in its own thread.', createdAt: at(120), updatedAt: at(112), wrote: { status: agent(at(112)) } }, []),
       // Two teammates' runs (previewTeammates): one waiting on you, signed; one working.
-      thread('agentbox', { id: 'w-t2b3c4d5e6', title: 'Try sign-up the way a new user would', labels: ['founder', 'teammate:t-quality001'], status: 'blocked', priority: 5, body: 'Try sign-up the way a new user would, on a slow connection.', note: qualityNote, createdAt: at(45), updatedAt: at(30), wrote: { body: agent(at(45)), status: agent(at(30)), note: agent(at(30)) } }, [
+      thread(nameSlug, { id: 'w-t2b3c4d5e6', title: 'Try sign-up the way a new user would', labels: ['founder', 'teammate:t-quality001'], status: 'blocked', priority: 5, body: 'Try sign-up the way a new user would, on a slow connection.', note: qualityNote, createdAt: at(45), updatedAt: at(30), wrote: { body: agent(at(45)), status: agent(at(30)), note: agent(at(30)) } }, [
         { ts: at(45), source: 'agent', patch: { body: 'Try sign-up the way a new user would, on a slow connection.' } },
         { ts: at(30), source: 'agent', patch: { status: 'blocked', note: qualityNote } },
       ]),
       thread('film', { id: 'w-t1a2b3c4d5', title: 'Cut the launch film to 60 seconds', labels: ['founder', 'teammate:t-launch0001'], status: 'claimed', priority: 5, body: 'Cut the launch film to 60 seconds. Open on the inbox.', createdAt: at(21), updatedAt: at(1), wrote: { body: agent(at(21)) } }, [
         { ts: at(21), source: 'agent', patch: { body: 'Cut the launch film to 60 seconds. Open on the inbox.' } },
       ], { live: { since: at(20), at: at(0.5), where: 'mac', doing: [{ label: 'Trimmed the middle', startedAt: at(8) }, { label: 'Rendering the 60-second cut', startedAt: at(2) }] } }),
-      thread('agentbox', { id: 'w-7a8b9c0d1e', title: 'Rename the Display menu', status: 'done', priority: 0, body: 'Rename it to View.', result: 'Renamed.', createdAt: at(3000), updatedAt: at(1500), wrote: { body: her(at(3000)), result: agent(at(1600)), status: her(at(1500)) } }, [
+      thread(nameSlug, { id: 'w-7a8b9c0d1e', title: 'Rename the Display menu', status: 'done', priority: 0, body: 'Rename it to View.', result: 'Renamed.', createdAt: at(3000), updatedAt: at(1500), wrote: { body: her(at(3000)), result: agent(at(1600)), status: her(at(1500)) } }, [
         { ts: at(3000), source: 'founder', patch: { body: 'Rename it to View.' } },
         { ts: at(1600), source: 'agent', patch: { result: 'Renamed.' } },
       ]),
     ],
     // A reply to the running agent its Mac has not taken yet.
-    commands: [{ id: 'c-preview-1', device: DEV, project: 'agentbox', item: 'w-4d5e6f7a8b', kind: 'reply', payload: { text: 'Use the dark wall on all five.' }, created_at: iso(at(0.4)), claimed_at: null, taken_at: null, outcome: null }],
+    commands: [{ id: 'c-preview-1', device: DEV, project: nameSlug, item: 'w-4d5e6f7a8b', kind: 'reply', payload: { text: 'Use the dark wall on all five.' }, created_at: iso(at(0.4)), claimed_at: null, taken_at: null, outcome: null }],
   };
 }
 
@@ -125,13 +126,13 @@ export function previewSettings(now = Date.now()) {
         codexAccounts: [{ id: 'default', email: 'you@example.com', name: 'You', plan: 'Plus', signedIn: true, chosen: false }],
       },
       projects: [
-        { slug: 'agentbox', name: 'Agentbox', onPhone: true, autonomous: true, permission: 'workspace', codexMode: 'workspace', account: 'any', running: 2 },
+        { slug: nameSlug, name: NAME, onPhone: true, autonomous: true, permission: 'workspace', codexMode: 'workspace', account: 'any', running: 2 },
         { slug: 'film', name: 'Launch film', onPhone: true, autonomous: false, permission: 'plan', codexMode: 'workspace', account: 'any', running: 1 },
         { slug: 'site', name: 'Website', onPhone: true, autonomous: false, permission: 'workspace', codexMode: 'workspace', account: 'any', running: 0 },
       ],
       // The repeating tasks a Mac sends with its settings (shared/phone-snapshot.mjs phoneRepeatsOf).
       repeats: [
-        { product: 'agentbox', id: 'r-preview-1', title: 'Daily report', body: 'Write the daily report: sign-ups, failed runs, and anything that needs me. Say "nothing new" if nothing changed.', priority: 5, every: 'weekday', at: '09:00', createdAt: now - 9 * 24 * 60 * MIN, served: '', lastOccurrence: 'w-r2b3c4d5e6' },
+        { product: nameSlug, id: 'r-preview-1', title: 'Daily report', body: 'Write the daily report: sign-ups, failed runs, and anything that needs me. Say "nothing new" if nothing changed.', priority: 5, every: 'weekday', at: '09:00', createdAt: now - 9 * 24 * 60 * MIN, served: '', lastOccurrence: 'w-r2b3c4d5e6' },
         { product: 'site', id: 'r-preview-2', title: 'Check the launch page numbers', body: 'Check the launch page numbers and tell me what moved.', priority: 5, every: 'week', on: 4, at: '08:00', createdAt: now - 20 * 24 * 60 * MIN, served: '' },
       ],
       teammates: previewTeammates(now),
@@ -144,7 +145,7 @@ export function previewTeammates(now = Date.now()) {
   const at = (m: number) => now - m * MIN;
   const morning = new Date(now).setHours(9, 0, 0, 0);
   const mate = (id: string, name: string, letter: string, more: Record<string, unknown> = {}) => ({
-    id, name, letter, role: null, job: null, primary: false, paused: false, status: 'active', product: 'agentbox', engine: 'claude', model: 'opus',
+    id, name, letter, role: null, job: null, primary: false, paused: false, status: 'active', product: nameSlug, engine: 'claude', model: 'opus',
     now: null, queued: 0, runsThisWeek: 3, worksLabel: null, createdAt: at(14 * 24 * 60), running: null, waiting: [], duties: [], ...more,
   });
   return {
@@ -154,7 +155,7 @@ export function previewTeammates(now = Date.now()) {
         duties: [{ id: 'd-1', what: 'Check in with what needs you', when: 'Weekdays at 9am' }],
       }),
       mate('t-launch0001', 'Launch lead', 'L', { product: 'film', now: 'Cut the launch film to 60 seconds', running: { id: 'w-t1a2b3c4d5', product: 'film', title: '' } }),
-      mate('t-quality001', 'Quality lead', 'Q', { now: 'Waiting on you', waiting: [{ id: 'w-t2b3c4d5e6', product: 'agentbox', title: 'Sign-up fails on a slow connection' }] }),
+      mate('t-quality001', 'Quality lead', 'Q', { now: 'Waiting on you', waiting: [{ id: 'w-t2b3c4d5e6', product: nameSlug, title: 'Sign-up fails on a slow connection' }] }),
       mate('t-growth0001', 'Growth lead', 'G', { paused: true, product: 'site', runsThisWeek: 0 }),
     ],
     chat: [
@@ -166,15 +167,15 @@ export function previewTeammates(now = Date.now()) {
       { id: 'm-p6', kind: 'msg', from: 't-chief00001', to: ['you'], text: 'One question for the film: should it open on the inbox or on the phone?', options: ['The inbox', 'The phone'], ts: at(12) },
     ],
     runs: [
-      { id: 'run-p1', kind: 'run', teammate: 't-chief00001', item: 'w-t3c4d5e6f7', product: 'agentbox', title: 'Write the morning check-in', verb: 'finished', ts: Math.min(morning + MIN, at(41)) },
-      { id: 'run-p2', kind: 'run', teammate: 't-quality001', item: 'w-t2b3c4d5e6', product: 'agentbox', title: 'Sign-up fails on a slow connection', verb: 'sent', waiting: true, ts: at(30) },
+      { id: 'run-p1', kind: 'run', teammate: 't-chief00001', item: 'w-t3c4d5e6f7', product: nameSlug, title: 'Write the morning check-in', verb: 'finished', ts: Math.min(morning + MIN, at(41)) },
+      { id: 'run-p2', kind: 'run', teammate: 't-quality001', item: 'w-t2b3c4d5e6', product: nameSlug, title: 'Sign-up fails on a slow connection', verb: 'sent', waiting: true, ts: at(30) },
       { id: 'run-p3', kind: 'run', teammate: 't-launch0001', item: 'w-t1a2b3c4d5', product: 'film', title: 'Cut the launch film to 60 seconds', verb: 'picked', ts: at(20) },
     ],
   };
 }
 
 const PREVIEW_TEAM = {
-  team: { id: 't-preview', name: 'Astral' },
+  team: { id: 't-preview', name: 'Northwind' },
   members: [{ person_id: 'preview', role: 'owner' }, { person_id: 'p-2', role: 'member' }, { person_id: 'p-3', role: 'member' }],
   people: [{ id: 'preview', email: 'you@example.com', name: 'You' }, { id: 'p-2', email: 'sam@example.com', name: 'Sam Rivera' }, { id: 'p-3', email: 'kai@example.com', name: 'Kai Ito' }],
   invites: [{ email: 'lee@example.com' }],
@@ -186,7 +187,7 @@ export function previewGroups(now = Date.now()) {
   const at = (m: number) => iso(now - m * MIN);
   const yesterday = new Date(now).setHours(0, 0, 0, 0) - 7 * 60 * MIN;
   const rooms = [
-    { id: 'r-team', name: 'Astral', kind: 'room', team_id: 't-preview', listed: false, invite_only: false, role: 'member', members: 3, created_at: at(90 * 24 * 60) },
+    { id: 'r-team', name: 'Northwind', kind: 'room', team_id: 't-preview', listed: false, invite_only: false, role: 'member', members: 3, created_at: at(90 * 24 * 60) },
     { id: 'r-launch', name: 'Launch week', kind: 'room', team_id: null, listed: false, invite_only: false, role: 'owner', members: 4, created_at: at(9 * 24 * 60) },
     { id: 'r-maya', name: 'Maya C.', kind: 'group', team_id: null, listed: false, invite_only: false, role: 'owner', members: 2, created_at: at(3 * 24 * 60) },
   ];
@@ -223,7 +224,7 @@ export function previewGroups(now = Date.now()) {
   const reads = [{ room_id: 'r-team', read_at: at(20) }, { room_id: 'r-launch', read_at: at(100) }, { room_id: 'r-maya', read_at: at(130) }];
   messages.push(msg('r-launch', 'p-4', at(16), 'Here is the frame I mean. ![The opening frame](attachments/opening-frame.png)\n\nThe notes are in [cut-notes.pdf](attachments/cut-notes.pdf).'));
   const cards = [
-    { person_id: 'p-3', thread_id: 'w-card-1', title: 'Fix the login meter', project: 'Agentbox', state: 'running', priority: 5, problem: 'The meter shows the wrong reset time on Max accounts.', progress: 'Found where the time is read.', solution: null, visible: true, updated_at: at(10) },
+    { person_id: 'p-3', thread_id: 'w-card-1', title: 'Fix the login meter', project: NAME, state: 'running', priority: 5, problem: 'The meter shows the wrong reset time on Max accounts.', progress: 'Found where the time is read.', solution: null, visible: true, updated_at: at(10) },
     { person_id: 'p-2', thread_id: 'w-card-2', title: 'Pick the sign-in screen', project: 'Website', state: 'waiting', priority: 5, problem: 'Two sign-in screens are left.', progress: null, solution: null, visible: true, updated_at: at(25) },
   ];
   const names: Record<string, string> = { preview: 'Ada Lovelace', 'p-2': 'Sam Rivera', 'p-3': 'Kai Ito', 'p-4': 'Maya Chen', 'p-5': 'Lee Park' };
