@@ -738,7 +738,11 @@ function clearUnfinished(root, staging, pid = process.pid) {
   // `--force`, and this one is ours or its owner is gone.
   tryGit(root, ['worktree', 'unlock', staging]);
   tryGit(root, ['worktree', 'remove', '--force', staging]);
-  try { fs.rmSync(staging, { recursive: true, force: true }); } catch { /* already gone */ }
+  // Moved aside before it is deleted: Node 24's rmSync empties a folder it then
+  // cannot remove, and an emptied staging folder lets the next `worktree add`
+  // walk into it. One that cannot be moved is left whole.
+  const aside = path.join(path.dirname(staging), `.clearing-${pid}-${Date.now()}`);
+  try { fs.renameSync(staging, aside); fs.rmSync(aside, { recursive: true, force: true }); } catch { /* already gone, or not ours to move */ }
   tryGit(root, ['worktree', 'prune']);
   return { cleared: true };
 }

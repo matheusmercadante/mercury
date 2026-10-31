@@ -51,6 +51,9 @@ afterEach(() => fs.rmSync(home, { recursive: true, force: true }));
 const zshrc = (tail) => fs.writeFileSync(path.join(home, '.zshrc'), `export PATH="${tools}:$PATH"\n${tail}`);
 const envOf = () => ({ HOME: home, ZDOTDIR: home, SHELL: '/bin/zsh', PATH: DOCK, USER: 'tester' });
 const tool = (dir, name) => fs.writeFileSync(path.join(dir, name), '#!/bin/sh\necho stub\n', { mode: 0o755 });
+// A name no Mac has installed: macOS's /etc/paths.d/homebrew puts /opt/homebrew/bin
+// on every login shell, so a stub called `claude` was found there instead.
+const ONLY_IN_ZSHRC = 'zshrc-only-stub-tool';
 
 describe.skipIf(!hasZsh)('the PATH read, against a real zsh', () => {
   it.each([
@@ -82,15 +85,15 @@ describe.skipIf(!hasZsh)('the program finder, against a real zsh', () => {
   const ask = (bin = 'claude') => askShell({ env: envOf(), bin, run: shellRunner(envOf()) });
 
   it('does not call a tool missing when .zshrc execs tmux before the question', () => {
-    tool(tools, 'claude'); // on PATH only through .zshrc, which tmux cut short
+    tool(tools, ONLY_IN_ZSHRC); // on PATH only through .zshrc, which tmux cut short
     zshrc('[ -z "$TMUX" ] && exec tmux\n');
-    expect(ask()).toEqual({ path: null, answered: false });
+    expect(ask(ONLY_IN_ZSHRC)).toEqual({ path: null, answered: false });
   });
 
   it('does not call a tool missing when .zshrc execs fish', () => {
-    tool(tools, 'claude');
+    tool(tools, ONLY_IN_ZSHRC);
     zshrc('exec fish\n');
-    expect(ask()).toEqual({ path: null, answered: false });
+    expect(ask(ONLY_IN_ZSHRC)).toEqual({ path: null, answered: false });
   });
 
   it('still finds a tool .zprofile puts on PATH, past the tmux', () => {
