@@ -13,7 +13,7 @@ import { resolveClaudeBin, candidatePaths } from './claude-bin.mjs';
 import { warmShellAnswers } from './engine-bin.mjs';
 import { resolveCodexBin } from './codex-bin.mjs';
 import { defaultStoreRoot } from './store/home.mjs';
-import { readPlans, slotsForPlans } from './claude-plan.mjs';
+import { readPlans, slotsForPlans, holdsToOne } from './claude-plan.mjs';
 import { machineSlots } from './machine.mjs';
 import { effectiveProfiles } from './account-discovery.mjs';
 import { runningAsAFreshUser } from '../shared/fresh-user-home.mjs';
@@ -270,7 +270,7 @@ export function loadConfig(appDir, { home = os.homedir() } = {}) {
   // TOGETHER. Somebody on a smaller plan gets several sessions started for them,
   // they all spend the same allowance, and what they see is agents that are slow
   // and rows that fail. The founder's own bullet off a tester's onboarding was
-  // "not on max plan?". So a plan that is not Max answers 1 and that stands
+  // "not on max plan?". So a plan that is not Max or Enterprise answers 1 and that stands
   // whatever the hardware is.
   //
   // HER OWN NUMBER ALWAYS WINS, including when it is the same as the default:
@@ -322,7 +322,7 @@ export function loadConfig(appDir, { home = os.homedir() } = {}) {
     config.maxConcurrentSessions = slots;
     config.planSlotsFrom = slots === config.machineSlots
       ? null
-      : (plans.find((p) => p.known && !p.max)?.label ?? null);
+      : (plans.find(holdsToOne)?.label ?? null);
   } else {
     config.planSlotsFrom = null;
   }

@@ -69,14 +69,14 @@ describe('Enterprise has a plain plan name', () => {
     expect(planLabel(null)).toBe(null);
   });
 
-  it('changes only the displayed name, preserving the saved tier and capacity classification', () => {
+  it('changes only the displayed name and keeps the saved tier', () => {
     const home = fs.mkdtempSync(path.join(os.tmpdir(), 'enterprise-plan-'));
     try {
       fs.writeFileSync(path.join(home, '.claude.json'), JSON.stringify({
         oauthAccount: { organizationRateLimitTier: 'default_raven_enterprise' },
       }));
       expect(readPlan('default', { home })).toMatchObject({
-        known: true, label: 'Enterprise', tier: 'default_raven_enterprise', max: false,
+        known: true, label: 'Enterprise', tier: 'default_raven_enterprise', max: false, enterprise: true,
       });
     } finally {
       fs.rmSync(home, { recursive: true, force: true });

@@ -89,6 +89,10 @@ export function isMaxTier(raw) {
   return /(^|_)max(_|$)/i.test(String(raw ?? ''));
 }
 
+export function isEnterpriseTier(raw) {
+  return /(^|_)enterprise(_|$)/i.test(String(raw ?? ''));
+}
+
 /**
  * WHAT PLAN ONE ACCOUNT IS ON.
  *
@@ -118,7 +122,7 @@ export function readPlan(profile, { home = os.homedir(), file = null } = {}) {
 }
 
 function readPlanNow(at) {
-  const none = { known: false, max: false, label: null, tier: null, from: null, file: at };
+  const none = { known: false, max: false, enterprise: false, label: null, tier: null, from: null, file: at };
   let account = null;
   try {
     account = JSON.parse(fs.readFileSync(at, 'utf8'))?.oauthAccount ?? null;
@@ -143,9 +147,12 @@ function readPlanNow(at) {
   // `default_claude_max_20x`, so the page went on saying "Max 20x". Only the
   // exact word counts; a file that names no billing at all is read as before.
   if (account.billingType === 'none') {
-    return { known: true, ended: true, max: false, label: 'Subscription ended', tier, from, file: at };
+    return { known: true, ended: true, max: false, enterprise: false, label: 'Subscription ended', tier, from, file: at };
   }
-  return { known: true, ended: false, max: isMaxTier(tier), label: planLabel(tier), tier, from, file: at };
+  // A seat in a Team or Enterprise has its own allowance, which can be Max
+  // while the organisation's tier is not.
+  const max = isMaxTier(tier) || isMaxTier(account.userRateLimitTier);
+  return { known: true, ended: false, max, enterprise: isEnterpriseTier(tier), label: planLabel(tier), tier, from, file: at };
 }
 
 /**
@@ -188,8 +195,8 @@ export function readPlans(profiles, { home = os.homedir() } = {}) {
  * HOW MANY SESSIONS AT ONCE, WHEN NOBODY HAS SAID.
  *
  *  `fallback` is the number the app has always used and is what comes back in
- *  every case except one: at least one account is readable and is NOT a Max
- *  plan. Then it is one at a time.
+ *  every case except one: at least one account is readable and is neither Max
+ *  nor Enterprise. Then it is one at a time.
  *
  *  WHY THE SMALLEST ACCOUNT DECIDES. The cap is ONE number applied per account
  *  (main/supervisor.mjs multiplies it by the live accounts), so there is no way
@@ -201,8 +208,8 @@ export function readPlans(profiles, { home = os.homedir() } = {}) {
  *  AND AN UNREADABLE ACCOUNT NEVER LOWERS IT. Somebody whose config file we
  *  cannot parse gets exactly the app they had before this existed. */
 export function slotsForPlans(plans, fallback = 3) {
-  // An ended subscription runs nothing, so it has no say in how many run.
-  const known = (plans ?? []).filter((p) => p.known && !p.ended);
-  if (!known.length) return fallback;
-  return known.every((p) => p.max) ? fallback : 1;
+  return (plans ?? []).some(holdsToOne) ? 1 : fallback;
 }
+
+// An ended subscription runs nothing, so it has no say in how many run.
+export const holdsToOne = (plan) => !!plan?.known && !plan.ended && !plan.max && !plan.enterprise;

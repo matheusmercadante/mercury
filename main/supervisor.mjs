@@ -4762,7 +4762,7 @@ export class Supervisor {
    *
    * AND A CLAUDE PLAN'S ANSWER IS NOT AN ANSWER ABOUT CODEX. When nobody sets
    * `maxConcurrentSessions`, main/config.mjs reads the tier out of Claude
-   * Code's own `.claude.json` and lowers the number for a plan that is not Max.
+   * Code's own `.claude.json` and lowers the number for a plan that is not Max or Enterprise.
    *
    * The cap exists because ONE plan's rate limit is split between whatever is
    * running on it, which is the argument in `_capacityFor` above; a Codex
@@ -4805,7 +4805,7 @@ export class Supervisor {
     // is added.
     //
     // A SMALL PLAN STILL WINS. `slotsForPlans` answers one at a time for a
-    // subscription that is not Max; that is a fact about the subscription and
+    // subscription that is not Max or Enterprise; that is a fact about the subscription and
     // not about this Mac, so Automatic may only ever come out at or under it.
     //
     // AND THE NUMBER PICKED ON THE MENU IS THE COMPUTER'S TOO (w-ec27ff1a51),
