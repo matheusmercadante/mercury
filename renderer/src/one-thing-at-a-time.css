@@ -3,10 +3,12 @@
 /* The name is said once, on the page; the bar keeps the way back. A rename still opens its box there. */
 .app.one-at-a-time .thread-crumb-sep:has(+ .thread-crumb-name), .app.one-at-a-time .thread-crumb-name { display: none; }
 
-.one-nav { display: inline-flex; align-items: center; gap: 6px; margin-right: 6px; }
-.one-pos { margin-right: 8px; font: 11px var(--mono); letter-spacing: .09em; text-transform: uppercase; color: var(--text-faint); white-space: nowrap; }
+/* The arrows are a quiet pair, not two more boxes beside Cloud and Done. */
+.one-nav { display: inline-flex; align-items: center; gap: 0; }
+.ts-more.one-step { border-color: transparent; }
+.ts-more.one-step:hover { border-color: transparent; }
 .one-step:disabled { opacity: .35; cursor: default; }
-.one-step:disabled:hover { color: var(--text-dim); border-color: var(--line); background: none; }
+.one-step:disabled:hover { color: var(--text-dim); border-color: transparent; background: none; }
 
 /* Spaced so the link and its text read as one block under the name, with clear
    room before the question: 17, 13 and 27px of blank between the ink. */
@@ -58,6 +60,12 @@
 .one-frame.is-expanded { height: max(560px, calc(100vh - 260px)); }
 .one-notebody { padding: 14px 22px 6px; }
 .one-notebody hr { border: 0; border-top: 1px solid var(--line); margin: 18px 0; }
+/* A note reads as a page held in the thread: rounded paper, the words at a
+   reading measure in the middle of it (doc-reading.css). */
+.one-note { border-radius: 12px; overflow: hidden; border-color: var(--line); background: var(--doc-page, var(--surface)); container-type: inline-size; }
+.one-note .one-filehead { background: none; font-family: inherit; font-size: 13px; line-height: 18px; color: var(--text-dim); padding: 11px 16px; }
+.one-note .one-notebody.doc-prose { box-sizing: content-box; max-width: 700px; margin: 0 auto; padding: 40px clamp(22px, 6cqi, 48px) 20px; }
+.one-note .document-preview-toggle { background: none; }
 
 /* The choices, as the app draws them but tighter, apart from the reply box at
    the foot. A long one is cut to a line; hovering it shows it whole

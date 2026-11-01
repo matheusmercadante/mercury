@@ -15,6 +15,10 @@
 // state machine and only ever looks at two places: inside a string literal,
 // and in the plain text between JSX tags. Comments are skipped, which is the
 // whole point, and they stay free to use the character as much as they like.
+//
+// 2026-10-31: the search fold table moved from renderer/src/search.ts to
+// shared/word-match.mjs, and shared/thread-title.mjs cuts a title at a dash,
+// so both are named in ALLOWED as strippers.
 
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
@@ -78,16 +82,52 @@ const ALLOWED = [
       + 'A dash is one of the marks it removes.',
   },
   {
-    file: 'renderer/src/search.ts',
+    file: 'shared/word-match.mjs',
     fragment: "'—': '-'",
     why: "The fold table, so a search for a hyphen still finds a row somebody "
       + 'else typed with a dash in it. Removing this would make search worse, '
       + 'not cleaner.',
   },
   {
-    file: 'renderer/src/search.ts',
+    file: 'shared/word-match.mjs',
     fragment: 'toLowerCase',
     why: 'The character class the fold table is applied through. Same reason.',
+  },
+  {
+    file: 'shared/thread-title.mjs',
+    fragment: 't = t.split(',
+    why: 'shortTitle, which ends a fallback title at the first clause; a dash '
+      + 'between words is one of the marks a clause ends on, and is cut off.',
+  },
+  {
+    file: 'shared/artifact-marks.mjs',
+    fragment: '(?:hi|hey|hello|dear)',
+    why: 'addressedTo, which reads "Sofia — can you" as a note to Sofia. The dash '
+      + 'is one of the marks that can follow the name.',
+  },
+  {
+    file: 'shared/artifact-marks.mjs',
+    fragment: 'const CLAUSES = ',
+    why: 'onlyThanks splits a note into clauses, and a dash between words is one '
+      + 'of the marks a clause ends on.',
+  },
+  {
+    file: 'shared/artifact-marks.mjs',
+    fragment: "/gu, ' ').trim()",
+    why: 'onlyThanks keeps the marks CLAUSES splits on while it drops every other '
+      + 'symbol, so the dash has to be in the list it keeps.',
+  },
+  {
+    file: 'shared/team-tasks.mjs',
+    fragment: 'const END = String.raw',
+    why: 'withoutAddress, which takes "For Dev —" off the front of a task title. '
+      + 'The dash is one of the marks that can end the address.',
+  },
+  {
+    file: 'shared/team-tasks.mjs',
+    fragment: 'const leads = [String.raw',
+    why: 'The same removal for "Task — ...", where the dash ends the word task '
+      + 'rather than being part of the title.',
   },
 ];
 
