@@ -23,7 +23,7 @@ import { fileURLToPath } from 'node:url';
 import { Store } from '../main/store.mjs';
 import { appHome, encodeProjectPath, isMachineryDir, machineryDir, machineryPath } from '../main/store/home.mjs';
 import * as workItems from '../main/store/work-items.mjs';
-import { WAS, envNames, nameSlug } from '../shared/product-name.mjs';
+import { WAS, envName, envNames, nameSlug } from '../shared/product-name.mjs';
 
 let tmp;
 let accountRoot;
@@ -70,12 +70,13 @@ describe('the home is the one Claude Code taught us', () => {
   // A STORE WRITTEN UNDER AN OLD NAME IS STILL HER STORE. The rename would
   // otherwise hand an existing install an empty home and lose the work item
   // ledger, the session traces and the run records for every project on it.
-  it('keeps reading a dot-folder from an older name when that is the one on disk', () => {
+  // Mercury has had no other name yet, so there is no older dot-folder to read.
+  it.runIf(WAS.length > 0)('keeps reading a dot-folder from an older name when that is the one on disk', () => {
     const held = {};
     for (const key of envNames('HOME')) { held[key] = process.env[key]; delete process.env[key]; }
-    fs.mkdirSync(path.join(tmp, `.${WAS[1].toLowerCase()}`), { recursive: true });
     try {
-      expect(appHome(tmp)).toBe(path.join(tmp, `.${WAS[1].toLowerCase()}`));
+      fs.mkdirSync(path.join(tmp, `.${WAS[0].toLowerCase()}`), { recursive: true });
+      expect(appHome(tmp)).toBe(path.join(tmp, `.${WAS[0].toLowerCase()}`));
       // And the current name wins the moment it exists, so a fresh home is
       // never pulled backwards into an old one.
       fs.mkdirSync(path.join(tmp, `.${nameSlug}`), { recursive: true });
@@ -98,7 +99,7 @@ describe('the home is the one Claude Code taught us', () => {
 
   it('puts a product under <home>/projects/<encoded>', () => {
     const dir = makeProduct('acme');
-    expect(machineryDir(dir)).toBe(path.join(process.env.ASTRAL_HOME, 'projects', encodeProjectPath(dir)));
+    expect(machineryDir(dir)).toBe(path.join(process.env[envName('HOME')], 'projects', encodeProjectPath(dir)));
   });
 
   // THE ONE THING THE ENCODING CANNOT PROMISE. `/a/b.c` and `/a/b/c` encode the
@@ -118,7 +119,7 @@ describe('the home is the one Claude Code taught us', () => {
     expect(given).not.toBe(wanted);
     expect(given.startsWith(`${wanted}-`)).toBe(true);
     // And `one` still gets the folder that says it is his.
-    expect(machineryDir(one, process.env.ASTRAL_HOME)).toBe(machineryDir(one));
+    expect(machineryDir(one, process.env[envName('HOME')])).toBe(machineryDir(one));
   });
 
   it('writes the origin marker so the folder says whose it is', () => {
@@ -378,7 +379,7 @@ describe('the instructions sessions read point at the real ledger', () => {
 
   it('says where the ledger actually is, in enough detail to find it', () => {
     const text = brief();
-    expect(text).toContain('$ASTRAL_HOME/projects/');
+    expect(text).toContain(`$${envName('HOME')}/projects/`);
     expect(text).toContain('work-items.jsonl');
     // and the trap it costs a session an hour to walk into
     expect(text).toContain('ACCOUNT folder');

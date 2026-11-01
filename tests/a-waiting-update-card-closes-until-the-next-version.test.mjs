@@ -20,6 +20,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import postcss from 'postcss';
 import { WorkspaceNavigation } from '../renderer/src/components/WorkspaceNavigation.tsx';
 import { changeLines, readUpdateClosed, writeUpdateClosed, closedHere, UPDATE_CLOSED_KEY } from '../renderer/src/update-row.ts';
+import { Name } from '../shared/product-name.mjs';
 
 /** A stand-in for the window's localStorage, which node does not have. */
 function storage(initial = {}) {
@@ -113,7 +114,7 @@ describe('once closed', () => {
     remember(storage({ [UPDATE_CLOSED_KEY]: 'abc1234' }));
     const html = draw({ update: v({ installing: true }) });
     expect(html).toMatch(/class="sb-update-card" data-installing="true"/);
-    expect(html).toContain('<p>Agentbox restarts by itself in about a minute.</p>');
+    expect(html).toContain(`<p>${Name} restarts by itself in about a minute.</p>`);
     expect(html).not.toContain('Restart to update</button>');
   });
 });

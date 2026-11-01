@@ -3,7 +3,9 @@
 import { nameSlug } from './product-name.mjs';
 
 export const JOIN_SCHEME = nameSlug;
-export const JOIN_SITE = `https://${nameSlug}.ac/join/`;
+// The invite page exists only on Agentbox's site. Built from the name it would
+// hand invite tokens to whoever owns mercury.ac.
+export const JOIN_SITE = 'https://agentbox.ac/join/';
 
 export const joinLink = (token) => `${JOIN_SITE}${token}`;
 

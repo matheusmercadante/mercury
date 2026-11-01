@@ -17,7 +17,7 @@ import { Name, nameSlug, envNames } from '../shared/product-name.mjs';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const bin = fs.readFileSync(path.join(here, '..', 'bin', 'agentbox.mjs'), 'utf8');
+const bin = fs.readFileSync(path.join(here, '..', 'bin', 'mercury.mjs'), 'utf8');
 
 describe('the linux store lives in the xdg data directory', () => {
   it('uses ~/.local/share when XDG_DATA_HOME is unset', () => {

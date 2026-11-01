@@ -31,6 +31,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { loadCloudConfig, teamConfigOnThisMac } from '../main/team/session.mjs';
+import { envName, nameSlug } from '../shared/product-name.mjs';
 
 const tmp = (name) => fs.mkdtempSync(path.join(os.tmpdir(), `team-key-${name}-`));
 const KEY = { url: 'https://hers.test', anonKey: 'anon' };
@@ -40,8 +41,8 @@ function aMac({ inHome = null, inFolder = null } = {}) {
   const home = tmp('home');
   const appDir = tmp('app');
   if (inHome) {
-    fs.mkdirSync(path.join(home, '.agentbox'), { recursive: true });
-    fs.writeFileSync(path.join(home, '.agentbox', 'team.config.json'), JSON.stringify(inHome));
+    fs.mkdirSync(path.join(home, `.${nameSlug}`), { recursive: true });
+    fs.writeFileSync(path.join(home, `.${nameSlug}`, 'team.config.json'), JSON.stringify(inHome));
   }
   if (inFolder) {
     fs.mkdirSync(path.join(appDir, 'cloud'), { recursive: true });
@@ -56,14 +57,14 @@ function aMac({ inHome = null, inFolder = null } = {}) {
 // instead of its own fixture, and would pass or fail depending on whose Mac ran
 // it (tests/no-test-reads-this-macs-sign-in.test.mjs is the rule).
 const was = process.env.AGENTBOX_TEAM_CONFIG;
-const wasHome = process.env.AGENTBOX_HOME;
+const wasHome = process.env[envName('HOME')];
 beforeEach(() => {
   delete process.env.AGENTBOX_TEAM_CONFIG;
-  delete process.env.AGENTBOX_HOME;
+  delete process.env[envName('HOME')];
 });
 afterEach(() => {
   if (was === undefined) delete process.env.AGENTBOX_TEAM_CONFIG; else process.env.AGENTBOX_TEAM_CONFIG = was;
-  if (wasHome === undefined) delete process.env.AGENTBOX_HOME; else process.env.AGENTBOX_HOME = wasHome;
+  if (wasHome === undefined) delete process.env[envName('HOME')]; else process.env[envName('HOME')] = wasHome;
 });
 
 describe('a folder with no key of its own', () => {
@@ -124,13 +125,13 @@ describe('an installed build', () => {
     expect(loadCloudConfig(appDir, { packaged: false, home }).url).toBe('https://theirs.test');
   });
 
-  it('does not let AGENTBOX_HOME say where the Mac\'s key is', () => {
+  it('does not let the app home variable say where the Mac\'s key is', () => {
     const { home } = aMac({ inHome: KEY });
     const elsewhere = tmp('elsewhere');
-    fs.mkdirSync(path.join(elsewhere, '.agentbox'), { recursive: true });
-    fs.writeFileSync(path.join(elsewhere, '.agentbox', 'team.config.json'), JSON.stringify({ url: 'https://theirs.test', anonKey: 'k' }));
-    process.env.AGENTBOX_HOME = elsewhere;
-    expect(teamConfigOnThisMac(home)).toBe(path.join(home, '.agentbox', 'team.config.json'));
+    fs.mkdirSync(path.join(elsewhere, `.${nameSlug}`), { recursive: true });
+    fs.writeFileSync(path.join(elsewhere, `.${nameSlug}`, 'team.config.json'), JSON.stringify({ url: 'https://theirs.test', anonKey: 'k' }));
+    process.env[envName('HOME')] = elsewhere;
+    expect(teamConfigOnThisMac(home)).toBe(path.join(home, `.${nameSlug}`, 'team.config.json'));
     expect(teamConfigOnThisMac(home)).not.toContain(elsewhere);
   });
 });

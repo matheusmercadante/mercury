@@ -14,6 +14,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { servedHere } from '../main/cloud/run.mjs';
+import { envName } from '../shared/product-name.mjs';
 
 let tmp;
 const ACCOUNT = 'acct-test';
@@ -77,10 +78,10 @@ describe('the approvals channel', () => {
 
 describe('the store', () => {
   it('offers the resource tool only when this cloud run supplied its own resolver', async () => {
-    const env = { STORE_ACCOUNT_ID: ACCOUNT, AGENTBOX_HOME: path.join(tmp, 'store') };
+    const env = { STORE_ACCOUNT_ID: ACCOUNT, [envName('HOME')]: path.join(tmp, 'store') };
     const calls = [];
-    const a = servedHere({ command: '/nowhere/mcp/agentbox-mcp.sh', env }, env, 'resource-a', { requestCloudResource: async (args) => { calls.push(args); return { status: 'delivered', path: '/tmp/resource-a/file' }; } });
-    const b = servedHere({ command: '/nowhere/mcp/agentbox-mcp.sh', env }, env, 'resource-b');
+    const a = servedHere({ command: '/nowhere/mcp/mercury-mcp.sh', env }, env, 'resource-a', { requestCloudResource: async (args) => { calls.push(args); return { status: 'delivered', path: '/tmp/resource-a/file' }; } });
+    const b = servedHere({ command: '/nowhere/mcp/mercury-mcp.sh', env }, env, 'resource-b');
     const [[, toolsA], [, toolsB]] = await Promise.all([talk(a, [hello, list]), talk(b, [hello, list])]);
     expect(toolsA.result.tools.map((t) => t.name)).toContain('request_cloud_resource');
     expect(toolsB.result.tools.map((t) => t.name)).not.toContain('request_cloud_resource');
@@ -91,9 +92,9 @@ describe('the store', () => {
   });
 
   it('answers in this process, each connection with its own claims', async () => {
-    const env = { STORE_ACCOUNT_ID: ACCOUNT, AGENTBOX_HOME: path.join(tmp, 'store') };
-    const a = servedHere({ command: '/nowhere/mcp/agentbox-mcp.sh', env }, env, 'r-c1');
-    const b = servedHere({ command: '/nowhere/mcp/agentbox-mcp.sh', env }, env, 'r-c2');
+    const env = { STORE_ACCOUNT_ID: ACCOUNT, [envName('HOME')]: path.join(tmp, 'store') };
+    const a = servedHere({ command: '/nowhere/mcp/mercury-mcp.sh', env }, env, 'r-c1');
+    const b = servedHere({ command: '/nowhere/mcp/mercury-mcp.sh', env }, env, 'r-c2');
     const [[, toolsA], [, toolsB]] = await Promise.all([talk(a, [hello, list]), talk(b, [hello, list])]);
     expect(toolsA.result.tools.map((t) => t.name)).toContain('claim_work_item');
     expect(toolsB.result.tools.length).toBe(toolsA.result.tools.length);
@@ -104,12 +105,12 @@ describe('the store', () => {
   // one process serves every run, so a person id set for one run stayed for
   // the next, after a sign-out too.
   it('writes as the person each run was started for, and as nobody when none', async () => {
-    const env = { STORE_ACCOUNT_ID: ACCOUNT, AGENTBOX_HOME: path.join(tmp, 'store') };
+    const env = { STORE_ACCOUNT_ID: ACCOUNT, [envName('HOME')]: path.join(tmp, 'store') };
     const was = process.env.AGENTBOX_PERSON_ID;
     try {
-      const a = servedHere({ command: '/nowhere/mcp/agentbox-mcp.sh', env }, { ...env, AGENTBOX_PERSON_ID: 'p-1' }, 'r-c4');
+      const a = servedHere({ command: '/nowhere/mcp/mercury-mcp.sh', env }, { ...env, AGENTBOX_PERSON_ID: 'p-1' }, 'r-c4');
       expect(process.env.AGENTBOX_PERSON_ID).toBe('p-1');
-      const b = servedHere({ command: '/nowhere/mcp/agentbox-mcp.sh', env }, env, 'r-c5');
+      const b = servedHere({ command: '/nowhere/mcp/mercury-mcp.sh', env }, env, 'r-c5');
       expect(process.env.AGENTBOX_PERSON_ID).toBeUndefined();
       for (const p of [a, b]) { const closed = new Promise((r) => p.on('close', r)); p.stdout.resume(); p.stdin.end(); await closed; }
     } finally {
@@ -122,9 +123,9 @@ describe('the store', () => {
 // that asked, not of whichever run set ZERO_ITEM last
 // (tests/a-worker-that-claims-without-an-id-gets-its-own-thread).
 it('a bare claim on each connection asks for that run\'s own row', async () => {
-  const env = { STORE_ACCOUNT_ID: ACCOUNT, AGENTBOX_HOME: path.join(tmp, 'store') };
-  const a = servedHere({ command: '/nowhere/mcp/agentbox-mcp.sh', env: { ...env, ZERO_ITEM: 'w-run-a' } }, env, 'r-c6');
-  const b = servedHere({ command: '/nowhere/mcp/agentbox-mcp.sh', env: { ...env, ZERO_ITEM: 'w-run-b' } }, env, 'r-c7');
+  const env = { STORE_ACCOUNT_ID: ACCOUNT, [envName('HOME')]: path.join(tmp, 'store') };
+  const a = servedHere({ command: '/nowhere/mcp/mercury-mcp.sh', env: { ...env, ZERO_ITEM: 'w-run-a' } }, env, 'r-c6');
+  const b = servedHere({ command: '/nowhere/mcp/mercury-mcp.sh', env: { ...env, ZERO_ITEM: 'w-run-b' } }, env, 'r-c7');
   const claim = { jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'claim_work_item', arguments: {} } };
   const [[, , outA], [, , outB]] = await Promise.all([talk(a, [hello, list, claim]), talk(b, [hello, list, claim])]);
   expect(JSON.stringify(outA.result)).toContain('w-run-a');

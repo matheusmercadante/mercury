@@ -1,12 +1,18 @@
-# agentbox: notes for agents working in this repo
+# Mercury: notes for agents working in this repo
 
-agentbox is an inbox over a store on disk, on Linux and on macOS: work items
+Mercury is a personal fork of Agentbox (github.com/savannahfeder/agentbox).
+The installed Agentbox can run beside it on the same Mac, so Mercury never
+reads Agentbox's data folder, store or env vars (`FORKED_FROM` in
+`shared/product-name.mjs`). Names of Agentbox's own services (Agentbox
+Cloud, the relay, agentbox.ac, its release command) are still Agentbox's.
+
+Mercury is an inbox over a store on disk, on Linux and on macOS: work items
 in, headless `claude -p` and Codex workers out, one per item. On Linux the
-store is `$XDG_DATA_HOME/agentbox` (`~/.local/share/agentbox` when that
+store is `$XDG_DATA_HOME/mercury` (`~/.local/share/mercury` when that
 variable is unset), the shell is the one that exists, and the palette
-chord is Ctrl+K. Installing a checkout on Linux puts `agentbox` on
+chord is Ctrl+K. Installing a checkout on Linux puts `mercury` on
 `~/.local/bin` and writes the launcher entry at `$XDG_DATA_HOME/applications`
-(`~/.local/share/applications` when unset). The entry runs `agentbox`, which
+(`~/.local/share/applications` when unset). The entry runs `mercury`, which
 starts this checkout. The Mac app, the dmg, and the Darwin paths
 stay. Read the code and git for the current state; this file only holds the
 rules that are not obvious from them.

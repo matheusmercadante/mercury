@@ -14,6 +14,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { SETTINGS_PAGES, searchSettings } from '../renderer/src/settings-search';
 import { planSummary } from '../renderer/src/cloud-upgrade';
+import { Name } from '../shared/product-name.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const settings = fs.readFileSync(path.join(root, 'renderer/src/components/Settings.tsx'), 'utf8');
@@ -46,7 +47,7 @@ describe('what the page says about the plan', () => {
 
   it('a plan Stripe bills: its name, price, Manage billing, and the month as two meters', () => {
     expect(planSummary(max)).toEqual({
-      name: 'Agentbox Cloud Max', price: '$200 a month', who: 'Billed monthly by Stripe', manage: true,
+      name: `${Name} Cloud Max`, price: '$200 a month', who: 'Billed monthly by Stripe', manage: true,
       agents: { line: '3 running, no limit', percent: 0 },
       hours: { line: '86 of 3,000 hours', percent: 3 },
     });

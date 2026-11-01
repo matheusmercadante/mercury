@@ -28,6 +28,7 @@ import { createSandbox } from '../cloud/sandbox/server.mjs';
 import { cloudRun, IMPORT_FAILED, toolVariables } from '../main/cloud/run.mjs';
 import { readMarker } from '../main/cloud/marker.mjs';
 import { Supervisor } from '../main/supervisor.mjs';
+import { envName } from '../shared/product-name.mjs';
 
 const here = (p) => fileURLToPath(new URL(p, import.meta.url));
 const FAKE_CLAUDE = here('./fixtures/cloud/fake-claude.mjs');
@@ -109,7 +110,7 @@ function launch(message, extra = {}) {
   const done = cloudRun({
     ...common(), login: LOGIN, stdin, stdout, stderr, signals, ...extra,
     argv: [FAKE_CLAUDE, '-p', '--output-format', 'stream-json', '--mcp-config', mcpFile],
-    env: { ...process.env, ZERO_ITEM: 'w-1', ZERO_PRODUCT: 'p', CLAUDE_CONFIG_DIR: configDir(), AGENTBOX_HOME: path.join(tmp, 'mac') },
+    env: { ...process.env, ZERO_ITEM: 'w-1', ZERO_PRODUCT: 'p', CLAUDE_CONFIG_DIR: configDir(), [envName('HOME')]: path.join(tmp, 'mac') },
   });
   stdin.write(JSON.stringify({ type: 'user', message: { role: 'user', content: message } }) + '\n');
   return { done, signals, out: () => out, err: () => err };
@@ -354,8 +355,8 @@ describe('when the app quits with a run in the cloud', () => {
 
 describe('the variables a joined run gives its tools', () => {
   it('are this app\'s own, and never a key', () => {
-    expect(toolVariables({ ZERO_ITEM: 'w-1', STORE_ACCOUNT_ID: 'a', AGENTBOX_HOME: '/h', AGENTBOX_API_KEY: 'k', PATH: '/bin', ANTHROPIC_API_KEY: 'x', STORE_TOKEN: 't' }))
-      .toEqual({ ZERO_ITEM: 'w-1', STORE_ACCOUNT_ID: 'a', AGENTBOX_HOME: '/h' });
+    expect(toolVariables({ ZERO_ITEM: 'w-1', STORE_ACCOUNT_ID: 'a', [envName('HOME')]: '/h', AGENTBOX_API_KEY: 'k', PATH: '/bin', ANTHROPIC_API_KEY: 'x', STORE_TOKEN: 't' }))
+      .toEqual({ ZERO_ITEM: 'w-1', STORE_ACCOUNT_ID: 'a', [envName('HOME')]: '/h' });
   });
 });
 

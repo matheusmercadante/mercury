@@ -2,7 +2,7 @@
 //
 // Setup's last screen ends on "Keep bringing in new chats from Claude Code and
 // Codex", and Settings has the same switch. The watch that does the bringing
-// was started in main/main.mjs only, so in the browser copy (bin/agentbox.mjs,
+// was started in main/main.mjs only, so in the browser copy (bin/mercury.mjs,
 // `npx agentbox-app`) the tick was saved and nothing ever came in. Found while
 // setting up the power test for w-62228098e6, whose copies are that browser
 // copy.
@@ -22,7 +22,7 @@ const read = (rel) => fs.readFileSync(new URL(`../${rel}`, import.meta.url), 'ut
 
 describe('both ways of running the app start the watch', () => {
   it('the browser copy starts it with the agents and stops it on the way out', () => {
-    const bin = read('bin/agentbox.mjs');
+    const bin = read('bin/mercury.mjs');
     const block = bin.slice(bin.indexOf('if (!process.env.ZERO_NO_SUPERVISOR)'), bin.indexOf('const token = newToken()'));
     expect(block).toMatch(/watchNewChatsFor\(\{ store: booted\.store, config: booted\.config, supervisor: booted\.supervisor \}\)/);
     expect(bin).toMatch(/newChatsWatch\?\.stop\(\)/);
@@ -35,7 +35,7 @@ describe('both ways of running the app start the watch', () => {
   });
 
   it('a launch that asks for no agents brings in no chats either', () => {
-    const bin = read('bin/agentbox.mjs');
+    const bin = read('bin/mercury.mjs');
     expect(bin.indexOf('watchNewChatsFor(')).toBeGreaterThan(bin.indexOf('if (!process.env.ZERO_NO_SUPERVISOR)'));
   });
 });

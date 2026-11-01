@@ -1,4 +1,4 @@
-// THE DOWNLOAD AND THE UPDATE FEED LIVE IN ONE PUBLIC REPO, agentboxhq/agentbox-releases.
+// THE DOWNLOAD AND THE UPDATE FEED LIVE IN ONE PUBLIC REPO.
 //
 // Found on 2026-10-05 publishing the first signed Agentbox build for agentbox.ac.
 // The publish went through, and agentbox.ac/download still answered 404:
@@ -19,15 +19,18 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { RELEASE_REPO, DOWNLOAD_ASSET, noReleaseYet } from '../scripts/lib/live-download.mjs';
+import { Name } from '../shared/product-name.mjs';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
 const pkg = JSON.parse(read('package.json'));
 
-describe('where Agentbox is downloaded and updated from', () => {
-  it('is the public agentboxhq/agentbox-releases repo', () => {
-    expect(RELEASE_REPO).toBe('agentboxhq/agentbox-releases');
-    expect(DOWNLOAD_ASSET).toBe('Agentbox.dmg');
+describe('where Mercury is downloaded and updated from', () => {
+  // Mercury is a fork: Agentbox's release repo would install Agentbox over it.
+  it("is the fork's own repo, never Agentbox's", () => {
+    expect(RELEASE_REPO).toBe('matheusmercadante/mercury');
+    expect(RELEASE_REPO).not.toMatch(/agentbox/i);
+    expect(DOWNLOAD_ASSET).toBe(`${Name}.dmg`);
   });
 
   it('is what the app checks for updates', () => {

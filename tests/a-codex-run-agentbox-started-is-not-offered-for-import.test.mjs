@@ -15,6 +15,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { readCodexThreads } from '../main/codex-threads.mjs';
+import { nameSlug } from '../shared/product-name.mjs';
 
 const NOW = Date.now();
 let home;
@@ -36,7 +37,8 @@ beforeAll(() => {
   home = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-originator-'));
   fs.mkdirSync(path.join(home, 'work'), { recursive: true });
   codexDir = path.join(home, '.codex');
-  rollout('ours', 'agentbox', '# Your work item\n\nProduct: Orders Api');
+  rollout('ours', nameSlug, '# Your work item\n\nProduct: Orders Api');
+  rollout('agentbox-beside', 'agentbox', '# Your work item\n\nProduct: Orders Api');
   rollout('ours-old-name', 'astral', '# Your work item\n\nProduct: Orders Api');
   rollout('cli', 'codex_cli_rs', 'Fix the pickup time check');
   rollout('desktop', 'Codex Desktop', 'Tidy the footer');
@@ -46,16 +48,20 @@ afterAll(() => fs.rmSync(home, { recursive: true, force: true }));
 describe('which Codex runs the import offers', () => {
   const ids = () => readCodexThreads({ home, codexDir, now: NOW }).threads.map((t) => t.id);
 
-  it('leaves out a run Agentbox started', () => {
+  it('leaves out a run this app started', () => {
     expect(ids()).not.toContain('ours');
   });
-  it('leaves out one started under an older name of the app', () => {
+  // Mercury is a fork, and the Agentbox it came from can run beside it.
+  it('leaves out a run the Agentbox beside it started', () => {
+    expect(ids()).not.toContain('agentbox-beside');
+  });
+  it('leaves out one started under an older name of Agentbox', () => {
     expect(ids()).not.toContain('ours-old-name');
   });
   it('keeps what a person typed in the Codex CLI or the Codex app', () => {
     expect(ids()).toEqual(expect.arrayContaining(['cli', 'desktop']));
   });
   it('counts ours as not a person\'s', () => {
-    expect(readCodexThreads({ home, codexDir, now: NOW }).skipped.notHers).toBe(2);
+    expect(readCodexThreads({ home, codexDir, now: NOW }).skipped.notHers).toBe(3);
   });
 });

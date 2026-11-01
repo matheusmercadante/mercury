@@ -28,6 +28,7 @@ import { createSandbox } from '../cloud/sandbox/server.mjs';
 import { cloudRun, tarOf } from '../main/cloud/run.mjs';
 import { tarDocs } from '../main/cloud/docs.mjs';
 import { checkKit, kitKey, startPayload } from '../shared/cloud-kit.mjs';
+import { envName } from '../shared/product-name.mjs';
 
 const here = (p) => fileURLToPath(new URL(p, import.meta.url));
 const FAKE_CLAUDE = here('./fixtures/cloud/fake-claude.mjs');
@@ -87,9 +88,9 @@ async function run(homeDir, text = 'hello', { resourceDocs = null, legacyResourc
   const configDir = path.join(tmp, 'mac', 'claude-home');
   fs.mkdirSync(configDir, { recursive: true });
   const mcpFile = path.join(tmp, 'mac', 'mcp.json');
-  const resourceEnv = resourceDocs ? { STORE_ACCOUNT_ID: 'acct-resources', AGENTBOX_HOME: path.join(tmp, 'resource-store'), AGENTBOX_DOCS: resourceDocs } : {};
-  if (resourceDocs) fs.mkdirSync(path.join(resourceEnv.AGENTBOX_HOME, 'accounts', resourceEnv.STORE_ACCOUNT_ID), { recursive: true });
-  fs.writeFileSync(mcpFile, JSON.stringify({ mcpServers: { agentbox: resourceDocs ? { command: '/unused/mcp/agentbox-mcp.sh', env: resourceEnv } : { command: process.execPath, args: [FAKE_STORE], env: { FAKE_STORE_LOG: path.join(tmp, 'store.log') } } } }));
+  const resourceEnv = resourceDocs ? { STORE_ACCOUNT_ID: 'acct-resources', [envName('HOME')]: path.join(tmp, 'resource-store'), AGENTBOX_DOCS: resourceDocs } : {};
+  if (resourceDocs) fs.mkdirSync(path.join(resourceEnv[envName('HOME')], 'accounts', resourceEnv.STORE_ACCOUNT_ID), { recursive: true });
+  fs.writeFileSync(mcpFile, JSON.stringify({ mcpServers: { agentbox: resourceDocs ? { command: '/unused/mcp/mercury-mcp.sh', env: resourceEnv } : { command: process.execPath, args: [FAKE_STORE], env: { FAKE_STORE_LOG: path.join(tmp, 'store.log') } } } }));
   const stdin = new PassThrough(); const stdout = new PassThrough(); const stderr = new PassThrough();
   let out = ''; let errText = '';
   stdout.on('data', (d) => { out += d; if (out.includes('"type":"result"') && !stdin.writableEnded) stdin.end(); });

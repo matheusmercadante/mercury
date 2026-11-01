@@ -17,21 +17,22 @@ import { describe, expect, it } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { Name } from '../shared/product-name.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
-const launcher = read('bin/agentbox.mjs');
+const launcher = read('bin/mercury.mjs');
 
 describe('what the command prints when it comes up', () => {
   it('names the browser in the line over the address', () => {
-    expect(launcher).toMatch(/agentbox is running in your browser/);
+    expect(launcher).toContain(`${Name} is running in your browser`);
   });
 
   it('and says where the desktop app comes from, in one line of the four', () => {
-    const printed = launcher.slice(launcher.indexOf('console.log(`\\n  agentbox is running'));
+    const printed = launcher.slice(launcher.indexOf(`console.log(\`\\n  ${Name} is running`));
     const said = printed.slice(0, printed.indexOf('`)'));
     expect(said).toMatch(/desktop app/i);
-    expect(said).toMatch(/github\.com\/savannahfeder\/agentbox#install/);
+    expect(said).toMatch(/github\.com\/matheusmercadante\/mercury#install/);
     expect(said.match(/desktop app/gi)).toHaveLength(1);
   });
 

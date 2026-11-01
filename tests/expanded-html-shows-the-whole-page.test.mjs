@@ -4,9 +4,10 @@ import { describe, expect, it, vi } from 'vitest';
 import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { EventEmitter } from 'node:events';
-import { reportDocumentHeight, wantsDocumentHeight } from '../main/frame-document-height.mjs';
-import { quietTheFramesScrollbars } from '../main/frame-scrollbars.mjs';
+import { reportDocumentHeight, wantsDocumentHeight } from '../main/frame-document-height.mts';
+import { quietTheFramesScrollbars } from '../main/frame-scrollbars.mts';
 import { HtmlPreview } from '../renderer/src/components/HtmlPreview.tsx';
+import { DOC_SCHEME } from '../shared/schemes.mjs';
 
 describe('expanded HTML shows the whole page', () => {
   it('installs the sizing bridge only in the requested document frame', () => {
@@ -15,7 +16,7 @@ describe('expanded HTML shows the whole page', () => {
     quietTheFramesScrollbars(contents);
     for (const expanded of [false, true]) {
       const frame = Object.assign(new EventEmitter(), {
-        url: `astral-doc://file/review.html${expanded ? '?agentbox-height=1' : ''}`,
+        url: `${DOC_SCHEME}://file/review.html${expanded ? '?agentbox-height=1' : ''}`,
         executeJavaScript: vi.fn(async () => {}),
       });
       contents.emit('frame-created', {}, { frame });
@@ -25,8 +26,8 @@ describe('expanded HTML shows the whole page', () => {
   });
 
   it('only measures an explicitly expanded local document', () => {
-    expect(wantsDocumentHeight('astral-doc://file/a.html?agentbox-height=1')).toBe(true);
-    expect(wantsDocumentHeight('astral-doc://file/a.html')).toBe(false);
+    expect(wantsDocumentHeight(`${DOC_SCHEME}://file/a.html?agentbox-height=1`)).toBe(true);
+    expect(wantsDocumentHeight(`${DOC_SCHEME}://file/a.html`)).toBe(false);
     expect(wantsDocumentHeight('https://example.com/a.html?agentbox-height=1')).toBe(false);
   });
 
@@ -54,7 +55,7 @@ describe('expanded HTML shows the whole page', () => {
 
   it('requests sizing only when expanded, preserving the original query and hash', () => {
     const draw = (expanded) => renderToStaticMarkup(h(HtmlPreview, {
-      path: 'review.html', url: 'astral-doc://file/review.html?v=2#end', expanded, onExpandedChange() {},
+      path: 'review.html', url: `${DOC_SCHEME}://file/review.html?v=2#end`, expanded, onExpandedChange() {},
     }));
     expect(draw(false)).not.toContain('agentbox-height');
     expect(draw(true)).toContain('v=2&amp;agentbox-height=1#end');

@@ -24,6 +24,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { reviewBrief, reviewRow, whatNeedsReview, headLabel } from '../.claude/skills/review-pull-requests/scan.mjs';
 import { fileReview } from '../.claude/skills/review-pull-requests/file.mjs';
+import { envName } from '../shared/product-name.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const skill = path.join(root, '.claude', 'skills', 'review-pull-requests');
@@ -104,19 +105,21 @@ describe('the inbox row', () => {
 describe('filing a finished review', () => {
   let home;
   let work;
+  let wasHome;
   const ACCOUNT = 'acct-test';
   beforeEach(async () => {
     home = fs.mkdtempSync(path.join(os.tmpdir(), 'pr-loop-'));
     const dir = path.join(home, 'accounts', ACCOUNT, 'acme');
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(path.join(dir, 'project.json'), JSON.stringify({ schemaVersion: 2, id: 'acme', name: 'Acme' }));
-    process.env.AGENTBOX_HOME = home;
+    wasHome = process.env[envName('HOME')];
+    process.env[envName('HOME')] = home;
     const { resolveAccount } = await import('../mcp/core/account.mjs');
     resolveAccount({ accountId: ACCOUNT });
     work = await import('../mcp/core/work.mjs');
   });
   afterEach(() => {
-    delete process.env.AGENTBOX_HOME;
+    process.env[envName('HOME')] = wasHome;
     fs.rmSync(home, { recursive: true, force: true });
   });
 
@@ -157,7 +160,7 @@ describe('a maintainer\'s tool, not a feature', () => {
   it('is imported by nothing in the app', () => {
     const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]));
     for (const dir of ['main', 'shared', 'renderer/src', 'mcp', 'bin']) {
-      for (const file of walk(path.join(root, dir)).filter((f) => /\.(mjs|cjs|js|ts|tsx)$/.test(f))) {
+      for (const file of walk(path.join(root, dir)).filter((f) => /\.(mjs|mts|cjs|js|ts|tsx)$/.test(f))) {
         expect(fs.readFileSync(file, 'utf8'), file).not.toContain('review-pull-requests');
       }
     }

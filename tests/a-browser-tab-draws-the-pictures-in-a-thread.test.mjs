@@ -6,7 +6,7 @@
 // instead, at /f/<file key>/img/… (main/serve.mjs), and that rewrite was
 // switched on for the phone door alone — so in a tab on this computer every
 // pasted screenshot and every picture a worker named drew as a broken image.
-// The server bin/agentbox.mjs builds was handed no files to serve either, so
+// The server bin/mercury.mjs builds was handed no files to serve either, so
 // even the right address would have 404'd.
 //
 // What is pinned here is the rule the door serves under, because it is the half
@@ -85,7 +85,7 @@ describe('what the door refuses', () => {
 });
 
 describe('the two halves that have to agree', () => {
-  const bin = fs.readFileSync(path.join(root, 'bin', 'agentbox.mjs'), 'utf8');
+  const bin = fs.readFileSync(path.join(root, 'bin', 'mercury.mjs'), 'utf8');
   const bridge = fs.readFileSync(path.join(root, 'renderer', 'src', 'browser-bridge.ts'), 'utf8');
 
   it('the command hands its server the pictures to serve', () => {

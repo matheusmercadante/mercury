@@ -27,6 +27,7 @@ import { readMarker, writeMarker } from '../main/cloud/marker.mjs';
 import { markerForCloudRun, readKitCopy } from '../main/cloud/kit.mjs';
 import { kitFrom } from '../main/cloud/run-cli.mjs';
 import { REPLY_MARK, kitKey, checkKit, startPayload, replyFrame, replyPrompt, cloudUserLine, cloudSessionId, lastAnswerIn } from '../shared/cloud-kit.mjs';
+import { envName } from '../shared/product-name.mjs';
 
 const here = (p) => fileURLToPath(new URL(p, import.meta.url));
 const FAKE_CLAUDE = here('./fixtures/cloud/fake-claude.mjs');
@@ -79,7 +80,7 @@ afterEach(async () => {
 });
 
 const sandboxCall = async (payload) => (await fetch(`${sandboxUrl}/invocations`, { method: 'POST', body: JSON.stringify(payload), headers: { 'content-type': 'application/json' } })).json();
-const env = () => ({ ...process.env, ZERO_ITEM: 'w-1', ZERO_PRODUCT: 'alpha', CLAUDE_CONFIG_DIR: configDir, AGENTBOX_HOME: path.join(tmp, 'mac', 'store') });
+const env = () => ({ ...process.env, ZERO_ITEM: 'w-1', ZERO_PRODUCT: 'alpha', CLAUDE_CONFIG_DIR: configDir, [envName('HOME')]: path.join(tmp, 'mac', 'store') });
 const frame = { before: 'The founder has replied.\n\nWhat they said:\n\n', after: '\n\nCarry on.' };
 
 async function writeKit(extraArgs = []) {

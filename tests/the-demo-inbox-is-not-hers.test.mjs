@@ -31,7 +31,7 @@ import { DEMO_ENV, DEMO_INSTALL_ID, DEMO_PRODUCTS, demoLedgerLines, runningAsADe
 import { HOMES as FRESH_HOMES } from '../shared/fresh-user-home.mjs';
 import { readInstallId } from '../shared/install-id.mjs';
 import { readWorkItems } from '../main/store/work-items.mjs';
-import { NAME, Name } from '../shared/product-name.mjs';
+import { NAME, Name, envName } from '../shared/product-name.mjs';
 import { setAppHome, clearAppHome, appHomeEnv } from './app-home.mjs';
 
 const made = [];
@@ -85,16 +85,16 @@ describe('the environment a demo is launched with', () => {
     expect(env.CFFIXED_USER_HOME).toBe(home);
   });
 
-  it('overwrites an inherited ASTRAL_HOME, so a demo cannot read her ledger', () => {
-    // THIS IS THE ONE THAT WOULD HAVE HAPPENED. Every session Agentbox spawns
-    // carries ASTRAL_HOME, and the app's home reads that variable before it
-    // falls back to ~/.astral. Inherited, the demo copy would draw invented
+  it('overwrites an inherited store root, so a demo cannot read her ledger', () => {
+    // THIS IS THE ONE THAT WOULD HAVE HAPPENED. Every session the app spawns
+    // carries its store root, and the app's home reads that variable before it
+    // falls back to the dot-folder. Inherited, the demo copy would draw invented
     // products and her real work items inside them.
     const home = aHome();
-    const hers = '/Users/somebody/Zero';
-    const env = demoEnv(home, { ASTRAL_HOME: hers });
-    expect(env.ASTRAL_HOME).not.toBe(hers);
-    expect(env.ASTRAL_HOME).toBe(demoPaths(home).appHome);
+    const hers = '/Users/somebody/Mercury';
+    const env = demoEnv(home, { [envName('HOME')]: hers });
+    expect(env[envName('HOME')]).not.toBe(hers);
+    expect(env[envName('HOME')]).toBe(demoPaths(home).appHome);
   });
 
   it('marks the copy as a demo', () => {

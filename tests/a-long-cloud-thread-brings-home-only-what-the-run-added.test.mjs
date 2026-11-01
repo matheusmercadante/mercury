@@ -26,6 +26,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { createSandbox } from '../cloud/sandbox/server.mjs';
 import { cloudRun, transcriptFolderName, layTails, CLOUD_NOTE } from '../main/cloud/run.mjs';
+import { envName } from '../shared/product-name.mjs';
 
 const here = (p) => fileURLToPath(new URL(p, import.meta.url));
 const FAKE_CLAUDE = here('./fixtures/cloud/fake-claude.mjs');
@@ -173,7 +174,7 @@ function launch({ message = 'please do it', resume = SESSION, onOut = () => {}, 
   stderr.on('data', (d) => { err += d; });
   const done = cloudRun({
     argv: [FAKE_CLAUDE, '-p', '--output-format', 'stream-json', '--mcp-config', mcpFile, ...(resume ? ['--resume', resume] : [])],
-    env: { ...process.env, ZERO_ITEM: 'w-1', ZERO_PRODUCT: 'p', CLAUDE_CONFIG_DIR: configDir(), AGENTBOX_HOME: path.join(tmp, 'mac') },
+    env: { ...process.env, ZERO_ITEM: 'w-1', ZERO_PRODUCT: 'p', CLAUDE_CONFIG_DIR: configDir(), [envName('HOME')]: path.join(tmp, 'mac') },
     cwd: mac, transport: via, storage, login: CLAUDE_LOGIN,
     stdin, stdout, stderr, remoteCommand: process.execPath, stubPath: STUB, pollWaitMs: 200, resultsWaitMs: 8000, watchParent: false, signals: new EventEmitter(),
     homeDir: path.join(tmp, 'home'),
@@ -197,7 +198,7 @@ function launchCodex() {
   const done = cloudRun({
     engine: 'codex',
     argv: [fake],
-    env: { ...process.env, ZERO_ITEM: 'w-1', ZERO_PRODUCT: 'p', CODEX_HOME: codexHome(), AGENTBOX_HOME: path.join(tmp, 'mac') },
+    env: { ...process.env, ZERO_ITEM: 'w-1', ZERO_PRODUCT: 'p', CODEX_HOME: codexHome(), [envName('HOME')]: path.join(tmp, 'mac') },
     cwd: mac, transport, storage, login: CODEX_LOGIN,
     stdin, stdout, stderr, remoteCommand: process.execPath, stubPath: STUB, pollWaitMs: 200, resultsWaitMs: 8000, watchParent: false, signals: new EventEmitter(),
     homeDir: path.join(tmp, 'home'),

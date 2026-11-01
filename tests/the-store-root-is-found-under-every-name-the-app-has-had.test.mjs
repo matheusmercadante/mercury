@@ -42,7 +42,8 @@ describe('the variable the store root is handed to us in', () => {
     for (const was of WAS) expect(envNames('HOME')).toContain(`${was.toUpperCase()}_HOME`);
   });
 
-  it('reads the current name first and falls back through the old ones', () => {
+  // Mercury has had no other name yet, so there is nothing to fall back to.
+  it.runIf(WAS.length > 0)('reads the current name first and falls back through the old ones', () => {
     process.env[envNames('HOME')[1]] = '/older';
     expect(readEnv('HOME')).toBe('/older');
     process.env[envName('HOME')] = '/current';
@@ -68,8 +69,9 @@ describe('the two functions that read it', () => {
   it('legacyRoot answers under the current name and under an old one', () => {
     process.env[envName('HOME')] = '/Zero/current';
     expect(legacyRoot()).toBe('/Zero/current');
+    if (!WAS.length) return;
     delete process.env[envName('HOME')];
-    process.env[envNames('HOME')[2]] = '/Zero/older';
+    process.env[envNames('HOME')[1]] = '/Zero/older';
     expect(legacyRoot()).toBe('/Zero/older');
   });
 

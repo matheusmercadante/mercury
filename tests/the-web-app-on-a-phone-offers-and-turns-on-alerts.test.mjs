@@ -19,6 +19,7 @@ import { ALERTS_SAY } from '../renderer/src/phone-alerts';
 import { checkSetting } from '../shared/phone-settings.mjs';
 import { WEB_ALERTS_KEY, WEB_ALERTS_TEST_KEY } from '../shared/web-alerts.mjs';
 import { buildPhoneSite } from '../scripts/build-phone-site.mjs';
+import { Name } from '../shared/product-name.mjs';
 
 const A = '0a1b2c3d4e5f';
 const B = 'a1b2c3d4e5f6';
@@ -127,6 +128,6 @@ describe('the site', () => {
     const sw = fs.readFileSync(path.join(out, 'phone-sw.js'), 'utf8');
     expect(sw).toContain("addEventListener('push'");
     expect(sw).not.toContain('__APP_NAME__');
-    expect(sw).toContain("|| 'Agentbox'");
+    expect(sw).toContain(`|| '${Name}'`);
   });
 });

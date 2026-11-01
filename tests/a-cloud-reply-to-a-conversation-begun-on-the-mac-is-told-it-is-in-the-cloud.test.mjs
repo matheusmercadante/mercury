@@ -30,6 +30,7 @@ import { fileURLToPath } from 'node:url';
 import { createSandbox } from '../cloud/sandbox/server.mjs';
 import { cloudRun, claudeLineForTheCloud, CLOUD_NOTE, PLAIN_CLOUD_NOTE } from '../main/cloud/run.mjs';
 import { HAND_BACK } from '../shared/cloud-hand-back.mjs';
+import { envName } from '../shared/product-name.mjs';
 
 const user = (content) => JSON.stringify({ type: 'user', uuid: 'u-1', message: { role: 'user', content }, parent_tool_use_id: null, session_id: '' });
 
@@ -58,7 +59,7 @@ describe('the first message of a resumed Claude run in the cloud', () => {
   it('is told that a person asking to move the thread is answered with the hand-back line', () => {
     for (const note of [CLOUD_NOTE, PLAIN_CLOUD_NOTE]) {
       const last = note.split('\n\n').at(-1);
-      expect(last).toMatch(/asks to have this thread moved to their computer is answered with this line/i);
+      expect(last).toMatch(/asks to have this thread moved to their computer, or picks "Check from my computer", is answered with this line/i);
     }
   });
 
@@ -147,7 +148,7 @@ async function run(message, extraArgv = [], then = null) {
     cwd: mac, transport, storage, remoteCommand: process.execPath, stubPath: STUB, pollWaitMs: 200, resultsWaitMs: 8000, watchParent: false,
     homeDir: path.join(tmp, 'home'), leaveFlushMs: 500, login: LOGIN, stdin, stdout, stderr, signals: new EventEmitter(),
     argv: [FAKE_CLAUDE, '-p', '--output-format', 'stream-json', '--mcp-config', mcpFile, ...extraArgv],
-    env: { ...process.env, ZERO_ITEM: 'w-1', ZERO_PRODUCT: 'p', CLAUDE_CONFIG_DIR: configDir, AGENTBOX_HOME: path.join(tmp, 'mac') },
+    env: { ...process.env, ZERO_ITEM: 'w-1', ZERO_PRODUCT: 'p', CLAUDE_CONFIG_DIR: configDir, [envName('HOME')]: path.join(tmp, 'mac') },
   });
   stdin.write(`${user(message)}\n`);
   if (then) stdin.write(`${user(then)}\n`);

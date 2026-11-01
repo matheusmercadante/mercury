@@ -6,6 +6,7 @@ import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import { NAME } from '../../../shared/product-name.mjs';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({ shouldPlaySound: true, shouldSetBadge: true, shouldShowBanner: true, shouldShowList: true }),
@@ -44,7 +45,7 @@ export async function sendTestAlert(token: string, request: Fetch) {
   const res = await request('https://exp.host/--/api/v2/push/send', {
     method: 'POST',
     headers: { 'content-type': 'application/json', accept: 'application/json' },
-    body: JSON.stringify({ to: token, title: 'Agentbox', body: 'A test alert. Threads that need you will arrive like this.', sound: 'default' }),
+    body: JSON.stringify({ to: token, title: NAME, body: 'A test alert. Threads that need you will arrive like this.', sound: 'default' }),
   });
   const said = await res.json().catch(() => null);
   if (!res.ok || said?.data?.status === 'error') throw new Error(said?.data?.message ?? 'Expo did not send the alert.');

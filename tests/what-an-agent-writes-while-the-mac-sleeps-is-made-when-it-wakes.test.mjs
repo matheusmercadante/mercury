@@ -25,6 +25,7 @@ import { createSandbox } from '../cloud/sandbox/server.mjs';
 import { cloudRun, INPUT_CLOSED_IN_CLOUD } from '../main/cloud/run.mjs';
 import { attachClaudeInput } from '../main/claude-input.mjs';
 import { readMarker } from '../main/cloud/marker.mjs';
+import { envName } from '../shared/product-name.mjs';
 
 const here = (p) => fileURLToPath(new URL(p, import.meta.url));
 const FAKE_CLAUDE = here('./fixtures/cloud/fake-claude.mjs');
@@ -98,7 +99,7 @@ describe('a cloud run while this Mac sleeps', () => {
     child.stderr.on('data', (d) => { err += d; });
     const done = cloudRun({
       argv: [FAKE_CLAUDE, '-p', '--output-format', 'stream-json', '--mcp-config', mcpFile],
-      env: { ...process.env, ZERO_ITEM: 'w-1', ZERO_PRODUCT: 'p', CLAUDE_CONFIG_DIR: configDir, AGENTBOX_HOME: path.join(tmp, 'mac', 'store') },
+      env: { ...process.env, ZERO_ITEM: 'w-1', ZERO_PRODUCT: 'p', CLAUDE_CONFIG_DIR: configDir, [envName('HOME')]: path.join(tmp, 'mac', 'store') },
       cwd: mac, transport, storage, login: LOGIN,
       stdin: child.stdin, stdout: child.stdout, stderr: child.stderr, remoteCommand: process.execPath, stubPath: STUB,
       pollWaitMs: 100, resultsWaitMs: 8000, watchParent: false, signals: new EventEmitter(),
@@ -157,7 +158,7 @@ describe('a cloud run while this Mac sleeps', () => {
     child.stderr.on('data', (d) => { err += d; });
     const done = cloudRun({
       argv: [FAKE_CLAUDE, '-p', '--output-format', 'stream-json', '--mcp-config', mcpFile],
-      env: { ...process.env, ZERO_ITEM: 'w-1', ZERO_PRODUCT: 'p', CLAUDE_CONFIG_DIR: configDir, AGENTBOX_HOME: path.join(tmp, 'mac', 'store') },
+      env: { ...process.env, ZERO_ITEM: 'w-1', ZERO_PRODUCT: 'p', CLAUDE_CONFIG_DIR: configDir, [envName('HOME')]: path.join(tmp, 'mac', 'store') },
       cwd: mac, transport, storage, login: LOGIN,
       stdin: child.stdin, stdout: child.stdout, stderr: child.stderr, remoteCommand: process.execPath, stubPath: STUB,
       pollWaitMs: 100, resultsWaitMs: 8000, watchParent: false, signals: new EventEmitter(),

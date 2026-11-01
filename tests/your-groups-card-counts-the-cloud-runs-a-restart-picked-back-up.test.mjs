@@ -20,14 +20,15 @@ import { Supervisor } from '../main/supervisor.mjs';
 import { Store } from '../main/store.mjs';
 import { roomsSetup } from '../main/team/room-setup.mjs';
 import { myPresence } from '../shared/room-cards.mjs';
+import { envName } from '../shared/product-name.mjs';
 
 let tmp; let store; let sup; let rooms; let joined; let folder; let relays; let homeWas;
 
 beforeEach(async () => {
   tmp = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'groups-count-')));
-  homeWas = process.env.AGENTBOX_HOME;
-  process.env.AGENTBOX_HOME = path.join(tmp, 'home');
-  fs.mkdirSync(process.env.AGENTBOX_HOME, { recursive: true });
+  homeWas = process.env[envName('HOME')];
+  process.env[envName('HOME')] = path.join(tmp, 'home');
+  fs.mkdirSync(process.env[envName('HOME')], { recursive: true });
   const root = path.join(tmp, 'store');
   const repo = path.join(tmp, 'repo');
   folder = path.join(repo, '.claude', 'worktrees', 'w-1');
@@ -57,7 +58,7 @@ beforeEach(async () => {
 
 afterEach(() => {
   sup?.stop?.();
-  if (homeWas === undefined) delete process.env.AGENTBOX_HOME; else process.env.AGENTBOX_HOME = homeWas;
+  if (homeWas === undefined) delete process.env[envName('HOME')]; else process.env[envName('HOME')] = homeWas;
   fs.rmSync(tmp, { recursive: true, force: true });
 });
 

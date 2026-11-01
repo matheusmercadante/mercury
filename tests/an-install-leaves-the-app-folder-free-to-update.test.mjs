@@ -4,8 +4,8 @@
 // commits behind main, so a change shipped at 21:14 never reached the app.
 // Measured on that Mac: at 20:54:10 the updater fast-forwarded the folder, its
 // package install ran scripts/link-own-bin.mjs, and at 20:54:11 that made
-// bin/agentbox.mjs executable. Git stored the file as 100644, so
-// `git status` read the flip as an edit, and main/source-updater.mjs never
+// bin/mercury.mjs executable. Git stored the file as 100644, so
+// `git status` read the flip as an edit, and main/source-updater.mts never
 // updates a folder with edits in it. Every update after that was refused.
 // The file is stored executable now, so the install finds nothing to change.
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
@@ -27,11 +27,11 @@ function cloneWithBin(mode) {
   git('init', '-q');
   git('config', 'core.fileMode', 'true');
   fs.mkdirSync(path.join(dir, 'bin'));
-  fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ name: 'agentbox-app', bin: { agentbox: 'bin/agentbox.mjs' } }));
-  fs.writeFileSync(path.join(dir, 'bin', 'agentbox.mjs'), '#!/usr/bin/env node\n');
+  fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ name: 'agentbox-app', bin: { agentbox: 'bin/mercury.mjs' } }));
+  fs.writeFileSync(path.join(dir, 'bin', 'mercury.mjs'), '#!/usr/bin/env node\n');
   fs.writeFileSync(path.join(dir, '.gitignore'), 'node_modules\n');
   git('add', '.');
-  git('update-index', `--chmod=${mode === '100755' ? '+x' : '-x'}`, 'bin/agentbox.mjs');
+  git('update-index', `--chmod=${mode === '100755' ? '+x' : '-x'}`, 'bin/mercury.mjs');
   git('-c', 'user.name=t', '-c', 'user.email=t@example.com', 'commit', '-qm', 'one');
   git('checkout', '-q', '--', '.');
   fs.mkdirSync(path.join(dir, 'node_modules'));
@@ -59,6 +59,6 @@ describe('after the install links the bin', () => {
   it('a folder whose bin git stores as plain reads as edited, which is what stopped the updates', () => {
     cloneWithBin('100644');
     linkOwnBin({ appDir: dir, platform: 'darwin' });
-    expect(git('status', '--porcelain', '--untracked-files=no')).toBe('M bin/agentbox.mjs');
+    expect(git('status', '--porcelain', '--untracked-files=no')).toBe('M bin/mercury.mjs');
   });
 });

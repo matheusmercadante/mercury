@@ -32,7 +32,7 @@ describe('a line from the app to a cloud Codex', () => {
 
   it('swaps the store server in thread/start for the sandbox stub and keeps the original to run on the Mac', () => {
     const k = keep();
-    const line = JSON.stringify({ id: 3, method: 'thread/start', params: { cwd: '/Users/x/repo', config: { mcp_servers: { agentbox: { command: '/app/mcp/agentbox-mcp.sh', env: { ZERO_ITEM: 'w-1' } }, hers: { enabled: false } } } } }) + '\n';
+    const line = JSON.stringify({ id: 3, method: 'thread/start', params: { cwd: '/Users/x/repo', config: { mcp_servers: { agentbox: { command: '/app/mcp/mercury-mcp.sh', env: { ZERO_ITEM: 'w-1' } }, hers: { enabled: false } } } } }) + '\n';
     const out = codexLineForTheCloud(line, { stubPath: '/opt/stub.mjs', codexHome: '/h', keep: k });
     const msg = JSON.parse(out.line);
     // Codex starts a tool with a bare environment, so the stub is told where
@@ -40,7 +40,7 @@ describe('a line from the app to a cloud Codex', () => {
     expect(msg.params.config.mcp_servers.agentbox).toMatchObject({ command: '/usr/local/bin/node', args: ['/opt/stub.mjs', 'agentbox'], env: { AGENTBOX_BRIDGE_SOCK: '/tmp/agentbox-bridge.sock' } });
     expect(JSON.stringify(msg.params.config.mcp_servers.agentbox)).not.toContain('ZERO_ITEM');
     expect(msg.params.config.mcp_servers.hers).toEqual({ enabled: false });
-    expect(k.agentbox).toEqual({ command: '/app/mcp/agentbox-mcp.sh', args: [], env: { ZERO_ITEM: 'w-1' } });
+    expect(k.agentbox).toEqual({ command: '/app/mcp/mercury-mcp.sh', args: [], env: { ZERO_ITEM: 'w-1' } });
     expect(msg.params.cwd).toBe('/Users/x/repo');
     expect(out.line.endsWith('\n')).toBe(true);
   });

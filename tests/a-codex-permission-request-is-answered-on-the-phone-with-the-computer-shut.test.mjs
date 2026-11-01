@@ -23,6 +23,7 @@ import { TERMS_VERSION } from '../cloud/gateway/terms.mjs';
 import { threadSnapshot } from '../shared/phone-snapshot.mjs';
 import { cardDigest } from '../shared/approval-card.mjs';
 import { LEGACY_DECISIONS, refusalTo } from '../main/codex-app-server.mjs';
+import { nameSlug } from '../shared/product-name.mjs';
 
 const DEVICE = 'a1b2c3d4e5f6';
 const MIN = 60_000;
@@ -33,14 +34,14 @@ const line = (o) => JSON.stringify(o);
 
 const codexKit = (t) => ({
   v: KIT_VERSION, engine: 'codex', madeAt: t - MIN, device: DEVICE, project: 'alpha', item: 'w-1',
-  cwd: '/Users/me/dev/alpha/.claude/worktrees/w-1', branch: 'agentbox/w-1', startSha: 'abc123',
+  cwd: '/Users/me/dev/alpha/.claude/worktrees/w-1', branch: `${nameSlug}/w-1`, startSha: 'abc123',
   argv: ['codex', 'app-server'], env: { CODEX_HOME: '/Users/me/.codex' }, bundleKey: `runs/kits/${DEVICE}/alpha/w-1/in.bundle`,
   login: { engine: 'codex', id: 'acct-1', key: 'logins/codex/acct-1.json' },
   bringDirs: [{ name: 'sessions.tgz', dir: '/Users/me/.codex/sessions' }],
   frame: { before: 'Said: ', after: '' }, note: null,
   codex: {
     open: [
-      line({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { clientInfo: { name: 'agentbox' } } }),
+      line({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { clientInfo: { name: nameSlug } } }),
       line({ jsonrpc: '2.0', method: 'initialized' }),
       line({ jsonrpc: '2.0', id: 2, method: 'thread/resume', params: { threadId: 'th-1', approvalPolicy: 'on-request' } }),
     ],
@@ -217,7 +218,7 @@ describe('a Codex run in the cloud that asks, with the computer shut', () => {
       jsonrpc: '2.0', id, method: 'mcpServer/elicitation/request',
       params: { threadId: 'th-1', serverName, message: `Allow ${serverName} to run search?`, _meta: { codex_approval_kind: 'mcp_tool_call', tool_params: { q: 'x' } } },
     });
-    t.say(t.runId, mcp(5, 'agentbox'), mcp(6, 'linear'));
+    t.say(t.runId, mcp(5, nameSlug), mcp(6, 'linear'));
     await t.look();
     expect(t.answers()).toEqual([{ jsonrpc: '2.0', id: 5, result: { action: 'accept' } }]);
     expect(t.cards()).toHaveLength(1);

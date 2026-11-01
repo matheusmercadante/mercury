@@ -33,6 +33,7 @@ import { Supervisor } from '../main/supervisor.mjs';
 import { PRACTICE_ROWS, PRACTICE_SLUG } from '../shared/first-run-practice.mjs';
 import { needsStaging, walkStageKey } from '../renderer/src/walk-staging.ts';
 import { practiceRemembered, rememberProject, rememberedProject, resolveProject } from '../renderer/src/compose-project.ts';
+import { envName } from '../shared/product-name.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const app = fs.readFileSync(path.join(root, 'renderer/src/App.tsx'), 'utf8');
@@ -41,7 +42,7 @@ const supervisorSrc = fs.readFileSync(path.join(root, 'main/supervisor.mjs'), 'u
 async function freshStore() {
   const account = fs.mkdtempSync(path.join(os.tmpdir(), 'zero-outlive-'));
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'zero-outlive-home-'));
-  process.env.ASTRAL_HOME = home;
+  process.env[envName('HOME')] = home;
   const store = new Store({ accountRoot: account, products: [], personalProducts: [] });
   await store.init();
   store.watch = () => {};

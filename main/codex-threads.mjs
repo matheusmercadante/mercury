@@ -29,12 +29,13 @@ import os from 'node:os';
 import path from 'node:path';
 import { RECENT_DAYS, isScratchFolder, isTaskFolder, shortFolder, threadTitle } from './agent-sessions.mjs';
 import { codexDataDirs } from './agent-homes.mjs';
-import { WAS_SLUGS, nameSlug } from '../shared/product-name.mjs';
+import { FORKED_FROM_SLUGS, WAS_SLUGS, nameSlug } from '../shared/product-name.mjs';
 import { howTheChatEnded } from '../shared/agent-import.mjs';
 
 export const CODEX_RECENT_DAYS = RECENT_DAYS;
-/** The originator Codex records for a run this app started (CLIENT_INFO.name), now and before. */
-const OUR_ORIGINATORS = new Set([nameSlug, ...WAS_SLUGS]);
+/** The originator Codex records for a run this app started (CLIENT_INFO.name), now and before,
+ *  or that the Agentbox installed beside it started: neither is a person's own chat. */
+const OUR_ORIGINATORS = new Set([nameSlug, ...WAS_SLUGS, ...FORKED_FROM_SLUGS]);
 /** `codex exec` and Codex as an MCP server: one-shot runs a program starts. */
 const SOURCES_NOT_TYPED = new Set(['exec', 'mcp']);
 /** How many day folders the walk opens at most, whatever `days` says. */

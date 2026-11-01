@@ -22,6 +22,7 @@ import { attachClaudeInput } from '../main/claude-input.mjs';
 import { startCloudHost } from '../main/cloud/host.mjs';
 import { spawn } from 'node:child_process';
 import { readMarker } from '../main/cloud/marker.mjs';
+import { envName } from '../shared/product-name.mjs';
 
 const here = (p) => fileURLToPath(new URL(p, import.meta.url));
 const FAKE_CLAUDE = here('./fixtures/cloud/fake-claude.mjs');
@@ -96,7 +97,7 @@ describe('a cloud run through the host', () => {
     });
     for (let i = 0; i < 100 && !fs.existsSync(sockPath); i += 1) await new Promise((r) => setTimeout(r, 20));
     const child = spawn('/usr/bin/perl', [SHIM, sockPath, FAKE_CLAUDE, '-p', '--output-format', 'stream-json', '--mcp-config', mcpFile], {
-      cwd: mac, env: { ...process.env, ZERO_ITEM: 'w-1', ZERO_PRODUCT: 'p', CLAUDE_CONFIG_DIR: configDir, AGENTBOX_HOME: path.join(tmp, 'mac', 'store') }, stdio: ['pipe', 'pipe', 'pipe'],
+      cwd: mac, env: { ...process.env, ZERO_ITEM: 'w-1', ZERO_PRODUCT: 'p', CLAUDE_CONFIG_DIR: configDir, [envName('HOME')]: path.join(tmp, 'mac', 'store') }, stdio: ['pipe', 'pipe', 'pipe'],
     });
     attachClaudeInput(child);
     let out = ''; let err = '';

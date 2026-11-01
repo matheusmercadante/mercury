@@ -12,6 +12,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { computerSays } from '../renderer/src/phone-rows';
+import { Name } from '../shared/product-name.mjs';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
@@ -22,14 +23,14 @@ describe('your computer, as the web app\'s Account page says it', () => {
   it('online a moment ago', () => {
     expect(computerSays({ seenAt: NOW - MIN, cloud: false }, NOW)).toEqual({ label: 'Your computer is online', desc: 'New threads and replies start there within a few seconds.' });
   });
-  it('away, with Agentbox Cloud carrying on', () => {
-    expect(computerSays({ seenAt: NOW - 3 * 60 * MIN, cloud: true }, NOW)).toEqual({ label: 'Your computer was last online 3 hours ago', desc: 'Agentbox Cloud starts your new threads and replies while it is off.' });
+  it(`away, with ${Name} Cloud carrying on`, () => {
+    expect(computerSays({ seenAt: NOW - 3 * 60 * MIN, cloud: true }, NOW)).toEqual({ label: 'Your computer was last online 3 hours ago', desc: `${Name} Cloud starts your new threads and replies while it is off.` });
   });
   it('away, with nothing to carry on', () => {
-    expect(computerSays({ seenAt: NOW - 3 * 60 * MIN, cloud: false }, NOW)).toEqual({ label: 'Your computer was last online 3 hours ago', desc: 'What you send waits for it. To keep agents running with the lid shut, set up Agentbox Cloud on your computer.' });
+    expect(computerSays({ seenAt: NOW - 3 * 60 * MIN, cloud: false }, NOW)).toEqual({ label: 'Your computer was last online 3 hours ago', desc: `What you send waits for it. To keep agents running with the lid shut, set up ${Name} Cloud on your computer.` });
   });
   it('never connected', () => {
-    expect(computerSays({ seenAt: 0, cloud: false }, NOW)).toEqual({ label: 'No computer connected yet', desc: 'Open Agentbox on your computer and sign in to this account in Settings › Phone.' });
+    expect(computerSays({ seenAt: 0, cloud: false }, NOW)).toEqual({ label: 'No computer connected yet', desc: `Open ${Name} on your computer and sign in to this account in Settings › Phone.` });
   });
 });
 

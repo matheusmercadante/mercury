@@ -91,7 +91,7 @@ describe('the tarball npm would publish', () => {
     // Every main/ file that does ship is source, or the tray's glass that
     // `npm pack` compiles from main/native (scripts/build-liquid-glass.mjs).
     for (const f of manifest.files.filter((f) => f.path.startsWith('main/'))) {
-      expect(f.path).toMatch(/\.mjs$|^main\/native\/[\w-]+\/build\/[\w-]+\.node$/);
+      expect(f.path).toMatch(/\.m[jt]s$|^main\/native\/[\w-]+\/build\/[\w-]+\.node$/);
     }
   });
 
@@ -114,7 +114,7 @@ describe('the tarball npm would publish', () => {
   });
 
   it('carries the command, the doing half and the licence', () => {
-    expect(has((p) => p === 'bin/agentbox.mjs')).toBe(true);
+    expect(has((p) => p === 'bin/mercury.mjs')).toBe(true);
     expect(has((p) => p === 'main/serve.mjs')).toBe(true);
     expect(has((p) => p === 'main/ipc.mjs')).toBe(true);
     expect(has((p) => p === 'LICENSE')).toBe(true);
@@ -133,12 +133,12 @@ describe('the tarball npm would publish', () => {
 describe('the command npx would run', () => {
   it('is named in bin and is on disk', () => {
     const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, 'package.json'), 'utf8'));
-    expect(pkg.bin).toEqual({ agentbox: 'bin/agentbox.mjs' });
-    expect(fs.existsSync(path.join(repoRoot, pkg.bin.agentbox))).toBe(true);
+    expect(pkg.bin).toEqual({ mercury: 'bin/mercury.mjs' });
+    expect(fs.existsSync(path.join(repoRoot, pkg.bin.mercury))).toBe(true);
   });
 
   it('starts with a shebang, or npx hands it to the shell', () => {
-    const source = fs.readFileSync(path.join(repoRoot, 'bin', 'agentbox.mjs'), 'utf8');
+    const source = fs.readFileSync(path.join(repoRoot, 'bin', 'mercury.mjs'), 'utf8');
     expect(source.startsWith('#!/usr/bin/env node')).toBe(true);
   });
 });

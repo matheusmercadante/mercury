@@ -26,6 +26,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { nameSlug } from '../shared/product-name.mjs';
 import {
   ensureTaskFolder, parkTaskFolder, restoreTaskFolder, PARKED,
 } from '../main/task-folders.mjs';
@@ -74,7 +75,7 @@ describe('parking a task folder in a repository that signs its commits', () => {
     expect(parked).toMatchObject({ parked: true, kept: 'work in progress' });
     expect(signerWasCalled()).toBe(false);
     expect(fs.existsSync(made.path)).toBe(false);
-    expect(git(dir, 'log', '-1', '--format=%s', 'agentbox/w-gpg')).toBe(PARKED);
+    expect(git(dir, 'log', '-1', '--format=%s', `${nameSlug}/w-gpg`)).toBe(PARKED);
 
     const back = restoreTaskFolder(dir, 'w-gpg');
     expect(fs.readFileSync(path.join(back.path, 'work.txt'), 'utf8')).toBe('half done\n');

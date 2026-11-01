@@ -16,6 +16,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { TaskTerminals, terminalEnv } from '../main/task-terminals.mjs';
 import { TerminalHosts } from '../main/terminal-hosts.mjs';
+import { NAME } from '../shared/product-name.mjs';
 import { serveTerminals, terminalHostSocket, PROTOCOL } from '../main/terminal-host.mjs';
 
 async function until(fn, ms = 7000) {
@@ -170,7 +171,7 @@ describe('when no host will start', () => {
     const app = new TerminalHosts({ local: local.terminals, dir, launch, startMs: 300, now: () => t });
     try {
       const state = await app.open('k', place);
-      expect(state.data).toContain('This terminal ends when Agentbox quits');
+      expect(state.data).toContain(`This terminal ends when ${NAME} quits`);
       expect(local.terminals.sessions.has('k')).toBe(true);
       // It is not tried again on every open: nothing retries for ever.
       await app.open('k2', place);

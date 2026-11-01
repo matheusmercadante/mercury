@@ -109,7 +109,7 @@ describe('the copy\'s processes when its threads run in the cloud', () => {
   const hers = '/var/folders/x/T/agentbox-cloud-501-bfc39bb599a4.sock';
   const state = { pid: 10, instance: '/tmp/i', cloudTmp: '/tmp/agentbox-pt-1a2b3c4d' };
   const table = [
-    { pid: 10, ppid: 1, rss: 100, command: 'node bin/agentbox.mjs --dir /tmp/i/data' },
+    { pid: 10, ppid: 1, rss: 100, command: 'node bin/mercury.mjs --dir /tmp/i/data' },
     { pid: 11, ppid: 10, rss: 5, command: `/usr/bin/perl /repo/scripts/cloud-shim.pl ${sock} -p --output-format stream-json --permission-prompt-tool mcp__zero-approvals__approval_prompt` },
     { pid: 12, ppid: 10, rss: 5, command: `/usr/bin/perl /repo/scripts/cloud-shim.pl ${sock} --agentbox-codex app-server` },
     { pid: 13, ppid: 10, rss: 70, command: '/home/u/.local/share/claude/versions/2.1.302 -p --output-format stream-json --permission-prompt-tool mcp__zero-approvals__approval_prompt' },

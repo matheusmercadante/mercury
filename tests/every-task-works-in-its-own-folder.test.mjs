@@ -38,6 +38,7 @@ import {
   parkTaskFolder, restoreTaskFolder,
 } from '../main/task-folders.mjs';
 import { Supervisor } from '../main/supervisor.mjs';
+import { nameSlug } from '../shared/product-name.mjs';
 import { waitFor } from './waiting.mjs';
 
 const git = (cwd, ...args) => execFileSync('git', args, { cwd, encoding: 'utf8' }).trim();
@@ -92,8 +93,8 @@ describe('the folder a task works in', () => {
     expect(made.path).toBe(path.join(fs.realpathSync(dir), '.claude', 'worktrees', 'w-282758b486'));
     expect(made.created).toBe(true);
     expect(fs.existsSync(path.join(made.path, 'app.txt'))).toBe(true);
-    expect(made.branch).toBe('agentbox/w-282758b486');
-    expect(git(made.path, 'rev-parse', '--abbrev-ref', 'HEAD')).toBe('agentbox/w-282758b486');
+    expect(made.branch).toBe(`${nameSlug}/w-282758b486`);
+    expect(git(made.path, 'rev-parse', '--abbrev-ref', 'HEAD')).toBe(`${nameSlug}/w-282758b486`);
     // Off LOCAL main, because local main carries what has not been pushed yet.
     expect(git(made.path, 'rev-parse', 'HEAD')).toBe(git(dir, 'rev-parse', 'refs/heads/main'));
   });
@@ -150,12 +151,12 @@ describe('the folder a task works in', () => {
     fs.writeFileSync(path.join(made.path, 'app.txt'), 'two\n');
     git(made.path, 'add', '.');
     git(made.path, 'commit', '-q', '-m', 'work');
-    git(dir, 'merge', '--ff-only', 'agentbox/w-merged');
+    git(dir, 'merge', '--ff-only', `${nameSlug}/w-merged`);
     const out = releaseTaskFolder(dir, 'w-merged');
     expect(out.removed).toBe(true);
     expect(fs.existsSync(made.path)).toBe(false);
     // The branch survives the folder. Nothing this does can lose a commit.
-    expect(git(dir, 'rev-parse', '--verify', 'refs/heads/agentbox/w-merged')).toBeTruthy();
+    expect(git(dir, 'rev-parse', '--verify', `refs/heads/${nameSlug}/w-merged`)).toBeTruthy();
   });
 
   // A folder a live session is standing in is never pulled out from under it,
@@ -165,7 +166,7 @@ describe('the folder a task works in', () => {
     fs.writeFileSync(path.join(made.path, 'app.txt'), 'two\n');
     git(made.path, 'add', '.');
     git(made.path, 'commit', '-q', '-m', 'work');
-    git(dir, 'merge', '--ff-only', 'agentbox/w-held');
+    git(dir, 'merge', '--ff-only', `${nameSlug}/w-held`);
     // Somebody else's live process holds it: this one is process.pid, so the
     // release asks on behalf of a different session.
     const out = releaseTaskFolder(dir, 'w-held', { pid: process.pid + 1 });
@@ -431,7 +432,7 @@ describe('parking a closed task', () => {
     expect(out.parked).toBe(true);
     expect(out.kept).toBe('work in progress');
     expect(fs.existsSync(folder.path)).toBe(false);
-    const files = git(dir, 'show', '--name-only', '--format=', 'agentbox/w-closed').trim().split('\n').sort();
+    const files = git(dir, 'show', '--name-only', '--format=', `${nameSlug}/w-closed`).trim().split('\n').sort();
     expect(files).toEqual(['app.txt', 'new-file.txt']);
   });
 
@@ -463,7 +464,7 @@ describe('parking a closed task', () => {
     expect(out.parked).toBe(true);
     expect(out.kept).toBe('nothing uncommitted');
     expect(fs.existsSync(folder.path)).toBe(false);
-    expect(git(dir, 'log', '--format=%s', '-1', 'agentbox/w-tidy')).toBe('the work itself');
+    expect(git(dir, 'log', '--format=%s', '-1', `${nameSlug}/w-tidy`)).toBe('the work itself');
   });
 
   // And the supervisor deciding WHICH folders those are. She closes rows while
@@ -483,7 +484,7 @@ describe('parking a closed task', () => {
       expect(fs.existsSync(closed.path)).toBe(false);
       expect(fs.existsSync(open.path)).toBe(true);
       // And the closed one's work is on its branch, not lost with the folder.
-      expect(git(dir, 'show', 'agentbox/w-finished:app.txt')).toBe('she marked this done');
+      expect(git(dir, 'show', `${nameSlug}/w-finished:app.txt`)).toBe('she marked this done');
     } finally { fs.rmSync(store, { recursive: true, force: true }); }
   });
 

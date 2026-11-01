@@ -27,7 +27,7 @@ describe('the npm listing', () => {
   it('is published under the name she picked', () => {
     // `agentbox` itself is an npm security holding package from 2022, so it is
     // not available. Checked against the registry on 2026-09-25.
-    expect(pkg.name).toBe('agentbox-app');
+    expect(pkg.name).toBe('mercury-app');
   });
 
   it('still carries the product name inside it, so a rename is noticed', () => {
@@ -38,14 +38,13 @@ describe('the npm listing', () => {
     expect(pkg.name).toContain(nameSlug);
   });
 
-  it('keeps the desktop app called what it has always been called', () => {
+  it('names the desktop app Mercury, under a bundle id of its own', () => {
     // The npm name is not the app's name. `productName` and `build.appId` are
     // what macOS hangs a window title and a permission grant on, and moving
-    // either of those revokes what she has already granted.
-    // Capitalised 2026-10-02 (w-23fa810982). A Mac disk ignores letter case,
-    // so the data folder "agentbox" is the same folder as "Agentbox".
-    expect(pkg.productName).toBe('Agentbox');
-    expect(pkg.build.appId).toBe('ac.astral.app');
+    // either of those revokes what was already granted. Not Agentbox's
+    // `ac.astral.app`: Agentbox.app can be installed beside Mercury.app.
+    expect(pkg.productName).toBe('Mercury');
+    expect(pkg.build.appId).toBe('io.github.matheusmercadante.mercury');
   });
 
   it('describes the app in one sentence that names both engines', () => {
@@ -61,22 +60,20 @@ describe('the npm listing', () => {
     expect(named.length).toBe(ENGINES.length);
   });
 
-  it('points at the public repo, so Issues has somewhere to go', () => {
-    // The repo went public on 2026-09-28 as savannahfeder/agentbox, one commit
-    // and no history, which is what she asked for. Without these three fields
-    // the npm page shows no Repository link and no Issues link at all.
-    const REPO = 'https://github.com/savannahfeder/agentbox';
+  it('points at the repo, so Issues has somewhere to go', () => {
+    // Mercury's own repository, the fork. Without these three fields the npm
+    // page shows no Repository link and no Issues link at all.
+    const REPO = 'https://github.com/matheusmercadante/mercury';
     expect(pkg.repository.url).toBe(`git+${REPO}.git`);
     expect(pkg.homepage).toBe(`${REPO}#readme`);
     expect(pkg.bugs.url).toBe(`${REPO}/issues`);
-    // The old private repo must never be where a stranger is SENT. Since
-    // 2026-10-05 it is not the update channel either: `build.publish` names the
-    // public agentboxhq/agentbox-releases, because a private repo's releases
-    // 404 for every installed copy (tests/the-download-lives-in-a-public-release-repo).
+    // The old private repo must never be where a stranger is SENT. The update
+    // channel is the fork's own releases: Agentbox's would install Agentbox
+    // over Mercury.app.
     for (const sent of [pkg.repository.url, pkg.homepage, pkg.bugs.url]) {
       expect(sent).not.toMatch(/Astral-Agent/);
     }
-    expect(pkg.build.publish[0].owner).toBe('agentboxhq');
+    expect(pkg.build.publish[0].owner).toBe('matheusmercadante');
   });
 
   it('credits her by name and does not publish her email', () => {
@@ -88,7 +85,7 @@ describe('the npm listing', () => {
   it('tells the command the same name the package has', () => {
     // `npx <package>` is the only way in for somebody who has never installed
     // it, so help that names a different command sends them nowhere.
-    const help = fs.readFileSync(path.join(here, 'bin', 'agentbox.mjs'), 'utf8');
+    const help = fs.readFileSync(path.join(here, 'bin', 'mercury.mjs'), 'utf8');
     const shown = [...help.matchAll(/npx ([a-z0-9@/-]+)/g)].map((m) => m[1]);
     expect(shown.length).toBeGreaterThan(0);
     for (const name of shown) expect(name).toBe(pkg.name);

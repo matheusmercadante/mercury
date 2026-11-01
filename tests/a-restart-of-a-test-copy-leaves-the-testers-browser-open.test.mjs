@@ -15,13 +15,13 @@ import { straysToStop } from '../.claude/skills/verify-agentbox/scripts/live.mjs
 
 const I = '/tmp/agentbox-verify/instances/abc-power-founder';
 const table = [
-  { pid: 10, command: `node bin/agentbox.mjs --dir ${I}/data` },
+  { pid: 10, command: `node bin/mercury.mjs --dir ${I}/data` },
   { pid: 11, command: `node ${I}/bin/stub-claude-worker.mjs -p` },
   { pid: 12, command: `/opt/chrome --headless=new --user-data-dir=${I}/chrome-profile about:blank` },
   { pid: 13, command: `/opt/chrome --type=renderer --user-data-dir=${I}/chrome-profile` },
   { pid: 14, command: `node stub-codex-server.mjs ${I} 41234 --setup` },
   { pid: 15, command: `node stub-codex-server.mjs ${I}` },
-  { pid: 20, command: 'node bin/agentbox.mjs --dir /tmp/agentbox-verify/instances/abc-power-cto/data' },
+  { pid: 20, command: 'node bin/mercury.mjs --dir /tmp/agentbox-verify/instances/abc-power-cto/data' },
   { pid: 99, command: `node live.mjs restart ${I}` },
 ];
 

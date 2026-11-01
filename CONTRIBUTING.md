@@ -1,4 +1,4 @@
-# Contributing to Agentbox
+# Contributing to Mercury
 
 Thank you for wanting to help. Pull requests are welcome, and every one is read
 by a person before it is merged.
@@ -50,7 +50,7 @@ the description what you checked by hand.
 
 ## Licence
 
-Agentbox is GPL-3.0-or-later. By opening a pull request you agree that your
+Mercury, like Agentbox, is GPL-3.0-or-later. By opening a pull request you agree that your
 contribution is licensed under the same terms.
 
 ## Security problems

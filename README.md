@@ -2,12 +2,16 @@
   <img src="docs/readme/icon.svg" alt="" width="96">
 </p>
 
-<h1 align="center">Agentbox</h1>
+<h1 align="center">Mercury</h1>
 
 <p align="center">
   <strong>Give your agents an inbox.</strong><br>
   Run dozens of Claude Code and Codex agents in parallel, each in its own git worktree,<br>
   and only hear from the ones that need you.
+</p>
+
+<p align="center">
+  Mercury is a personal fork of <a href="https://github.com/savannahfeder/agentbox">Agentbox</a> by Savannah Feder, under the same GPL-3.0 licence.
 </p>
 
 <p align="center">
@@ -25,7 +29,7 @@
 </p>
 
 <p align="center">
-  Free and open source. A Mac app, or in your browser on Linux with <code>npx agentbox-app</code>,<br>
+  Free and open source. A Mac app, or in your browser on Linux from a checkout with <code>npm run serve</code>,<br>
   on the Claude Code or Codex plan you already have. No server, no account, no extra subscription.
 </p>
 
@@ -38,8 +42,8 @@ There are two ways to run it: in the browser, or as a Mac app. Both need Node 22
 **As a desktop app.** Build it from this repo. `npm start` is the desktop command on Omarchy and on a Mac:
 
 ```
-git clone https://github.com/savannahfeder/agentbox.git
-cd agentbox
+git clone https://github.com/matheusmercadante/mercury.git
+cd mercury
 npm install
 npm start
 ```
@@ -48,31 +52,27 @@ npm start
 Vitest and the Tiptap editor that only a new major version of each would clear.
 The install worked if it exits without an error.
 
-**In your browser.** One command, nothing to install first:
+**In your browser.** From a checkout, build the screen once, then start it:
 
 ```
-npx agentbox-app
+npm install
+npm run build
+npm run serve
 ```
+
+Mercury is not on npm, so run it from the checkout rather than with `npx` from anywhere else: a package of the same name on the registry is somebody else's.
 
 It starts on your machine and opens a tab. On Linux that open goes through `xdg-open`. Nothing is hosted: it listens only on `127.0.0.1`, and the address carries a key that is new every run. Add `--help` to see the options. `--no-open` prints the address and leaves the browser to you.
 
 The terminal is the one piece that is compiled while it installs, and on Linux that needs `make` and a C++ compiler. Without them the install leaves the terminal out, everything else works, and the command says so each time it starts. On Debian or Ubuntu, `sudo apt install build-essential` and install again.
 
-From a checkout, build the screen once, then start it the same way. The install links the checkout's own command, so `npx` runs this copy rather than looking for `agentbox` on your PATH:
-
-```
-npm install
-npm run build
-npx agentbox-app
-```
-
-On Linux, `npm install` puts `agentbox` on `~/.local/bin` and adds the app to the launcher. The entry is `$XDG_DATA_HOME/applications/agentbox.desktop` (`~/.local/share/applications` when that variable is unset), and it runs `agentbox`. That command starts this checkout, and it is written before Electron has downloaded its binary, so the first launch off the launcher does that download. Open the app from the launcher.
+On Linux, `npm install` puts `mercury` on `~/.local/bin` and adds the app to the launcher. The entry is `$XDG_DATA_HOME/applications/mercury.desktop` (`~/.local/share/applications` when that variable is unset), and it runs `mercury`. That command starts this checkout, and it is written before Electron has downloaded its binary, so the first launch off the launcher does that download. Open the app from the launcher.
 
 Two of this repo's dependencies need an install script to work: `node-pty`, which is the terminal and is the one optional dependency here, and `esbuild`. `package.json` names them in `allowScripts`, by name rather than pinned to a version, so a dependency bump does not need re-approving. `electron-winstaller` is denied there: it is only for packing a Windows installer, which this repo does not do. npm 11 and newer print anything in neither list on every install, and `npm approve-scripts --allow-scripts-pending` lists them.
 
 `npm start` builds the app and opens it. On first run it walks you through connecting Claude Code or Codex and choosing a folder to work in.
 
-On macOS, the system may ask to let Terminal find devices on your local network. Agentbox does not need that, so Don't Allow is fine.
+On macOS, the system may ask to let Terminal find devices on your local network. Mercury does not need that, so Don't Allow is fine.
 
 ## The chat window is the bottleneck
 
@@ -85,7 +85,7 @@ by the number of windows you can keep track of.
 </p>
 
 Models are now good enough that most tasks do not need watching. They need
-someone to review the work at the right moment. Agentbox drops the chat window
+someone to review the work at the right moment. Mercury drops the chat window
 and gives each agent a row in an inbox instead, so you can run far more of them
 than you could ever watch and only deal with one when it actually needs you.
 
@@ -161,7 +161,7 @@ The app keeps one decision in front of you at a time.
 ## What matters most goes first
 
 Twenty agents means twenty things competing for your attention and for a limited
-number of running sessions. Agentbox keeps one order and uses it for both.
+number of running sessions. Mercury keeps one order and uses it for both.
 
 - **Tag a task** Urgent, High, Medium or Low, when you file it or later from `⌘K` or `Ctrl+K`.
 - **Rank your projects** once by dragging them into order. A project's place
@@ -203,7 +203,7 @@ number of running sessions. Agentbox keeps one order and uses it for both.
 
 <img src="docs/readme/engines.webp" alt="The app's icon wired to Claude Code on one side and Codex on the other" width="100%">
 
-Agentbox drives Claude Code and Codex on your own machine, signed in with your
+Mercury drives Claude Code and Codex on your own machine, signed in with your
 own subscription. When you first open it, it finds the agents you have already
 set up and offers to bring them in. There is no server, no account to make, and
 nothing new to pay for.
@@ -223,7 +223,7 @@ matter:
 
 - `storeRoot`: where the store lives. On macOS this defaults to a folder
   named after the app in your home directory. On Linux it defaults to
-  `$XDG_DATA_HOME/agentbox`, which is `~/.local/share/agentbox` when that
+  `$XDG_DATA_HOME/mercury`, which is `~/.local/share/mercury` when that
   variable is unset.
 - `claudeBin`: the binary to run. The app finds `claude` itself if you leave
   this alone.
@@ -234,7 +234,7 @@ matter:
   items, and nothing else. To let agents edit code and run commands, opt in:
 
   ```json
-  { "sessionArgs": ["--allowedTools", "mcp__agentbox", "--permission-mode", "acceptEdits"] }
+  { "sessionArgs": ["--allowedTools", "mcp__mercury", "--permission-mode", "acceptEdits"] }
   ```
 
   That grant is yours to make deliberately. The app never escalates it for you.
@@ -251,9 +251,8 @@ matter:
 
 <br>
 
-Nothing, unless you are running a released copy: the Mac app, or
-`npx agentbox-app`, each of which has a PostHog key baked in when it is
-released. A build made from this repo has no key, so a clone and a fork are
+Nothing, unless you are running a released copy, which has a PostHog key
+baked in when it is released. A build made from this repo has no key, so a clone and a fork are
 silent, and with no key the whole path is off at every send.
 
 A released copy counts nineteen things, and they are counts:
@@ -279,7 +278,7 @@ A released copy counts nineteen things, and they are counts:
 - counts were turned off
 
 Each carries a random install id, the app and platform version, whether it
-came from the Mac app or the browser copy, and at most
+came from the Mac app or the browser copy, which of two first runs a new install was shown, and at most
 eight other things: how long something took, how many of a thing there were,
 which kind of row it was out of six fixed words, whether an agent or you did
 it, whether an agent's run failed, whether it happened in setup's practice
@@ -298,7 +297,7 @@ accident. Crash reports travel the same way and are scrubbed first
 
 Either way nothing is sent from that moment, with one exception: turning the
 switch off in the app sends one last count saying counts were turned off, so
-you are not read as someone who stopped using Agentbox. Editing the file sends
+you are not read as someone who stopped using Mercury. Editing the file sends
 nothing at all.
 
 The update check is separate and is not routed through any of this. It is a
@@ -358,8 +357,8 @@ picks which coding agents the fixture Mac has, where nothing is one agent,
 or `?engines=codex` give two.
 
 To open the app as somebody who has never seen it, with its own throwaway home
-and nothing of yours inside it, press `⌘K` or `Ctrl+K` and choose "Open Agentbox as a new
-user". `npm run fresh` does the same from a terminal: a packaged app when there is one, this checkout through Electron when there is not, which is the way in on Linux. `ZERO_NO_SUPERVISOR=1` applies to `npm start` and to `npx agentbox-app`.
+and nothing of yours inside it, press `⌘K` or `Ctrl+K` and choose "Open Mercury as a new
+user". `npm run fresh` does the same from a terminal: a packaged app when there is one, this checkout through Electron when there is not, which is the way in on Linux. `ZERO_NO_SUPERVISOR=1` applies to `npm start` and to `npm run serve`.
 
 The app is named in exactly one place, `shared/product-name.mjs`. Change it
 there and run `node scripts/product-name.mjs --write`, and everything else

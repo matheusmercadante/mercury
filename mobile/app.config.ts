@@ -4,7 +4,8 @@
 // reads (scripts/phone-site-config.mjs), or from the environment on Expo's
 // build machines, which see only what git tracks. Neither is committed. The
 // bundle id is permanent once a build uses it; the environment can name another
-// for a copy of the app built elsewhere.
+// for a copy of the app built elsewhere. The Expo account and project come only
+// from the environment: the defaults this fork came with were Agentbox's.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -29,13 +30,13 @@ function cloudConfig(): { url: string; anonKey: string; phoneSite: string | null
 const MICROPHONE_USE = `${NAME} listens only while you dictate a message, and writes what you say into it.`;
 const SPEECH_USE = `${NAME} writes what you say into your message. Your iPhone does this itself when it can, and Apple's speech recognition does it when it cannot.`;
 
-const bundleId = process.env.MOBILE_BUNDLE_ID || 'now.astral.agentbox';
-const projectId = process.env.EAS_PROJECT_ID || '2b129901-faac-4b8d-8709-9a08cf6778f5';
+const bundleId = process.env.MOBILE_BUNDLE_ID || 'io.github.matheusmercadante.mercury';
+const projectId = process.env.EAS_PROJECT_ID || undefined;
 
 const config: ExpoConfig = {
   name: NAME,
   slug: nameSlug,
-  owner: process.env.EAS_OWNER || 'agentbox-app',
+  owner: process.env.EAS_OWNER || undefined,
   scheme: nameSlug,
   version: '0.1.0',
   orientation: 'portrait',

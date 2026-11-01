@@ -19,6 +19,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { Supervisor } from '../main/supervisor.mjs';
+import { Name } from '../shared/product-name.mjs';
 
 const T0 = Date.parse('2026-10-23T22:20:00Z');
 const MIN = 60_000;
@@ -114,7 +115,7 @@ describe('a held thread whose every try dies', () => {
     const words = said.map((s) => s.result);
     expect(words).toHaveLength(4);
     for (const w of words) {
-      expect(w).toMatch(/^Agentbox stopped starting this thread\. /);
+      expect(w).toMatch(new RegExp(`^${Name} stopped starting this thread\\. `));
       expect(w).toContain('no Claude account is signed in for the cloud yet');
       // No colon in the app's own words; the quoted error keeps its own.
       expect(w.replace(/"[^"]*"/, '')).not.toMatch(/:(?!\d\d[ap]m)/);

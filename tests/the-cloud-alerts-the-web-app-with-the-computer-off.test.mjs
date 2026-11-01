@@ -18,6 +18,7 @@ import { TERMS_VERSION } from '../cloud/gateway/terms.mjs';
 import { KIT_VERSION, kitKey, runOfClaim } from '../shared/cloud-kit.mjs';
 import { threadSnapshot } from '../shared/phone-snapshot.mjs';
 import { WEB_ALERTS_KEY, WEB_ALERTS_TEST_KEY, webAlertsOn } from '../shared/web-alerts.mjs';
+import { Name } from '../shared/product-name.mjs';
 
 const A = '11111111-1111-4111-8111-111111111111';
 const DEVICE = 'a1b2c3d4e5f6';
@@ -186,7 +187,7 @@ describe('a test alert', () => {
     askTest(t, t.now() - 70_000);
     await t.gw.phoneSweep();
     expect(t.webPushed).toHaveLength(1);
-    expect(t.webPushed[0].say).toMatchObject({ title: 'Agentbox', body: 'Alerts reach this phone.' });
+    expect(t.webPushed[0].say).toMatchObject({ title: Name, body: 'Alerts reach this phone.' });
     expect(t.db.commands.at(-1)).toMatchObject({ outcome: 'done' });
     // Not named `cloud:<run>`: the computer brings every such claim home as a run.
     expect(t.db.commands.at(-1).claimed_by).toBeNull();

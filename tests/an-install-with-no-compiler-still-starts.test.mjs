@@ -64,7 +64,7 @@ describe('an install with no compiler', () => {
   it('says it once at the start, where the person is reading', () => {
     // The install may be the npx cache's, built long before and never printed
     // again, so the command itself says it every time it starts without one.
-    const bin = read('bin/agentbox.mjs');
+    const bin = read('bin/mercury.mjs');
     expect(bin).toContain('ptyIsHere');
     expect(bin).toContain('NO_TERMINAL');
   });

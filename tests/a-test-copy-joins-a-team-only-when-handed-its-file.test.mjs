@@ -14,6 +14,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { loadCloudConfig } from '../main/team/session.mjs';
 import { FRESH_USER_ENV } from '../shared/fresh-user-home.mjs';
+import { nameSlug } from '../shared/product-name.mjs';
 
 const KEY = { url: 'https://team.test', anonKey: 'k' };
 const MAC_KEY = { url: 'https://hers.test', anonKey: 'h' };
@@ -21,8 +22,8 @@ const MAC_KEY = { url: 'https://hers.test', anonKey: 'h' };
 function world() {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'team-file-home-'));
   const appDir = fs.mkdtempSync(path.join(os.tmpdir(), 'team-file-app-'));
-  fs.mkdirSync(path.join(home, '.agentbox'), { recursive: true });
-  fs.writeFileSync(path.join(home, '.agentbox', 'team.config.json'), JSON.stringify(MAC_KEY));
+  fs.mkdirSync(path.join(home, `.${nameSlug}`), { recursive: true });
+  fs.writeFileSync(path.join(home, `.${nameSlug}`, 'team.config.json'), JSON.stringify(MAC_KEY));
   const handed = path.join(home, 'handed.json');
   fs.writeFileSync(handed, JSON.stringify(KEY));
   return { home, appDir, handed };

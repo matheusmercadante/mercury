@@ -19,6 +19,7 @@ import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import { phoneView, phoneSlug, phoneStatusLine, cloudCarriesOn, readCommands, PROJECTS_SELECT } from '../renderer/src/phone-rows';
 import { threadOf } from '../mobile/src/lib/thread';
+import { NAME, Name } from '../shared/product-name.mjs';
 
 const NOW = Date.UTC(2026, 9, 24, 12);
 const DEV = 'a1b2c3d4e5f6';
@@ -41,7 +42,7 @@ function rows(commands = [], { cloud = false, seen = NOW } = {}) {
 const yours = (t) => t.events.filter((e) => e.who === 'you' && e.pending);
 
 describe('a reply in its thread', () => {
-  it('the cloud took says it is working in Agentbox Cloud (the reported case)', () => {
+  it('the cloud took says it is working in the cloud (the reported case)', () => {
     const r = rows([reply({ claimed_at: iso(NOW - 60_000), claimed_by: 'cloud:r1' })]);
     const view = phoneView(r, NOW);
     expect(view.waiting).toEqual([expect.objectContaining({ text: 'yes, ship it', cloud: true })]);
@@ -65,15 +66,18 @@ describe('a reply in its thread', () => {
     expect(view.waiting[0].cloud).toBeUndefined();
   });
 
-  it('answered in the cloud shows nothing more: the thread\'s copy holds the answer', () => {
-    const view = phoneView(rows([reply({ claimed_at: iso(NOW - 60_000), claimed_by: 'cloud:r1', taken_at: iso(NOW - 1000), outcome: 'Answered in Agentbox Cloud' })]), NOW);
-    expect(view.waiting).toEqual([]);
+  // Only once the copy holds it: a copy without it is the 2026-10-31 loss
+  // (a-message-sent-from-the-phone-stays-until-its-thread-shows-it.test.mjs).
+  it('answered in the cloud shows nothing more once the thread\'s copy holds it', () => {
+    const r = rows([reply({ claimed_at: iso(NOW - 60_000), claimed_by: 'cloud:r1', taken_at: iso(NOW - 1000), outcome: 'Answered in Agentbox Cloud' })]);
+    r.threads[0].snapshot.history.push({ id: 'w-1', ts: NOW - 120_000, source: 'founder', patch: { answer: 'yes, ship it', status: 'open' } });
+    expect(phoneView(r, NOW).waiting).toEqual([]);
   });
 
   it('the thread draws the words for the cloud, and offers no Send now on a reply the cloud has', () => {
     const page = read('mobile/src/app/thread/[product]/[id].tsx');
-    expect(page).toMatch(/e\.cloud \? 'Working in Agentbox Cloud'/);
-    expect(page).toMatch(/e\.pending && !e\.refused && !e\.cloud && sendNow/);
+    expect(page).toContain("e.cloud ? `Working in ${NAME} Cloud`");
+    expect(page).toMatch(/e\.pending && !e\.refused && !e\.cloud && !e\.sent && sendNow/);
   });
 });
 
@@ -82,7 +86,7 @@ describe('the line over the inbox', () => {
   it('with the computer off and its threads ready for the cloud, says the cloud carries on', () => {
     const r = rows([], { cloud: true, seen: away });
     expect(cloudCarriesOn(r.projects)).toBe(true);
-    expect(phoneStatusLine({ error: null, fetchedAt: NOW, macSeen: away, cloud: cloudCarriesOn(r.projects) }, NOW)).toBe('Your computer is off. Replies carry on in Agentbox Cloud.');
+    expect(phoneStatusLine({ error: null, fetchedAt: NOW, macSeen: away, cloud: cloudCarriesOn(r.projects) }, NOW)).toBe(`Your computer is off. Replies carry on in ${Name} Cloud.`);
   });
   it('with the computer off and no cloud, says what you send waits for it, as before', () => {
     expect(phoneStatusLine({ error: null, fetchedAt: NOW, macSeen: away, cloud: false }, NOW)).toBe('Your computer was last online 3 hours ago. What you send waits for it.');
@@ -111,9 +115,9 @@ describe('the new columns are read whether or not the live database has them yet
 });
 
 describe('the words', () => {
-  it('the first screen says your words go to your computer, or to Agentbox Cloud when it is off', () => {
+  it(`the first screen says your words go to your computer, or to ${Name} Cloud when it is off`, () => {
     const notice = read('mobile/src/app/ai-notice.tsx');
-    expect(notice).toMatch(/Agentbox Cloud/);
+    expect(notice).toContain('{NAME} Cloud');
     expect(notice).toMatch(/when your computer is off/);
     expect(notice).not.toMatch(/goes to your computer, which hands it/);
   });
@@ -137,9 +141,9 @@ describe('on the phone website', () => {
     const mine = built.events.filter((e) => e.pending);
     expect(mine.map((e) => [e.text, !!e.cloud])).toEqual([['yes', true], ['and tests', false]]);
   });
-  it('the thread says Working in Agentbox Cloud for it, and waits for the computer otherwise', () => {
+  it(`the thread says Working in ${Name} Cloud for it, and waits for the computer otherwise`, () => {
     const thread = read('renderer/src/components/Thread.tsx');
-    expect(thread).toMatch(/onCloudPhone\(\) \? \(e\.cloud \? `Working in \$\{Name\} Cloud` : 'Waiting for your computer'\)/);
+    expect(thread).toMatch(/onCloudPhone\(\) \? \(e\.sent \? 'Sent' : e\.cloud \? `Working in \$\{Name\} Cloud` : 'Waiting for your computer'\)/);
     expect(read('renderer/src/App.tsx')).toMatch(/\.\.\.\(w\.cloud \? \{ cloud: true \} : \{\}\)/);
   });
 });

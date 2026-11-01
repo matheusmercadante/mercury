@@ -27,6 +27,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { nameSlug } from '../shared/product-name.mjs';
 import {
   ensureTaskFolder, taskFolderPath, buildingFolderPath, listTaskFolders,
   inventoryWorktrees, strayWorktrees, pruneMissingWorktrees,
@@ -120,7 +121,7 @@ describe('every copy of the project, whether the app made it or not', () => {
   // never be listed as a task folder, and it is not a stray either.
   it('leaves a folder still being built out of both answers', () => {
     const staging = buildingFolderPath(dir, 'w-half-made');
-    git(dir, 'worktree', 'add', '-q', '-b', 'agentbox/w-half-made', staging);
+    git(dir, 'worktree', 'add', '-q', '-b', `${nameSlug}/w-half-made`, staging);
     const record = found(inventoryWorktrees(dir), staging);
     expect(record.unfinished).toBe(true);
     expect(record.ours).toBe(false);
@@ -206,7 +207,7 @@ describe('parking and releasing a folder somebody named', () => {
     const out = parkTaskFolder(dir, 'w-closed', { path: mine.path });
     expect(out.parked).toBe(true);
     expect(fs.existsSync(mine.path)).toBe(false);
-    expect(git(dir, 'log', '--format=%s', '-1', 'agentbox/w-closed')).toBe(PARKED);
+    expect(git(dir, 'log', '--format=%s', '-1', `${nameSlug}/w-closed`)).toBe(PARKED);
   });
 
   it('refuses to park a folder that is not the one the app made for that task', () => {
@@ -316,7 +317,7 @@ describe('the sweep that puts finished rows´ folders away', () => {
     made.push(store);
     expect(await sup.parkClosedFolders(product)).toBe(1);
     expect(fs.existsSync(mine.path)).toBe(false);
-    expect(git(dir, 'show', 'agentbox/w-finished:app.txt')).toBe('she marked this done');
+    expect(git(dir, 'show', `${nameSlug}/w-finished:app.txt`)).toBe('she marked this done');
     expect(fs.existsSync(stray)).toBe(true);
   });
 

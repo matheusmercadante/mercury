@@ -28,6 +28,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { nameSlug } from '../shared/product-name.mjs';
 import {
   ensureTaskFolder, parkTaskFolder, restoreTaskFolder, taskFolderPath,
 } from '../main/task-folders.mjs';
@@ -107,7 +108,7 @@ describe('a repository whose post-checkout hook fails', () => {
 
   it('an add git really refused is still a failure: the branch is checked out somewhere else', () => {
     const elsewhere = path.join(hooks, 'elsewhere');
-    git(dir, 'worktree', 'add', '-q', '-b', 'agentbox/w-taken', elsewhere);
+    git(dir, 'worktree', 'add', '-q', '-b', `${nameSlug}/w-taken`, elsewhere);
     git(elsewhere, 'commit', '-q', '--allow-empty', '-m', 'so the clone cannot be used');
     failingHook(path.join(dir, '.git', 'hooks'));
 

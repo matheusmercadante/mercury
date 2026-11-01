@@ -1,4 +1,4 @@
-// FEEDBACK GOES STRAIGHT TO THE AGENTBOX TEAM, AND THE ADDRESS IS NOWHERE IN
+// FEEDBACK GOES STRAIGHT TO THE APP'S TEAM, AND THE ADDRESS IS NOWHERE IN
 // THE APP (w-1b574413db, 2026-10-04).
 //
 // Asked for: a low friction way for anyone using Agentbox to send feedback,
@@ -29,6 +29,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { FEEDBACK_LIMITS, checkFeedback, feedbackPayload, totalBytes } from '../shared/feedback.mjs';
 import { feedbackUrl, sendFeedback } from '../main/feedback.mjs';
 import { FeedbackCard } from '../renderer/src/components/FeedbackCard';
+import { Name } from '../shared/product-name.mjs';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
@@ -179,7 +180,7 @@ describe('the card, as approved', () => {
 
   it('says who it goes to without saying how', () => {
     expect(html).toContain('Send feedback');
-    expect(html).toContain('Goes straight to the Agentbox team.');
+    expect(html).toContain(`Goes straight to the ${Name} team.`);
   });
 
   it('has the thread composer’s Send button, with ⌘↵ on it', () => {

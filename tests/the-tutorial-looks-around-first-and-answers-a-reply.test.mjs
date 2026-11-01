@@ -34,6 +34,7 @@ import {
 import { PRACTICE_ANSWER, PRACTICE_REPLY, PRACTICE_REPLY_ANSWER, PRACTICE_SLUG } from '../shared/first-run-practice.mjs';
 import { answerSettled } from '../shared/answers.mjs';
 import { Store } from '../main/store.mjs';
+import { envName } from '../shared/product-name.mjs';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
@@ -182,8 +183,8 @@ describe('4. a reply on her first thread is answered', () => {
   // project no session ever runs to mark it.
   it('answers it in the store, settled, so it comes back to Needs you rather than sitting in In progress', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'reply-answered-'));
-    const home = process.env.ASTRAL_HOME;
-    process.env.ASTRAL_HOME = fs.mkdtempSync(path.join(os.tmpdir(), 'reply-answered-home-'));
+    const home = process.env[envName('HOME')];
+    process.env[envName('HOME')] = fs.mkdtempSync(path.join(os.tmpdir(), 'reply-answered-home-'));
     try {
       const store = new Store({ accountRoot: dir, products: [], personalProducts: [] });
       await store.init();
@@ -202,7 +203,7 @@ describe('4. a reply on her first thread is answered', () => {
       expect(answerSettled(after)).toBe(true);
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
-      if (home === undefined) delete process.env.ASTRAL_HOME; else process.env.ASTRAL_HOME = home;
+      if (home === undefined) delete process.env[envName('HOME')]; else process.env[envName('HOME')] = home;
     }
   });
 });

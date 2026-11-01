@@ -1,4 +1,4 @@
-# agentbox: notes for agents working in this repo (Codex)
+# Mercury: notes for agents working in this repo (Codex)
 
 Read `CLAUDE.md` in full before you touch anything; every rule in it applies to
 you.
