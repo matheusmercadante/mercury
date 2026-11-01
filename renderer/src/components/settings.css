@@ -100,6 +100,8 @@
    off the column's right edge. */
 .set-picker-bare { gap: 0; }
 .set-row-ctl .set-picker-menu { left: auto; right: 0; }
+/* A project's branches can run to dozens. */
+.set-picker-menu { max-height: 320px; overflow-y: auto; }
 
 /* SESSION, WEEK AND FABLE, the same meters on every account, each ending with
    when it resets. One grid for all the rows, so the bars and the times line up.

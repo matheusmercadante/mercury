@@ -115,7 +115,7 @@ export class Repeats {
   // `Supervisor#engineOffered` and `#modelOffered`, so a rule cannot be marked
   // for an engine this Mac never offered her.
   setRule(productDir, {
-    title, body, priority = 5, every = 'day', at, on, engine, model,
+    title, body, priority = 5, every = 'day', at, on, engine, model, baseBranch,
   }, now = Date.now()) {
     // Refused here rather than stored and ignored later: a rule that cannot be
     // kept has to fail while the user is still looking at what they typed.
@@ -132,6 +132,7 @@ export class Repeats {
       ...(every === 'week' ? { on } : {}),
       ...(engine ? { engine: String(engine) } : {}),
       ...(model ? { model: String(model) } : {}),
+      ...(baseBranch ? { baseBranch: String(baseBranch) } : {}),
       createdAt: now, served: '', misses: 0, alerted: 0,
     }, now);
     return this.get(productDir, id, now);
@@ -248,6 +249,7 @@ export function occurrenceFields(rule, key, now) {
     labels: ['founder', repeatLabel(rule.id)],
     ...(rule.engine ? { engine: rule.engine } : {}),
     ...(rule.model ? { model: rule.model } : {}),
+    ...(rule.baseBranch ? { baseBranch: rule.baseBranch } : {}),
   };
 }
 

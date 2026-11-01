@@ -601,7 +601,7 @@ export class Store {
     return this.modules.workItemsDisk.updateWorkItem(this.productDir(slug), id, allowed, { source: 'founder' });
   }
 
-  composeItem(slug, { id = null, title, body, kind = 'directive', priority = 0, labels, runAt, start, engine, model, effort, assignee, due, people, visibility, visibleTo, fromPhone }) {
+  composeItem(slug, { id = null, title, body, kind = 'directive', priority = 0, labels, runAt, start, engine, model, effort, baseBranch, assignee, due, people, visibility, visibleTo, fromPhone }) {
     const { workItemsDisk } = this.modules;
     const dir = this.productDir(slug);
     // The 'founder' label is the human-in-the-loop marker: only items the
@@ -646,6 +646,7 @@ export class Store {
       // whole gate exists for. Whether the word may be written at all is decided
       // before it gets here, by `Supervisor#engineOffered`.
       ...(engine ? { engine: String(engine) } : {}),
+      ...(baseBranch ? { baseBranch: String(baseBranch) } : {}),
       // A TASK GIVEN TO A PERSON (the team version): who has to do it and
       // when. No agent runs on it until that person hands it to one
       // (shared/team-rules.mjs), and it reaches their inbox, not the sender's.
@@ -749,8 +750,8 @@ export class Store {
   // happening to both of these: she could compose "every morning", visibly pick
   // Codex and a Codex model, and every occurrence ran on the then-current
   // workspace default.
-  composeRepeat(slug, { title, body, priority, every, at, on, engine, model }) {
-    return this.repeats.setRule(this.productDir(slug), { title, body, priority, every, at, on, engine, model });
+  composeRepeat(slug, { title, body, priority, every, at, on, engine, model, baseBranch }) {
+    return this.repeats.setRule(this.productDir(slug), { title, body, priority, every, at, on, engine, model, baseBranch });
   }
 
   setRepeat(slug, id, patch) {

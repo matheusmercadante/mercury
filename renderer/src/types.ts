@@ -78,6 +78,8 @@ export interface WorkItem {
   // What it will REALLY run on is resolved in main and arrives on the snapshot
   // (`engines.byItem`); this is only what the row asks for.
   engine?: string;
+  // The local branch its folder starts from, when one was picked for this thread.
+  baseBranch?: string;
   createdAt: number;
   updatedAt: number;
   // Per field, who set the value that survived the fold and when. The fold's own
@@ -1083,6 +1085,15 @@ export interface AccountSetting {
   plan?: { label: string | null; max: boolean } | null;
 }
 
+/** A project's local branches, newest first (main/project-branches.mjs). */
+export interface BranchList {
+  branches: string[];
+  /** What a thread starts from when nothing was chosen: `main`, `master`, or null. */
+  main: string | null;
+  /** The project's own default, set on its page. */
+  preset: string | null;
+}
+
 export interface ProjectSettings {
   slug: string;
   name: string;
@@ -1097,6 +1108,8 @@ export interface ProjectSettings {
   permissionArgs: string[] | null;
   /** This project's own Codex mode, or 'workspace' when it has no opinion. */
   codexMode: CodexModeId | 'workspace';
+  /** The branch its new threads start from, or null for main. */
+  baseBranch?: string | null;
   /**
    * The one Claude account this project's agents run on, or 'any' when it has
    * no tie of its own and runs on the account in use. Never a login that has
@@ -1396,7 +1409,7 @@ declare global {
       setThreadOnMac?(p: { onMac: Record<string, true | null> }): Promise<unknown>;
       moveToCloud?(p: { ids: string[]; product?: string; id?: string }): Promise<{ moving?: number; ok?: boolean }>;
       setProductHidden(p: { product: string; hidden: boolean }): Promise<unknown>;
-      compose(p: { product: string; title: string; body?: string; kind?: string; priority?: number; runAt?: number; start?: 'later' | 'now'; labels?: string[]; model?: string; engine?: string; effort?: string; assignee?: string; due?: string; visibility?: 'team' | 'people' | 'private'; visibleTo?: string[] }): Promise<WorkItem>;
+      compose(p: { product: string; title: string; body?: string; kind?: string; priority?: number; runAt?: number; start?: 'later' | 'now'; labels?: string[]; model?: string; engine?: string; effort?: string; baseBranch?: string; assignee?: string; due?: string; visibility?: 'team' | 'people' | 'private'; visibleTo?: string[] }): Promise<WorkItem>;
       routeThread?(p: { product: string; id: string; to: string }): Promise<{ ok: true }>;
       // Feedback to the Agentbox team (main/feedback.mjs). Optional: an older
       // main process under a newer window has no such door.
@@ -1432,7 +1445,7 @@ declare global {
       schedule(p: { product: string; id: string; runAt: number }): Promise<WorkItem>;
       snooze(p: { product: string; id: string; snoozedUntil: number }): Promise<WorkItem>;
       repeats(): Promise<RepeatRule[]>;
-      composeRepeat(p: { product: string; title: string; body?: string; priority?: number; rule: RepeatShape; engine?: string; model?: string }): Promise<RepeatRule>;
+      composeRepeat(p: { product: string; title: string; body?: string; priority?: number; rule: RepeatShape; engine?: string; model?: string; baseBranch?: string }): Promise<RepeatRule>;
       setRepeat(p: { product: string; id: string; rule: Partial<RepeatShape & { title: string; body: string; priority: number }> }): Promise<RepeatRule>;
       endRepeat(p: { product: string; id: string }): Promise<RepeatRule>;
       pauseSupervisor(paused: boolean): Promise<SupervisorStatus>;
@@ -1477,6 +1490,7 @@ declare global {
       // rather than from what the click assumed.
       settingsRead?(): Promise<Settings>;
       setProjectSetting?(p: { product: string; key: string; value: unknown }): Promise<Settings>;
+      projectBranches?(p: { product: string }): Promise<BranchList>;
       setWorkspaceSetting?(p: { key: string; value: unknown }): Promise<Settings>;
       projectInstructionsRead?(p: { product: string }): Promise<{ ok: boolean; text: string; error?: string }>;
       projectInstructionsWrite?(p: { product: string; text: string }): Promise<{ ok: boolean; error?: string }>;

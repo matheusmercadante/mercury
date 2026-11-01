@@ -176,7 +176,7 @@ export function occurrenceId(ruleId, key) {
 // folded away, so it reads correctly once and is gone at the next app start.
 // That is exactly how `on` disappeared off every weekly rule.
 const FIELDS = [
-  'title', 'body', 'priority', 'every', 'at', 'on', 'engine', 'model',
+  'title', 'body', 'priority', 'every', 'at', 'on', 'engine', 'model', 'baseBranch',
   'createdAt', 'endedAt', 'served', 'misses', 'alerted', 'lastOccurrence',
 ];
 

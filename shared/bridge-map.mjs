@@ -123,6 +123,7 @@ export const REQUEST_CHANNELS = {
   codexAddAccount: 'zero:codex-add-account',
   claudeAddAccount: 'zero:claude-add-account',
   setProjectSetting: 'zero:settings-set-project',
+  projectBranches: 'zero:project-branches',
   setWorkspaceSetting: 'zero:settings-set-workspace',
   // The cloud setup's sign-in for one account, made in the cloud (main/cloud/logins.mjs).
   cloudSignIn: 'zero:cloud-signin',

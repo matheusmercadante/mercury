@@ -64,6 +64,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { Name, nameSlug } from '../shared/product-name.mjs';
 import { carryLocalFiles, copyTree, onlyTrackedContent, trackedTopLevel } from './worktree-include.mjs';
+import { startKey } from './task-start.mjs';
 
 /** Where Claude Code puts its own, so both engines and a human agree. */
 const WORKTREES = ['.claude', 'worktrees'];
@@ -359,6 +360,27 @@ export function baseRef(repoPath) {
   return 'HEAD';
 }
 
+/**
+ * Where a new task branch starts: the local branch somebody chose for it, or
+ * `baseRef`. A chosen branch that is not there throws rather than falling back
+ * to main, since main is the wrong code for a project that chose otherwise.
+ */
+function startRef(root, startFrom) {
+  if (!startFrom) return baseRef(root);
+  const ref = `refs/heads/${startFrom}`;
+  if (tryGit(root, ['rev-parse', '--verify', '-q', ref]).ok) return ref;
+  throw Error(`the branch ${startFrom} it was to start from is not in this repository`);
+}
+
+/** The local branch a task branch was cut from, as a ref, when one was chosen and is still there. */
+function startedFrom(root, branch) {
+  if (!branch) return null;
+  const named = tryGit(root, ['config', '--get', startKey(branch)]);
+  if (!named.ok || !named.out) return null;
+  const ref = `refs/heads/${named.out}`;
+  return tryGit(root, ['rev-parse', '--verify', '-q', ref]).ok ? ref : null;
+}
+
 const lockReason = (pid) => `agentbox pid=${pid}`;
 const pidInReason = (reason) => {
   const found = /agentbox pid=(\d+)/.exec(reason ?? '');
@@ -505,7 +527,7 @@ export function acquireTaskFolder(root, folder, { pid = process.pid, tries = 5 }
  * every assertion about the folder's contents would still pass. Codex made that
  * point reviewing this file on 2026-10-07 and it was right.
  */
-export function ensureTaskFolder(dir, id, { pid = process.pid, dependencies = true, again = false } = {}) {
+export function ensureTaskFolder(dir, id, { pid = process.pid, dependencies = true, again = false, startFrom = null } = {}) {
   const name = safeTaskName(id);
   const root = repoRoot(dir) ?? startRepository(dir);
   if (!root) return null;
@@ -531,7 +553,7 @@ export function ensureTaskFolder(dir, id, { pid = process.pid, dependencies = tr
   // rather than inventing a word for a race that is already over. Asked once:
   // a second failure is not a race.
   const somebodyFinishedIt = () => !again && fs.existsSync(folder) && !!record(root, folder);
-  const askAgain = () => ensureTaskFolder(dir, id, { pid, dependencies, again: true });
+  const askAgain = () => ensureTaskFolder(dir, id, { pid, dependencies, again: true, startFrom });
 
   if (fs.existsSync(folder) && record(root, folder)) {
     const held = acquireTaskFolder(root, folder, { pid });
@@ -578,7 +600,14 @@ export function ensureTaskFolder(dir, id, { pid = process.pid, dependencies = tr
 
   const hasBranch = () => tryGit(root, ['rev-parse', '--verify', '-q', `refs/heads/${branch}`]).ok;
   const branchExists = hasBranch();
-  const from = branchExists ? branch : baseRef(root);
+  const start = branchExists ? null : startRef(root, startFrom);
+  // Written before the branch exists, so whichever path below makes it, the
+  // record is already there. A branch that already existed keeps its own.
+  if (!branchExists) {
+    if (startFrom) git(root, ['config', startKey(branch), startFrom]);
+    else tryGit(root, ['config', '--unset', startKey(branch)]);
+  }
+  const from = branchExists ? branch : start;
   let how = 'clone';
   if (!cloneCheckout(root, staging, branch, from, branchExists, pid)) {
     how = 'checkout';
@@ -605,7 +634,7 @@ export function ensureTaskFolder(dir, id, { pid = process.pid, dependencies = tr
     // from the other direction, because `cp` there fails differently.
     const add = hasBranch()
       ? addOwned(root, staging, [staging, branch], pid)
-      : addOwned(root, staging, ['-b', branch, staging, baseRef(root)], pid);
+      : addOwned(root, staging, ['-b', branch, staging, start ?? startRef(root, startFrom)], pid);
     if (!add.ok) {
       // SOMEBODY GOT HERE FIRST, AND THAT IS A REFUSAL RATHER THAN A FAILURE
       // (w-36c51443df). `clearUnfinished` above answers `building` only when
@@ -881,8 +910,10 @@ export function folderState(root, folder) {
   const status = tryGit(folder, ['status', '--porcelain']);
   const dirty = !status.ok || status.out.length > 0;
   const head = tryGit(folder, ['rev-parse', 'HEAD']);
+  const branch = tryGit(folder, ['symbolic-ref', '--short', '-q', 'HEAD']);
+  const base = (branch.ok && startedFrom(root, branch.out)) || baseRef(root);
   const merged = head.ok
-    && tryGit(root, ['merge-base', '--is-ancestor', head.out, baseRef(root)]).ok;
+    && tryGit(root, ['merge-base', '--is-ancestor', head.out, base]).ok;
   return { dirty, merged };
 }
 
@@ -1129,8 +1160,8 @@ export function parkTaskFolder(dir, id, { pid = process.pid, path: given = null 
  * it, and still has to come back: there are parked branches on this Mac from
  * the old shape. One mixed reset is what it always was.
  */
-export function restoreTaskFolder(dir, id, { pid = process.pid } = {}) {
-  const made = ensureTaskFolder(dir, id, { pid });
+export function restoreTaskFolder(dir, id, { pid = process.pid, startFrom = null } = {}) {
+  const made = ensureTaskFolder(dir, id, { pid, startFrom });
   if (!made || made.taken === false) return made ?? null;
   const last = tryGit(made.path, ['log', '-1', '--format=%s']);
   if (!last.ok || last.out !== PARKED) return made;

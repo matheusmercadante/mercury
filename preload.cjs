@@ -187,6 +187,7 @@ contextBridge.exposeInMainWorld('zero', {
   // hands back the line the built-in terminal runs to sign in.
   claudeAddAccount: () => ipcRenderer.invoke('zero:claude-add-account'),
   setProjectSetting: (payload) => ipcRenderer.invoke('zero:settings-set-project', payload),
+  projectBranches: (payload) => ipcRenderer.invoke('zero:project-branches', payload),
   setWorkspaceSetting: (payload) => ipcRenderer.invoke('zero:settings-set-workspace', payload),
   cloudSignIn: (payload) => ipcRenderer.invoke('zero:cloud-signin', payload),
   cloudAccountSignIn: (payload) => ipcRenderer.invoke('zero:cloud-account-sign-in', payload),

@@ -2120,6 +2120,15 @@ export class Supervisor {
   }
 
   /**
+   * The local branch a new folder for this row starts from: the row's own pick,
+   * then its project's, then null, which is main (main/task-folders.mjs).
+   */
+  startBranchFor(item, product) {
+    const own = typeof item?.baseBranch === 'string' ? item.baseBranch.trim() : '';
+    return own || this.config.projectBaseBranch?.[product?.slug ?? item?.product] || null;
+  }
+
+  /**
    * Where this row's work lives, made if it is not there yet and UNPARKED if
    * the row was closed and she has come back to it: a reopened task finds the
    * files exactly as the last session left them, uncommitted work included.
@@ -2151,7 +2160,7 @@ export class Supervisor {
     // taking a folder can be refused outright now (another app process over
     // this checkout is standing in it, or somebody locked it by hand), and
     // that refusal carries no path for exactly this reason.
-    const asked = restoreTaskFolder(base, item.id);
+    const asked = restoreTaskFolder(base, item.id, { startFrom: this.startBranchFor(item, product) });
     const folder = asked?.path ?? null;
     if (!folder) throw Error(`no folder could be made for ${item.id} in ${base}${whoHasIt(asked)}`);
     return folder;
@@ -2310,7 +2319,7 @@ export class Supervisor {
     const entry = { item, opts, engine, folderSince: Date.now() };
     this._preparing.set(item.id, entry);
     this._saveState();
-    folderJob('restoreTaskFolder', base, item.id)
+    folderJob('restoreTaskFolder', base, item.id, { startFrom: this.startBranchFor(item, product) })
       // A FAILURE HERE ENDS THE SPAWN. It used to hand back the shared checkout
       // and go on to start the worker in it, which is `workFolderFor`'s back
       // door with a session actually started behind it. `null` carries the

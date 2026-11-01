@@ -28,6 +28,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { startKey } from './task-start.mjs';
 
 /** Bigger than this is not a file anybody reads a diff of. */
 const BIG_FILE = 512 * 1024;
@@ -124,7 +125,10 @@ const CUT_FROM = ['refs/remotes/origin/HEAD', 'refs/remotes/origin/main', 'refs/
  *  ahead of: no default branch, or a checkout sitting on it. */
 function cutFrom(root) {
   const here = tryGit(root, ['rev-parse', '--abbrev-ref', 'HEAD'])?.trim();
-  for (const ref of CUT_FROM) {
+  // A task branch cut from a chosen branch is measured against that branch (main/task-start.mjs).
+  const chosen = here && here !== 'HEAD' ? tryGit(root, ['config', '--get', startKey(here)])?.trim() : null;
+  const refs = chosen ? [`refs/heads/${chosen}`, ...CUT_FROM] : CUT_FROM;
+  for (const ref of refs) {
     const sha = tryGit(root, ['rev-parse', '--verify', '--quiet', ref])?.trim();
     if (!sha) continue;
     const name = ref.replace(/^refs\/(?:heads|remotes)\//, '');

@@ -112,6 +112,8 @@ export const WORK_ITEM_FIELDS = [
   'title', 'label', 'body', 'kind', 'labels', 'priority', 'parent',
   'status', 'result', 'note', 'answer', 'product', 'runAt', 'snoozedUntil', 'answeredThrough',
   'engine', 'model', 'effort',
+  // The local branch this thread's folder starts from, when it was picked for this thread.
+  'baseBranch',
   // WHETHER THIS HAS BEEN STARTED AT ALL. 'later' is a thread written down and
   // deliberately not begun: it waits for a person, not for a clock, and
   // `isDue` below is where that becomes true of the whole app. 'now' is how it
@@ -431,7 +433,7 @@ function coerceField(field, value) {
     // shared/effort-levels.mjs, and the spawn gates on them, so a value this
     // module does not recognise is a run at Claude Code's own choice rather
     // than a row that never runs.
-    case 'kind': case 'product': case 'parent': return str(value, MAX_SHORT);
+    case 'kind': case 'product': case 'parent': case 'baseBranch': return str(value, MAX_SHORT);
     // THESE TWO ARE CLEARED BY WRITING '' AND SO '' IS A REAL VALUE, exactly
     // as runAt's 0 and start's 'now' are, and for the same reason: a field that
     // coerces to undefined is dropped by the fold, so without a falsy value

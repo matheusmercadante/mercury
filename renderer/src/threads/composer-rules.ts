@@ -14,7 +14,7 @@ import { claudeModelRows, CODEX_OWN, DEFAULT_MODEL, engineModelPicked, type Mode
 import { splitMessage } from '../message-split';
 import { parseWhen } from '../format';
 import { firstName } from '../team/company';
-import type { Person } from '../types';
+import type { BranchList, Person } from '../types';
 import { projectSeenBy } from '../../../shared/thread-cards.mjs';
 
 export type Harness = 'claude' | 'codex';
@@ -290,6 +290,29 @@ export function startingProject<T extends ProjectLike>(
     ?? offered.find((p) => !p.practice)
     ?? offered[0]
     ?? null;
+}
+
+/**
+ * The branch chip, or null where there is nothing to choose: one branch and no
+ * project default is most projects, and the card reads there as it always did.
+ * `shown` is what a thread sent now starts from; `field` is what the send carries.
+ */
+export function branchChip(pick: string | null, list: BranchList | null): { shown: string; field: { baseBranch?: string } } | null {
+  if (!list || (list.branches.length < 2 && !list.preset)) return null;
+  const shown = pick ?? list.preset ?? list.main;
+  if (!shown) return null;
+  return { shown, field: pick ? { baseBranch: pick } : {} };
+}
+
+export const BRANCH_ROWS_SHOWN = 30;
+
+/** The branch menu's rows: the project default, then main, then the newest, narrowed by what was typed. */
+export function branchRows(list: BranchList, query: string): { rows: string[]; more: number } {
+  const first = [list.preset, list.main].filter((b): b is string => !!b && list.branches.includes(b));
+  const ordered = [...new Set([...first, ...list.branches])];
+  const q = query.trim().toLowerCase();
+  const found = q ? ordered.filter((b) => b.toLowerCase().includes(q)) : ordered;
+  return { rows: found.slice(0, BRANCH_ROWS_SHOWN), more: Math.max(0, found.length - BRANCH_ROWS_SHOWN) };
 }
 
 // Projects carry no colour of their own yet, so the swatch is read off the slug:

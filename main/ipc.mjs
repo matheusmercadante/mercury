@@ -45,7 +45,8 @@ import { readChange } from './code-change.mjs';
 import { findFile, readCodeFile, writeCodeFile } from './code-file.mjs';
 import { readNote, writeNote } from './rail-note.mjs';
 import { teamForWindow } from './team/index.mjs';
-import { addClaudeAccount, addCodexAccount, alphaFeatures, cornerTagTurnedOff, countsTurnedOff, lookAgainFor, outsideAgentsMode, permissionMode, pointAtEngineBin, readSettings, searchForEngineBin, setProjectSetting, setWorkspaceSetting } from './settings.mjs';
+import { addClaudeAccount, addCodexAccount, alphaFeatures, cornerTagTurnedOff, countsTurnedOff, lookAgainFor, outsideAgentsMode, permissionMode, pointAtEngineBin, readSettings, searchForEngineBin, setProjectBaseBranch, setProjectSetting, setWorkspaceSetting } from './settings.mjs';
+import { branchesIn, hasBranch } from './project-branches.mjs';
 import { ICON_KINDS, clearProjectIcon, setProjectIcon, setProjectName } from './project-identity.mjs';
 import { ClaudeUsage } from './claude-usage.mjs';
 import { AccountUsage } from './account-usage.mjs';
@@ -1030,8 +1031,24 @@ export function registerIpc({ store, supervisor, config, window, analytics = NO_
     await team.syncNow();
   }));
 
-  ipcMain.handle('zero:compose', (_e, { product, title, body, kind, priority, runAt, start, labels, engine, model, effort, assignee, due, visibility, visibleTo, fromPhone }) => {
+  // A branch the thread card picked, refused at the door when the project's
+  // repository does not have it, so the send fails while the card is still open.
+  const branchOffered = async (product, name) => {
+    if (!name) return undefined;
+    const repoPath = store.listProducts().find((p) => p.slug === product)?.repoPath ?? null;
+    if (!(await hasBranch(repoPath, name))) throw new Error(`this project's repository has no branch ${name}`);
+    return String(name);
+  };
+
+  ipcMain.handle('zero:project-branches', async (_e, { product } = {}) => {
+    const repoPath = store.listProducts().find((p) => p.slug === product)?.repoPath ?? null;
+    return { ...(await branchesIn(repoPath)), preset: config.projectBaseBranch?.[product] ?? null };
+  });
+
+  ipcMain.handle('zero:compose', async (_e, { product, title, body, kind, priority, runAt, start, labels, engine, model, effort, baseBranch, assignee, due, visibility, visibleTo, fromPhone }) => {
+    const branch = await branchOffered(product, baseBranch);
     const out = store.composeItem(product, {
+      baseBranch: branch,
       // HOW HARD IT THINKS rides through unjudged: the store keeps any word
       // shaped like a level, and the spawn is the gate that knows each
       // engine's real list (`Supervisor#spawnPlan` for Claude Code,
@@ -1216,12 +1233,14 @@ export function registerIpc({ store, supervisor, config, window, analytics = NO_
   // engine that was just refused. Both were absent here because neither field
   // reached this handler at all: the whole pair was dropped four times over on
   // the way from her card (main/repeats.mjs says where).
-  ipcMain.handle('zero:compose-repeat', (_e, { product, title, body, priority, rule, engine, model }) => {
+  ipcMain.handle('zero:compose-repeat', async (_e, { product, title, body, priority, rule, engine, model, baseBranch }) => {
+    const branch = await branchOffered(product, baseBranch);
     const made = store.composeRepeat(product, {
       title,
       body,
       priority,
       ...rule,
+      baseBranch: branch,
       engine: supervisor.engineOffered(engine),
       model: supervisor.modelOffered(engine, model),
     });
@@ -1805,9 +1824,10 @@ export function registerIpc({ store, supervisor, config, window, analytics = NO_
     }
   });
 
-  ipcMain.handle('zero:settings-set-project', (_e, payload) => {
+  ipcMain.handle('zero:settings-set-project', async (_e, payload) => {
     try {
-      setProjectSetting({ config, supervisor, store }, payload ?? {});
+      if (payload?.key === 'baseBranch') await setProjectBaseBranch({ config, store }, payload);
+      else setProjectSetting({ config, supervisor, store }, payload ?? {});
       push();
       return { ok: true, ...readSettings({ config, supervisor, store }) };
     } catch (err) {

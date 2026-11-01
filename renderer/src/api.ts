@@ -4,7 +4,7 @@ import {updateFixture} from './agent-update-fixture';
 // bridge; fixtures mode (?fixtures=1) serves canned data so the UI can be
 // developed, reviewed, and screenshotted without a live store or any agents.
 
-import type { AccountUsageReading, AgentConversation, CloudPlan, AnswerMode, CodexModeId, DemoOpened, FolderListing, FreshUser, PermissionMode, PhoneLink, PhoneRoute, RepeatRule, RepeatShape, RoomsResult, Settings, Snapshot, TeammatesResult, TeamCallResult, TeamMessageFile, ThreadEditPatch, UpdateState, Usage, UsageLimit, WorkItem } from './types';
+import type { AccountUsageReading, AgentConversation, BranchList, CloudPlan, AnswerMode, CodexModeId, DemoOpened, FolderListing, FreshUser, PermissionMode, PhoneLink, PhoneRoute, RepeatRule, RepeatShape, RoomsResult, Settings, Snapshot, TeammatesResult, TeamCallResult, TeamMessageFile, ThreadEditPatch, UpdateState, Usage, UsageLimit, WorkItem } from './types';
 import type { LedgerLine } from './thread-history';
 import type { AgentFile as AgentFileRow } from './onboarding';
 import type { AgentFolder, SessionThread } from './agent-import-card';
@@ -933,7 +933,7 @@ export const api = {
     return out?.moving ?? (out?.ok ? ids.length : 0);
   },
 
-  async compose(p: { product: string; title: string; body?: string; kind?: string; priority?: number; runAt?: number; start?: 'later' | 'now'; labels?: string[]; model?: string; engine?: string; effort?: string; assignee?: string; due?: string; visibility?: 'team' | 'people' | 'private'; visibleTo?: string[] }): Promise<WorkItem | null> {
+  async compose(p: { product: string; title: string; body?: string; kind?: string; priority?: number; runAt?: number; start?: 'later' | 'now'; labels?: string[]; model?: string; engine?: string; effort?: string; baseBranch?: string; assignee?: string; due?: string; visibility?: 'team' | 'people' | 'private'; visibleTo?: string[] }): Promise<WorkItem | null> {
     // FIXTURES ANSWER WITH THE TASK, the way the real store does. Returning
     // null here meant the send had nothing to point at, and the caller reads
     // that as "no task was made" and puts no way back on the undo pile — so the
@@ -1134,7 +1134,7 @@ export const api = {
   // object carrying anything else.
   async composeRepeat(p: {
     product: string; title: string; body?: string; priority?: number; rule: RepeatShape;
-    engine?: string; model?: string;
+    engine?: string; model?: string; baseBranch?: string;
   }): Promise<RepeatRule | null> {
     if (useFixtures) return null;
     return window.zero!.composeRepeat(p);
@@ -1348,6 +1348,13 @@ export const api = {
     const zero = window.zero as any;
     if (!zero?.setProjectSetting) return { ...emptySettings, ok: false, error: RESTART_NOTE };
     return zero.setProjectSetting(p);
+  },
+
+  /** A project's local branches for the branch pickers; none where this screen cannot ask. */
+  async projectBranches(p: { product: string }): Promise<BranchList> {
+    const none: BranchList = { branches: [], main: null, preset: null };
+    if (useFixtures || !window.zero?.projectBranches) return none;
+    try { return await window.zero.projectBranches(p); } catch { return none; }
   },
 
   /* ---------------- what a project is called, and its mark ---------------- */

@@ -27,7 +27,7 @@
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { AgentMode, CodexModeId, PermissionMode, ProjectSettings, Settings as SettingsModel, UpdateState } from '../types';
+import type { AgentMode, BranchList, CodexModeId, PermissionMode, ProjectSettings, Settings as SettingsModel, UpdateState } from '../types';
 import { onCloudPhone, onPhone, phoneSized } from '../phone-screen';
 import { computerSays, type PhoneRows } from '../phone-rows';
 import { changesOn, readingOf, type Reading, type SettingsRow } from '../phone-settings-view';
@@ -1781,6 +1781,16 @@ export function Settings({ look, onSetLook, tune, onSetTune, onResetTune, keyHin
     [pane, projects],
   );
 
+  // The branches its threads may start from, read when its page opens.
+  const [branches, setBranches] = useState<BranchList | null>(null);
+  useEffect(() => {
+    setBranches(null);
+    if (!current?.repoPath) return undefined;
+    let live = true;
+    void api.projectBranches({ product: current.slug }).then((list) => { if (live) setBranches(list); });
+    return () => { live = false; };
+  }, [current?.slug, current?.repoPath]);
+
   // A project that disappears while its page is open (archived, renamed) lands
   // on the list of projects rather than leaving a blank pane.
   // On the web app a project page is the computer's copy, which WebComputerPane checks itself.
@@ -2589,6 +2599,23 @@ export function Settings({ look, onSetLook, tune, onSetTune, onResetTune, keyHin
             <Group label="Where this project is kept on this computer">
               <Row label="Documents" desc={current.dir} />
               <Row label="Repository" desc={current.repoPath ?? 'No code repo registered for this project.'} />
+              {current.repoPath && (
+                <Row label="New threads start from" desc="The branch each new thread's folder is cut from. The new thread card can pick another one for a single thread.">
+                  <Picker
+                    bare
+                    label="New threads start from"
+                    title="The branch new threads start from"
+                    value={current.baseBranch ?? ''}
+                    options={[
+                      { value: '', label: branches && !branches.main ? 'Where the checkout is (default)' : `${branches?.main ?? 'main'} (default)` },
+                      ...(branches?.branches ?? (current.baseBranch ? [current.baseBranch] : []))
+                        .filter((b) => b !== branches?.main)
+                        .map((b) => ({ value: b, label: b })),
+                    ]}
+                    onChange={(v) => setProject(current.slug, 'baseBranch', v)}
+                  />
+                </Row>
+              )}
             </Group>
 
             {/* ARCHIVE, NOT DELETE (w-bb5047e258): one flag in its

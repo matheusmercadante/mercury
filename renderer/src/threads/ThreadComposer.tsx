@@ -34,7 +34,7 @@ import { PhoneStatus } from '../components/PhoneStatus';
 import { SEND } from '../this-keyboard';
 import { Fragment, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject, type ReactNode } from 'react';
 import { PRACTICE_TASK } from '../../../shared/first-run-practice.mjs';
-import type { Product, WorkItem } from '../types';
+import type { BranchList, Product, WorkItem } from '../types';
 import type { Engine } from '../../../shared/engines.mjs';
 import { ENGINES } from '../../../shared/engines.mjs';
 import { api } from '../api';
@@ -66,7 +66,7 @@ import {
   allModels, findPeople, harnessFields, laterHint, momentFromWords, mondayMorning, moreCount,
   joinNames, placeholderFor, projectsOffered, projectSwatch, recentModels,
   sharingFields, startingProject, startingVisibility, startingChosen, teammates, threadMessage, tomorrowMorning, chosenWords, VISIBILITY_ROWS,
-  dueChoices, dueWords, headRows, keyOnTheNewThreadCard, taskFields,
+  dueChoices, dueWords, headRows, keyOnTheNewThreadCard, taskFields, branchChip, branchRows,
   type Harness, type Keyboard, type ModelPick, type SendAs, type Visibility,
 } from './composer-rules';
 import './thread-composer.css';
@@ -93,7 +93,7 @@ export interface ThreadSent {
   made?: { product: string; id: string };
 }
 
-type MenuKey = 'to' | 'model' | 'sendAs' | 'dueOn' | 'project' | 'priority' | 'visibility' | 'later';
+type MenuKey = 'to' | 'model' | 'sendAs' | 'dueOn' | 'project' | 'branch' | 'priority' | 'visibility' | 'later';
 
 /** What a card opens on. Project, model and priority need no field: the card
  *  reads them from what was last picked and from the saved draft. */
@@ -261,6 +261,21 @@ export function ThreadComposer({
   // The card is already open, so the remembered slot it read on opening is of
   // no use: the project made from its own menu arrives here.
   useEffect(() => { if (selectProject) pickProject(selectProject); }, [selectProject]);
+
+  /* ------------------------------ branch -------------------------------- */
+  // What this thread's folder starts from: the project's default unless picked
+  // here. A pick belongs to the project it was made for.
+  const [branchList, setBranchList] = useState<BranchList | null>(null);
+  const [branchPick, setBranchPick] = useState<string | null>(null);
+  useEffect(() => {
+    setBranchPick(null);
+    setBranchList(null);
+    if (!product?.repoPath) return undefined;
+    let current = true;
+    void api.projectBranches({ product: product.slug }).then((list) => { if (current) setBranchList(list); });
+    return () => { current = false; };
+  }, [product?.slug, product?.repoPath]);
+  const branch = branchChip(branchPick, branchList);
 
   /* ---------------------------- priority -------------------------------- */
   // Every new thread opens on Medium; only a half-written card keeps its tag
@@ -573,6 +588,7 @@ export function ThreadComposer({
         const rule = await api.composeRepeat({
           product: product.slug, title: message.title, body: body || undefined, priority, rule: when.repeat,
           ...(harness.engine ? { engine: harness.engine } : {}), ...(harness.model ? { model: harness.model } : {}),
+          ...branch?.field,
         });
         dropComposeDraft(taken);
         onSent(null, { kind: 'repeat', product: product.slug, title: message.title, ruleId: rule?.id, draft: taken });
@@ -585,6 +601,7 @@ export function ThreadComposer({
           // clock in it, and the only one that answers "I am not ready yet".
           ...(when.start ? { start: when.start } : {}),
           ...harness,
+          ...branch?.field,
           ...(given ?? {}),
           ...(team ? sharingFields(visibility, chosenHere) : {}),
           ...(onAuto ? { labels: [AUTO_LABEL] } : {}),
@@ -886,6 +903,32 @@ export function ThreadComposer({
           <PlusIcon /><span className="tc-row-label">New project</span>
         </button>
       </>)}
+    </div>
+  );
+
+  const branchFound = branchList ? branchRows(branchList, query) : { rows: [], more: 0 };
+  const branchMenu = (
+    <div className="tc-menu tc-rise" role="listbox" aria-label="Starts from" onKeyDown={menuKeys}>
+      <span className="tc-menu-head">Starts from</span>
+      {(branchList?.branches.length ?? 0) > 8 && (
+        <input
+          data-item
+          className="tc-find"
+          placeholder="Find a branch"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter' && branchFound.rows[0]) { e.preventDefault(); setBranchPick(branchFound.rows[0]); close('text'); } }}
+        />
+      )}
+      {branchFound.rows.map((b) => (
+        <button key={b} type="button" data-item className={`tc-row ${b === branch?.shown ? 'on' : ''}`} onPointerEnter={hover}
+          onClick={() => { setBranchPick(b); close('text'); }}>
+          <BranchIcon /><span className="tc-row-label">{b}</span>
+          {b === branchList?.preset ? <small>Project default</small> : !branchList?.preset && b === branchList?.main ? <small>Default</small> : null}
+        </button>
+      ))}
+      {!branchFound.rows.length && <span className="tc-none">No branch matches that.</span>}
+      {branchFound.more > 0 && <span className="tc-none">{branchFound.more} more. Type to find one.</span>}
     </div>
   );
 
@@ -1272,6 +1315,15 @@ export function ThreadComposer({
               </button>
               {open === 'project' && projectMenu}
             </span>
+            {branch && (
+              <span className="tc-anchor" ref={anchor('branch')}>
+                <button type="button" data-trigger className={`tc-chip ${open === 'branch' ? 'open' : ''}`} title="The branch it starts from"
+                  aria-haspopup="listbox" aria-expanded={open === 'branch'} onClick={() => toggle('branch')} onKeyDown={triggerKeys('branch')}>
+                  <BranchIcon /><span className="tc-chip-name">{branch.shown}</span>
+                </button>
+                {open === 'branch' && branchMenu}
+              </span>
+            )}
             {priorityChip}
             {team && (
               <span className="tc-anchor" ref={anchor('visibility')}>
@@ -1354,6 +1406,11 @@ const CaretIcon = () => (
 // lines up with the names above it rather than stepping sideways.
 const PlusIcon = () => (
   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+);
+const BranchIcon = () => (
+  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+    <circle cx="7" cy="5.5" r="2" /><circle cx="7" cy="18.5" r="2" /><circle cx="17" cy="8" r="2" /><path d="M7 7.5v9M17 10c0 4-10 3-10 6.5" />
+  </svg>
 );
 const ClockIcon = () => (
   <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="M12 8v4.5l3 2" /></svg>

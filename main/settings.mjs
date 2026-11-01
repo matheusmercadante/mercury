@@ -35,6 +35,7 @@ import { accountIdentity, claudeLoginCommand, duplicateAccountNote, linkAccountT
 import { isEngine } from '../shared/engines.mjs';
 import { codexAccount, codexFreePlan, codexLoginCommand, makeCodexHome } from './codex-account.mjs';
 import { codexDefaultModel, codexModelsAcross } from './codex-models.mjs';
+import { hasBranch } from './project-branches.mjs';
 import { CODEX_DEFAULT_MODE, isCodexMode } from '../shared/codex-modes.mjs';
 import { CLOUD_SAME, CLOUD_CLAUDE_DEFAULT, CLOUD_CODEX_DEFAULT } from './cloud-permission.mjs';
 import { isPackagedElectron } from './team/session.mjs';
@@ -621,6 +622,7 @@ export function readSettings({ config, supervisor, store }, { search = true } = 
       permission: override ? permissionMode(override) : 'workspace',
       permissionArgs: override ?? null,
       codexMode: config.projectCodexMode?.[product.slug] ?? 'workspace',
+      baseBranch: config.projectBaseBranch?.[product.slug] ?? null,
       // THE SUPERVISOR IS ASKED RATHER THAN THE CONFIG FILE, so the page shows
       // what will actually happen: a tie naming a login that has been signed out
       // is ignored when work is handed out, and reads 'any' here too.
@@ -947,6 +949,24 @@ export function setProjectSetting({ config, supervisor, store }, { product, key,
   return true;
 }
 
+
+/**
+ * THE BRANCH A PROJECT'S NEW THREADS START FROM, apart from `setProjectSetting`
+ * because asking git whether the branch exists is not done on the window's
+ * thread. '' is no opinion, which is main, and a branch the repository does
+ * not have is refused here rather than refusing every new thread later.
+ */
+export async function setProjectBaseBranch({ config, store }, { product, value }) {
+  if (!product) throw new Error('no project');
+  const map = { ...(config.projectBaseBranch ?? {}) };
+  if (!value) delete map[product];
+  else {
+    const repoPath = store?.listProducts?.().find((p) => p.slug === product)?.repoPath ?? null;
+    if (!(await hasBranch(repoPath, value))) throw new Error(`this project's repository has no branch ${value}`);
+    map[product] = String(value);
+  }
+  saveConfig(config, { projectBaseBranch: Object.keys(map).length ? map : undefined });
+}
 
 /**
  * EVERY CODEX LOGIN THIS MAC HOLDS, in the shape the agent card draws.
