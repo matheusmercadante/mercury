@@ -10,6 +10,7 @@ import path from 'node:path';
 import { ARMS, armFor, readArm } from '../shared/onboarding-arm.mjs';
 import { createAnalytics } from '../main/analytics.mjs';
 import { sanitize } from '../shared/analytics-events.mjs';
+import { envName } from '../shared/product-name.mjs';
 
 const dir = () => fs.mkdtempSync(path.join(os.tmpdir(), 'arm-'));
 const real = { HOME: '/Users/someone' };
@@ -46,11 +47,11 @@ describe('which first run a new install gets', () => {
     expect(armFor(d, { env: real, random: () => 0.1 })).toBe('tour');
   });
   it('can be chosen for a test window, which is how either one is looked at', () => {
-    expect(armFor(dir(), { env: { ...real, AGENTBOX_ONBOARDING: 'classic' }, random: () => 0.1 })).toBe('classic');
+    expect(armFor(dir(), { env: { ...real, [envName('ONBOARDING')]: 'classic' }, random: () => 0.1 })).toBe('classic');
   });
   it('is the new one in a throwaway test home unless one is named, and is not stored there', () => {
     const d = dir();
-    expect(armFor(d, { env: { AGENTBOX_FRESH_USER: '1' }, random: () => 0.9 })).toBe('tour');
+    expect(armFor(d, { env: { [envName('FRESH_USER')]: '1' }, random: () => 0.9 })).toBe('tour');
     expect(readArm(d)).toBe(null);
   });
 });
