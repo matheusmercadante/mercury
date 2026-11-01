@@ -19,6 +19,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { teamConfigFile, pagesProjectOf } from './phone-site-config.mjs';
 import { Name } from '../shared/product-name.mjs';
+import { schemaOf } from '../shared/db-schema.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -81,7 +82,8 @@ export function buildPhoneSite({ dist = path.join(root, 'renderer', 'dist'), out
       return !(rel === 'fixtures' || rel.startsWith(`fixtures${path.sep}`) || rel === 'corner-tag.html' || rel.endsWith('.map'));
     },
   });
-  const config = JSON.stringify({ url: origin.origin, anonKey }).replace(/&/g, '&amp;').replace(/'/g, '&#39;').replace(/</g, '&lt;');
+  const schema = schemaOf(given);
+  const config = JSON.stringify({ url: origin.origin, anonKey, ...(schema !== 'public' ? { schema } : {}) }).replace(/&/g, '&amp;').replace(/'/g, '&#39;').replace(/</g, '&lt;');
   const meta = `<meta name="agentbox-cloud" content='${config}'>`;
   const built = /^[0-9a-f]{40}$/.test(stamp?.sha ?? '') && Number.isFinite(Date.parse(stamp?.at)) ? `\n    <meta name="agentbox-build" content="${stamp.sha} ${new Date(stamp.at).toISOString()}">` : '';
   if (forward) fs.writeFileSync(path.join(out, 'forward.js'), forward);

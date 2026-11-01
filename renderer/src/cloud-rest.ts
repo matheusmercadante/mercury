@@ -10,7 +10,7 @@
 // Plain fetch rather than the database's own library: the phone needs five
 // calls, and each one here is one request a test can see.
 
-export interface CloudConfig { url: string; anonKey: string }
+export interface CloudConfig { url: string; anonKey: string; schema?: string }
 export interface CloudSession { access_token: string; refresh_token: string; expires_at: number; user: { id: string; email?: string | null } }
 
 type Store = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
@@ -23,6 +23,8 @@ const b64url = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes)).replac
 
 export function cloudClient(cfg: CloudConfig, { storage, fetchImpl, now = () => Date.now() }: { storage: Store; fetchImpl: Fetch; now?: () => number }) {
   const base = cfg.url.replace(/\/+$/, '');
+  // PostgREST reads one schema per request: Accept-Profile to read, Content-Profile to write.
+  const profile: Record<string, string> = cfg.schema && cfg.schema !== 'public' ? { 'accept-profile': cfg.schema, 'content-profile': cfg.schema } : {};
   let session: CloudSession | null = (() => {
     try { const s = JSON.parse(storage.getItem(SESSION_KEY) || 'null'); return s?.access_token && s?.user?.id ? s : null; } catch { return null; }
   })();
@@ -39,7 +41,7 @@ export function cloudClient(cfg: CloudConfig, { storage, fetchImpl, now = () => 
 
   async function call(path: string, init: RequestInit & { auth?: boolean } = {}, again = true): Promise<any> {
     const mine = gen;
-    const headers: Record<string, string> = { apikey: cfg.anonKey, 'content-type': 'application/json', ...(init.headers as Record<string, string> | undefined) };
+    const headers: Record<string, string> = { apikey: cfg.anonKey, 'content-type': 'application/json', ...profile, ...(init.headers as Record<string, string> | undefined) };
     if (init.auth !== false) headers.authorization = `Bearer ${await token()}`;
     const res = await fetchImpl(`${base}${path}`, { ...init, headers });
     const text = await res.text();

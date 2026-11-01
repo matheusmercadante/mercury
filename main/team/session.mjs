@@ -11,6 +11,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { nameSlug } from '../../shared/product-name.mjs';
 import { CLOUD_ADDRESS, PHONE_SITE } from '../../shared/cloud-address.mjs';
+import { schemaOf } from '../../shared/db-schema.mjs';
 import { runningAsAFreshUser } from '../../shared/fresh-user-home.mjs';
 import { supabaseBackend } from './supabase-backend.mjs';
 import { signInWithGoogle, cancelGoogleSignIn } from './sign-in.mjs';
@@ -109,7 +110,7 @@ function bakedTeam(appDir) {
     const b = JSON.parse(fs.readFileSync(path.join(appDir, 'package.json'), 'utf8')).bakedTeam;
     if (typeof b?.url !== 'string' || typeof b.anonKey !== 'string') return null;
     const site = typeof b.phoneSite === 'string' && /^https:\/\/[^\s/]+(\/\S*)?$/.test(b.phoneSite) ? { phoneSite: b.phoneSite } : {};
-    return { url: b.url, anonKey: b.anonKey, ...site };
+    return { url: b.url, anonKey: b.anonKey, ...site, ...(b.schema ? { schema: schemaOf(b) } : {}) };
   } catch { return null; }
 }
 
@@ -153,6 +154,7 @@ export function supabaseSession({ cloudConfig, sessionFile, encrypt = null, decr
     const { createClient } = await import('@supabase/supabase-js');
     client = createClient(cloudConfig.url, cloudConfig.anonKey, {
       global: { fetch: withDeadline() },
+      db: { schema: schemaOf(cloudConfig) },
       auth: {
         flowType: 'pkce',
         storage: fileStorage(sessionFile, { encrypt, decrypt }),
@@ -171,14 +173,14 @@ export function supabaseSession({ cloudConfig, sessionFile, encrypt = null, decr
       if (!configured) return null;
       const c = await getClient();
       const { data } = await c.auth.getSession();
-      if (data?.session) return supabaseBackend(c);
+      if (data?.session) return supabaseBackend(c, { schema: schemaOf(cloudConfig) });
       // A test harness signs a throwaway person in with a password, since a
       // test cannot click through Google. Never set in the app itself.
       if (testLogin) {
         const at = testLogin.indexOf(':');
         const { error } = await c.auth.signInWithPassword({ email: testLogin.slice(0, at), password: testLogin.slice(at + 1) });
         if (error) throw new Error(`test sign-in: ${error.message}`);
-        return supabaseBackend(c);
+        return supabaseBackend(c, { schema: schemaOf(cloudConfig) });
       }
       return null;
     },
@@ -187,7 +189,7 @@ export function supabaseSession({ cloudConfig, sessionFile, encrypt = null, decr
       if (!configured) throw new Error('this build has no team cloud configured');
       const c = await getClient();
       await signInWithGoogle({ client: c, openExternal, onUrl, log, returnUrl: cloudConfig.signInReturn || 'http://127.0.0.1:54783/auth/callback' });
-      return supabaseBackend(c);
+      return supabaseBackend(c, { schema: schemaOf(cloudConfig) });
     },
 
     // EMAIL AND PASSWORD, beside Google (2026-10-01: the team version needs
@@ -198,7 +200,7 @@ export function supabaseSession({ cloudConfig, sessionFile, encrypt = null, decr
       const c = await getClient();
       const { error } = await c.auth.signInWithPassword({ email: String(email ?? '').trim(), password: String(password ?? '') });
       if (error) throw new Error(plainAuthError(error.message));
-      return supabaseBackend(c);
+      return supabaseBackend(c, { schema: schemaOf(cloudConfig) });
     },
 
     // A new account. With email confirmation on (the hosted project's setting)
@@ -227,7 +229,7 @@ export function supabaseSession({ cloudConfig, sessionFile, encrypt = null, decr
       const c = await getClient();
       const { error: kept } = await c.auth.setSession(data.session);
       if (kept) throw new Error(plainAuthError(kept.message));
-      return { backend: supabaseBackend(c) };
+      return { backend: supabaseBackend(c, { schema: schemaOf(cloudConfig) }) };
     },
 
     cancelSignIn: () => cancelGoogleSignIn(),

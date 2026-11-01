@@ -9,6 +9,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { Name } from '../../shared/product-name.mjs';
 import { CLOUD_ADDRESS } from '../../shared/cloud-address.mjs';
+import { HOSTED_SERVICES } from '../../shared/hosted-services.mjs';
 
 // `home` is the supervisor's own idea of the home folder (config.home), so a
 // supervisor built for a test, with a home that is not the developer's, never
@@ -32,9 +33,10 @@ export function readCloudConfig(env = process.env, home = os.homedir()) {
  * Where Agentbox Cloud is: the server's address and the database's public
  * address and key. A checkout's cloud/, this Mac's own copy, or a release's
  * baked package.json (scripts/release.mjs) can name another cloud; without
- * one it is the cloud every copy ships with (shared/cloud-address.mjs).
+ * one it is the cloud every copy ships with (shared/cloud-address.mjs), or
+ * none while its switch in shared/hosted-services.mjs is off.
  */
-export function cloudAccountConfig(appDir, { home = os.homedir() } = {}) {
+export function cloudAccountConfig(appDir, { home = os.homedir(), hosted = HOSTED_SERVICES } = {}) {
   const whole = (c) => typeof c?.gateway === 'string' && typeof c.supabaseUrl === 'string' && typeof c.anonKey === 'string';
   for (const file of [path.join(appDir, 'cloud', 'cloud.public.json'), path.join(home, '.agentbox', 'cloud.public.json')]) {
     try {
@@ -46,7 +48,7 @@ export function cloudAccountConfig(appDir, { home = os.homedir() } = {}) {
     const baked = JSON.parse(fs.readFileSync(path.join(appDir, 'package.json'), 'utf8')).bakedCloud;
     if (whole(baked)) return baked;
   } catch { /* none */ }
-  return { ...CLOUD_ADDRESS };
+  return hosted.cloud ? { ...CLOUD_ADDRESS } : null;
 }
 
 export const cloudKeyPath =(env = process.env, home = os.homedir()) => path.join(path.dirname(cloudConfigPath(env, home)), 'cloud-key');

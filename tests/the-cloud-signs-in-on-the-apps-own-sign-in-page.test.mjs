@@ -8,7 +8,7 @@
 // and one line saying continuing accepts the terms. Signing in there gets this
 // Mac its cloud key (main/cloud/account.mjs), and the cloud button is drawn on
 // any Mac the cloud is offered to, not only one set up on its own AWS.
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -18,6 +18,8 @@ import { createGateway, gatewayServer, memoryObjects } from '../cloud/gateway/ga
 import { cloudAccountSession, cloudSignIn } from '../main/cloud/account.mjs';
 import { readCloudKey, readCloudConfig, writeCloudKey, cloudConfigPath } from '../main/cloud/config.mjs';
 import { REQUEST_CHANNELS } from '../shared/bridge-map.mjs';
+// These cover the service with its switch on (shared/hosted-services.mjs).
+vi.mock('../shared/hosted-services.mjs', () => ({ HOSTED_SERVICES: Object.freeze({ cloud: true, feedback: true }) }));
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');

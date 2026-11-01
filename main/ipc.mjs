@@ -50,6 +50,7 @@ import { ICON_KINDS, clearProjectIcon, setProjectIcon, setProjectName } from './
 import { ClaudeUsage } from './claude-usage.mjs';
 import { AccountUsage } from './account-usage.mjs';
 import { effectiveProfiles } from './account-discovery.mjs';
+import { accountIdentity } from './account-tooling.mjs';
 import { usageEngine } from '../shared/usage.mjs';
 import { DEFAULT_ENGINE, isEngine } from '../shared/engines.mjs';
 import { routedPatch, PICKED_WHY } from '../shared/auto-route.mjs';
@@ -71,8 +72,11 @@ import { EVENT_NAMES } from '../shared/analytics-events.mjs';
 import { Name } from '../shared/product-name.mjs';
 import { handedOnByReply } from '../shared/team-rules.mjs';
 import { closeRefusal, closedAnywayNote } from '../shared/not-shipped.mjs';
+import { lightRunning, snapshotSender } from '../shared/snapshot-delta.mjs';
+import { traceAnswer } from '../shared/trace-delta.mjs';
 import { saveAttachments } from './save-attachments.mjs';
 import { stageAttachment } from './stage-attachment.mjs';
+import { readRunTraces } from './run-traces.mjs';
 
 // WHAT A WORKER IS TOLD WHEN HER DECISION COULD NOT BE RECORDED.
 const SPOOL_REFUSED = `${Name} could not record the founder's decision, so nothing was allowed. Finish what your grants cover and file the rest as a review.`;
@@ -227,6 +231,7 @@ export function registerIpc({ store, supervisor, config, window, analytics = NO_
   // appears): a browser SDK autocaptures the text of what was clicked, and in
   // Agentbox that text is task titles. A NUMBER MAY RIDE WITH THE NAME, and only
   // a number (2026-10-06): which setup step was reached.
+  ipcMain.handle('zero:onboarding-arm', () => analytics.onboardingArm?.() ?? 'tour');
   ipcMain.handle('zero:track', (_e, { name, count } = {}) => {
     if (!EVENT_NAMES.includes(name)) return false;
     onCount();
@@ -330,6 +335,7 @@ export function registerIpc({ store, supervisor, config, window, analytics = NO_
     bin: () => config.claudeBin,
     env: () => supervisor._workerEnv(DEFAULT_ENGINE),
     onReading: (profile, reading) => supervisor.noteUsageReading(profile, reading),
+    identity: (profile) => accountIdentity(profile === 'default' ? null : profile, { home: config.home }),
   });
   ipcMain.handle('zero:account-usage', async (event, { refresh = false, engine = DEFAULT_ENGINE } = {}) => {
     if (event.senderFrame?.parent || (event.sender && event.sender !== window.webContents)) throw Error('Usage is only available in the main app window.');
@@ -362,7 +368,7 @@ export function registerIpc({ store, supervisor, config, window, analytics = NO_
       //
       // AND WHICH ENGINE IT WAS (w-1116fbb68a, 2026-10-08). This list is Claude
       // Code processes and only ever has been; a Codex conversation has no
-      // process to find and is counted from main/codex-watch.mjs instead. The
+      // process to find and is counted from main/codex-watch.mts instead. The
       // engine is what lets the two be read apart, and without it on this side
       // the Codex count would look like a drop in the Claude one.
       for (const agent of live) {
@@ -482,7 +488,10 @@ export function registerIpc({ store, supervisor, config, window, analytics = NO_
     try { return !!host.app?.accessibilitySupportEnabled; } catch { return false; }
   });
 
-  ipcMain.handle('zero:snapshot', () => {
+  // `ask.since` names the last answer the screen holds, and the threads that
+  // did not change since are left out (shared/snapshot-delta.mjs).
+  const snapshots = snapshotSender();
+  ipcMain.handle('zero:snapshot', (_e, ask) => {
     const now = Date.now();
     const items = store.listItems(now);
     const running = supervisor.status();
@@ -500,7 +509,7 @@ export function registerIpc({ store, supervisor, config, window, analytics = NO_
     // now. The Codex side never starts anything at all (main/codex-usage.mjs).
     const reading = usageFor === DEFAULT_ENGINE ? usage.read() : supervisor.codexUsage();
     const alpha = alphaFeatures(config);
-    return {
+    return snapshots.answer({
       products: store.listProducts(),
       // Each with the place she dragged it to, if she did (w-6e5b532a95).
       items: supervisor.withPlaces(items),
@@ -516,7 +525,9 @@ export function registerIpc({ store, supervisor, config, window, analytics = NO_
       // The open thread's own card first, which is the order the chord and the
       // Agents menu answer in too (shared/which-card-is-in-front.mjs).
       approvals: pendingApprovals(),
-      supervisor: running,
+      // A screen that says which thread it has open is sent only that thread's
+      // live detail.
+      supervisor: ask && 'open' in ask ? { ...running, running: lightRunning(running.running, ask.open) } : running,
       // WHETHER THERE ARE TWO CODING AGENTS TO CHOOSE BETWEEN, AND WHICH ONE
       // EACH ROW RUNS ON. Answered whole by the supervisor, because the two
       // rules underneath it -- the capability gate and "an August choice is not
@@ -570,6 +581,8 @@ export function registerIpc({ store, supervisor, config, window, analytics = NO_
       // offer the restart are ones she may already be looking at. Settings
       // reads the whole of it; ⌘K reads `ready` alone.
       update: updater.state(),
+      // False draws no Feedback row: the card would have nowhere to send.
+      feedback: !!feedbackUrl(config),
       config: {
         // How many of her own Claude Code sessions the inbox takes. It rides
         // the snapshot rather than the settings model because the INBOX reads
@@ -594,7 +607,7 @@ export function registerIpc({ store, supervisor, config, window, analytics = NO_
           ...store.listProducts().map((p) => [p.slug, supervisor.effectivePermission(p.slug)]),
         ]),
       },
-    };
+    }, ask?.since);
   });
 
   // THE USER'S WORDS, INTO ONE OF THEIR LIVE AGENTS. The only thing in the app that writes
@@ -2265,21 +2278,23 @@ export function registerIpc({ store, supervisor, config, window, analytics = NO_
 
   // The trace: what each session on this item actually did, from the logs the
   // supervisor persists under <product>/sessions/<item-id>/. Read-only.
-  ipcMain.handle('zero:session-trace', async (_e, { product, id }) => {
+  // `whole` is a thread's middle being asked for: every log, whole, once
+  // (main/run-traces.mjs). Otherwise the newest, and `have` holds the stamps
+  // of the logs the screen already has (shared/trace-delta.mjs).
+  ipcMain.handle('zero:session-trace', async (_e, { product, id, have, whole } = {}) => {
     const fs = await import('node:fs');
     const path = await import('node:path');
     const dir = store.listProducts().find((p) => p.slug === product)?.dir;
     if (!dir || !/^[\w-]+$/.test(String(id ?? ''))) return { ok: false, sessions: [] };
     const traceDir = machineryPath(dir, path.join('sessions', id));
+    if (whole) return { ok: true, sessions: readRunTraces(traceDir, { whole: true }) };
     let files = [];
     try {
       files = fs.readdirSync(traceDir).filter((f) => f.endsWith('.log')).sort();
     } catch { return { ok: true, sessions: [] }; }
     const sessions = files.slice(-20).map((f) => {
-      let text = '';
-      try { text = fs.readFileSync(path.join(traceDir, f), 'utf8'); } catch {}
-      if (text.length > 120_000) text = `… truncated (${text.length} bytes total)\n\n${text.slice(-120_000)}`;
-      return { startedAt: Number(f.replace('.log', '')) || 0, text };
+      const startedAt = Number(f.replace('.log', '')) || 0;
+      return traceAnswer({ fs, file: path.join(traceDir, f), startedAt, had: have?.[startedAt] });
     });
     return { ok: true, sessions };
   });
@@ -2294,7 +2309,7 @@ export function registerIpc({ store, supervisor, config, window, analytics = NO_
     }
   });
 
-  // UPDATES (main/updater.mjs). Two doors and no more: look now, and install
+  // UPDATES (main/updater.mts). Two doors and no more: look now, and install
   // what has been downloaded. There is deliberately no "download" door, because
   // the download already happened on its own; the only thing left for a person
   // to decide is when the app is allowed to disappear and come back.
@@ -2306,7 +2321,7 @@ export function registerIpc({ store, supervisor, config, window, analytics = NO_
   // decision — nothing has been downloaded and nothing will be until the app
   // is somewhere macOS lets it write.
   // A copy run from source answers no to it rather than throwing: there is no
-  // bundle to move (main/source-updater.mjs).
+  // bundle to move (main/source-updater.mts).
   ipcMain.handle('zero:update-move', () => updater.move?.() ?? { moved: false, error: null });
 
   // Handed back so the Cmd+Y/Cmd+N chord answers through the same door the

@@ -8,7 +8,7 @@
 // `npx agentbox-app` runs (0.1.16) carried no address at all. The address and
 // its key are public and already sit in every download, so they now ship in
 // shared/cloud-address.mjs.
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -16,6 +16,8 @@ import { cloudAccountConfig } from '../main/cloud/config.mjs';
 import { CLOUD_ADDRESS } from '../shared/cloud-address.mjs';
 import { Supervisor } from '../main/supervisor.mjs';
 import { loadCloudConfig } from '../main/team/session.mjs';
+// These cover the service with its switch on (shared/hosted-services.mjs).
+vi.mock('../shared/hosted-services.mjs', () => ({ HOSTED_SERVICES: Object.freeze({ cloud: true, feedback: true }) }));
 
 let home; let app; let setUpFile;
 const suiteSetUpFile = process.env.AGENTBOX_CLOUD_CONFIG;

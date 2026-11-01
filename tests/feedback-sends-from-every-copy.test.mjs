@@ -16,8 +16,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { FEEDBACK_ADDRESS, feedbackUrl, sendFeedback } from '../main/feedback.mjs';
+// These cover the service with its switch on (shared/hosted-services.mjs).
+vi.mock('../shared/hosted-services.mjs', () => ({ HOSTED_SERVICES: Object.freeze({ cloud: true, feedback: true }) }));
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 

@@ -16,6 +16,7 @@
 // The desktop window and the Mac's own phone page never have that.
 
 import { REQUEST_CHANNELS, PUSH_CHANNELS, DESKTOP_ONLY } from '../../shared/bridge-map.mjs';
+import { schemaOf } from '../../shared/db-schema.mjs';
 import { feedbackAddressOn, sendPhoneFeedback, type FeedbackFiles } from './phone-feedback';
 import { cloudClient, type CloudClient, type CloudConfig } from './cloud-rest';
 import { installPhoneScreen } from './phone-screen';
@@ -77,7 +78,9 @@ export function readCloudConfig(doc: Document = document): CloudConfig | null {
   if (!raw) return null;
   try {
     const c = JSON.parse(raw);
-    return typeof c?.url === 'string' && typeof c?.anonKey === 'string' ? { url: c.url, anonKey: c.anonKey } : null;
+    if (typeof c?.url !== 'string' || typeof c?.anonKey !== 'string') return null;
+    const schema = schemaOf(c);
+    return { url: c.url, anonKey: c.anonKey, ...(schema !== 'public' ? { schema } : {}) };
   } catch { return null; }
 }
 

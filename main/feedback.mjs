@@ -15,8 +15,11 @@
 //
 // It is not behind the diagnostics switch. That switch is about what Agentbox
 // sends on its own; this is something a person typed and pressed Send on.
+// FEEDBACK_ADDRESS is used only while its switch in
+// shared/hosted-services.mjs is on.
 import { createRequire } from 'node:module';
 import { readEnv } from '../shared/product-name.mjs';
+import { HOSTED_SERVICES } from '../shared/hosted-services.mjs';
 
 export { sendFeedback } from '../shared/feedback.mjs';
 
@@ -24,15 +27,16 @@ export const FEEDBACK_ADDRESS = 'https://lywvthwkhkfzhqivvond.supabase.co/functi
 
 function bakedUrl() {
   try {
-    return createRequire(import.meta.url)('../package.json')?.bakedFeedbackUrl ?? FEEDBACK_ADDRESS;
+    return createRequire(import.meta.url)('../package.json')?.bakedFeedbackUrl ?? null;
   } catch {
-    return FEEDBACK_ADDRESS;
+    return null;
   }
 }
 
 const BAKED = bakedUrl();
 const clean = (v) => (typeof v === 'string' && v.trim() ? v.trim() : null);
 
-export function feedbackUrl(config, baked = BAKED, env = process.env) {
-  return clean(config?.feedbackUrl) ?? clean(readEnv('FEEDBACK_URL', env)) ?? clean(baked);
+export function feedbackUrl(config, baked = BAKED, env = process.env, hosted = HOSTED_SERVICES) {
+  return clean(config?.feedbackUrl) ?? clean(readEnv('FEEDBACK_URL', env)) ?? clean(baked)
+    ?? (hosted.feedback ? FEEDBACK_ADDRESS : null);
 }

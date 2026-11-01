@@ -278,19 +278,20 @@ if (analyticsKey) {
   console.log('→ no analytics key, so this build will send nothing');
 }
 // Not a stop like the analytics key: a build without it sends to the address
-// that ships in the code (FEEDBACK_ADDRESS in main/feedback.mjs).
+// that ships in the code (FEEDBACK_ADDRESS in main/feedback.mjs), or has no
+// Feedback row while that switch in shared/hosted-services.mjs is off.
 if (feedbackUrl) {
   args.push(`-c.extraMetadata.bakedFeedbackUrl=${feedbackUrl}`);
   console.log('→ baking the feedback address into the build');
 } else {
-  console.log(`→ no feedback address (${envName('FEEDBACK_URL')} or "feedbackUrl" in zero.config.json), so the Feedback card sends to the one in main/feedback.mjs`);
+  console.log(`→ no feedback address (${envName('FEEDBACK_URL')} or "feedbackUrl" in zero.config.json), so the Feedback card sends to the one in main/feedback.mjs if shared/hosted-services.mjs allows it`);
 }
 if (cloud) {
   for (const k of ['gateway', 'supabaseUrl', 'anonKey']) args.push(`-c.extraMetadata.bakedCloud.${k}=${cloud[k]}`);
   console.log(`→ baking Agentbox Cloud into the build (${cloud.gateway}): everyone who downloads it can sign up and pay`);
 }
 if (teamCloud) {
-  for (const k of ['url', 'anonKey', 'phoneSite']) if (teamCloud[k]) args.push(`-c.extraMetadata.bakedTeam.${k}=${teamCloud[k]}`);
+  for (const k of ['url', 'anonKey', 'phoneSite', 'schema']) if (teamCloud[k]) args.push(`-c.extraMetadata.bakedTeam.${k}=${teamCloud[k]}`);
   console.log(`→ baking the team cloud into the build (${teamCloud.url}): Settings › Phone can sign in, and Multiplayer is in Alpha features`);
 } else {
   console.log('→ no team.config.json, so this build cannot sign in for the phone');
