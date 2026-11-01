@@ -14,7 +14,7 @@ const OLD_RECHECK_MS = 60_000;
 const notThere = (err) => ['42703', '42P01', '42883', 'PGRST202', 'PGRST204', 'PGRST205'].includes(String(err?.code ?? ''))
   || /does not exist|could not find/i.test(String(err?.message ?? ''));
 
-export function roomsSupabase(client, myId, must) {
+export function roomsSupabase(client, myId, must, schema = 'public') {
   const rpc = async (fn, args, what) => must(await client.rpc(fn, args), what);
   // AN APP CAN BE UPDATED BEFORE ITS CLOUD IS, since the cloud's update is run
   // by hand. Until it is, messages are read on the columns it has and nothing
@@ -301,20 +301,20 @@ export function roomsSupabase(client, myId, must) {
       let reactionsSettled = false;
       const ready = () => { if (chatUp && reactionsSettled) onEvent({ kind: 'subscribed' }); };
       const channel = client.channel(`rooms-${Math.random().toString(36).slice(2)}`)
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'room_messages' }, (p) => onEvent({ kind: 'message', message: messageOut(p.new) }))
+        .on('postgres_changes', { event: 'INSERT', schema, table: 'room_messages' }, (p) => onEvent({ kind: 'message', message: messageOut(p.new) }))
         // An edit, and a delete, which empties the message rather than removing it.
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'room_messages' }, (p) => onEvent({ kind: 'message', message: messageOut(p.new) }))
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'room_presence' }, () => onEvent({ kind: 'presence' }))
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'room_profiles' }, () => onEvent({ kind: 'profile' }))
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'room_events' }, () => onEvent({ kind: 'membership' }))
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'access_events' }, () => onEvent({ kind: 'membership' }))
+        .on('postgres_changes', { event: 'UPDATE', schema, table: 'room_messages' }, (p) => onEvent({ kind: 'message', message: messageOut(p.new) }))
+        .on('postgres_changes', { event: '*', schema, table: 'room_presence' }, () => onEvent({ kind: 'presence' }))
+        .on('postgres_changes', { event: '*', schema, table: 'room_profiles' }, () => onEvent({ kind: 'profile' }))
+        .on('postgres_changes', { event: 'INSERT', schema, table: 'room_events' }, () => onEvent({ kind: 'membership' }))
+        .on('postgres_changes', { event: 'INSERT', schema, table: 'access_events' }, () => onEvent({ kind: 'membership' }))
         .subscribe((status) => { if (status === 'SUBSCRIBED') { chatUp = true; ready(); } });
       // REACTIONS ON A CHANNEL OF THEIR OWN: one change the server cannot
       // follow fails its whole channel, and a cloud not yet updated has no
       // room_reactions table. Turning a reaction off is an update too.
       const reacting = client.channel(`room-reactions-${Math.random().toString(36).slice(2)}`)
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'room_reactions' }, (p) => onEvent({ kind: 'reaction', reaction: reactionOut(p.new) }))
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'room_reactions' }, (p) => onEvent({ kind: 'reaction', reaction: reactionOut(p.new) }))
+        .on('postgres_changes', { event: 'INSERT', schema, table: 'room_reactions' }, (p) => onEvent({ kind: 'reaction', reaction: reactionOut(p.new) }))
+        .on('postgres_changes', { event: 'UPDATE', schema, table: 'room_reactions' }, (p) => onEvent({ kind: 'reaction', reaction: reactionOut(p.new) }))
         .subscribe((status) => { if (['SUBSCRIBED', 'CHANNEL_ERROR', 'TIMED_OUT'].includes(status)) { reactionsSettled = true; ready(); } });
       const giveUp = setTimeout(() => { reactionsSettled = true; ready(); }, REACTIONS_WAIT_MS);
       giveUp.unref?.();

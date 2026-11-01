@@ -28,7 +28,7 @@ const CLOUD_COLUMNS = `${COMMAND_COLUMNS},claimed_by`;
 const noCloudColumn = (error) => /claimed_by|column .*cloud|cloud.* column/i.test(String(error?.message ?? ''));
 const commandOut = (r) => ({ id: r.id, owner: r.owner, device: r.device, project: r.project, item: r.item, kind: r.kind, payload: r.payload ?? {}, createdAt: r.created_at, claimedAt: r.claimed_at ?? null, claimedBy: r.claimed_by ?? null, takenAt: r.taken_at ?? null, outcome: r.outcome ?? null });
 
-export function supabaseBackend(client) {
+export function supabaseBackend(client, { schema = 'public' } = {}) {
   let personId = null;
   // Whether the database has the cloud's columns yet; the first refusal says not.
   let cloudColumns = true;
@@ -398,14 +398,14 @@ export function supabaseBackend(client) {
 
     subscribe(onChange) {
       const channel = client.channel(`team-${Math.random().toString(36).slice(2)}`)
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'phone_commands' }, () => onChange())
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'lines' }, () => onChange())
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'thread_cards' }, () => onChange())
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'people' }, () => onChange())
+        .on('postgres_changes', { event: 'INSERT', schema, table: 'phone_commands' }, () => onChange())
+        .on('postgres_changes', { event: 'INSERT', schema, table: 'lines' }, () => onChange())
+        .on('postgres_changes', { event: '*', schema, table: 'thread_cards' }, () => onChange())
+        .on('postgres_changes', { event: 'UPDATE', schema, table: 'people' }, () => onChange())
         .subscribe();
       return () => { client.removeChannel(channel); };
     },
 
-    ...roomsSupabase(client, myId, must),
+    ...roomsSupabase(client, myId, must, schema),
   };
 }
