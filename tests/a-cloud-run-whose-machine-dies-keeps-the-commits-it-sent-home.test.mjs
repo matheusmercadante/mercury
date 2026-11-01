@@ -16,6 +16,18 @@
 // real sandbox server, a stand-in S3, and a stand-in Claude Code. Killing the
 // machine is closing the sandbox and putting a fresh one where it was, which
 // answers no-run, as AgentCore does for a session whose microVM is gone.
+//
+// A DEAD MACHINE SENDS NOTHING HOME, AND THE STAND-IN HAS TO BE THAT STRICT.
+// Ten runs on GitHub went red here (2026-10-31) while this Mac passed every
+// time. Closing the sandbox SIGKILLs the agent, and the sandbox's exit path
+// then uploads a finished result for it, out.bundle and done.json. Whether
+// that upload or the Mac's next poll landed first was a race the runners won:
+// with the upload first, the Mac read a run that had ended of signal 9 and
+// returned 137 rather than IMPORT_FAILED. A microVM that is gone uploads
+// nothing, so the bucket below refuses its writes from the moment it dies.
+//
+// Its temp folder is its own: imports are held to two at a time by slot files
+// in it, and this file lays in four runs, more than any other.
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'node:fs';
@@ -39,7 +51,7 @@ const FAKE_STORE = here('./fixtures/cloud/fake-store-server.mjs');
 const STUB = here('../cloud/sandbox/mcp-stub.mjs');
 const LOGIN = { engine: 'claude', id: 'L1', key: 'logins/claude/L1.json' };
 
-let tmp; let sandbox; let sandboxUrl; let s3; let objects; let mac; let vms;
+let tmp; let sandbox; let sandboxUrl; let s3; let objects; let mac; let vms; let oldTmp; let machineGone;
 const git = (cwd, ...a) => execFileSync('git', a, { cwd, encoding: 'utf8' }).trim();
 
 async function freshSandbox() {
@@ -49,18 +61,28 @@ async function freshSandbox() {
 }
 
 // The machine goes, and AgentCore answers the same session with an empty one.
+// Nothing it would have sent home reaches the bucket, however far its own
+// shutdown gets; the Mac reads only what landed while it was alive.
 async function killTheMachine() {
+  machineGone = true;
   await sandbox.close();
   await freshSandbox();
 }
 
+const finishedResultArrived = () => [...objects.keys()].some((k) => k.endsWith('/done.json'));
+
 beforeEach(async () => {
   tmp = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'cloudlost-')));
+  oldTmp = process.env.TMPDIR;
+  process.env.TMPDIR = path.join(tmp, 't');
+  fs.mkdirSync(process.env.TMPDIR);
   objects = new Map();
   vms = 0;
+  machineGone = false;
   s3 = http.createServer((req, res) => {
     const k = decodeURIComponent(req.url.slice(1).split('?')[0]);
     if (req.method === 'GET') { const b = objects.get(k); res.writeHead(b ? 200 : 404); return res.end(b); }
+    if (machineGone) return res.destroy();
     const chunks = []; req.on('data', (c) => chunks.push(c)); req.on('end', () => { objects.set(k, Buffer.concat(chunks)); res.writeHead(200); res.end(); });
   });
   await new Promise((r) => s3.listen(0, '127.0.0.1', r));
@@ -79,6 +101,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  if (oldTmp === undefined) delete process.env.TMPDIR; else process.env.TMPDIR = oldTmp;
   await sandbox?.close();
   s3.closeAllConnections();
   await new Promise((r) => s3.close(r));
@@ -132,6 +155,9 @@ describe('a cloud run whose machine dies', () => {
     await waitFor('the run to send its commits home as it works', savedCommits);
     await killTheMachine();
     expect(await run.done, run.err()).toBe(IMPORT_FAILED);
+    // Not 137: a machine that is gone never got to say its agent died of a
+    // signal, so nothing here reads as a run that ended.
+    expect(finishedResultArrived()).toBe(false);
     expect(git(mac, 'log', '-1', '--format=%s')).toBe('From the cloud');
     expect(git(mac, 'rev-parse', '--abbrev-ref', 'HEAD')).toBe('agentbox/w-1');
     // Nothing is left pending, so the thread can run again from here.
@@ -140,7 +166,9 @@ describe('a cloud run whose machine dies', () => {
     const news = takeCloudNews(mac);
     expect(news).toHaveLength(1);
     expect(news[0]).toMatchObject({ item: 'w-1', product: 'p', lost: true });
-    expect(news[0].note).toMatch(/machine stopped before its run finished/);
+    // How long it had been going is part of the note (w-f37c87e2f1): a run
+    // cut short at thirteen minutes reads as a machine that keeps dying.
+    expect(news[0].note).toMatch(/machine stopped \d+ seconds? into its run, before it finished/);
     expect(news[0].note).toMatch(/in the task folder, the last one "From the cloud"/);
     expect(news[0].note).toMatch(/uncommitted files and its conversation since are lost/);
   });
@@ -150,6 +178,7 @@ describe('a cloud run whose machine dies', () => {
     await runningInTheCloud();
     await killTheMachine();
     expect(await run.done, run.err()).toBe(IMPORT_FAILED);
+    expect(finishedResultArrived()).toBe(false);
     expect(savedCommits()).toBe(false);
     expect(git(mac, 'log', '-1', '--format=%s')).toBe('first');
     expect(readMarker(mac)).toBe(null);
