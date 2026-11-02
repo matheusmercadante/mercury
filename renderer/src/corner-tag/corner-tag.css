@@ -155,9 +155,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'DejaVu Sa
   border-color: var(--ct-line); border-bottom-color: var(--ct-line-bottom);
 }
 .ct-tag.is-dragging { cursor: grabbing; }
-/* Under the Mac's notch it does not move, so the hand would promise a drag
-   that never comes. */
-.ct-at-notch .ct-tag { cursor: pointer; }
 
 /* ---- the nine-dot lattice (renderer/src/corner-tag/lattice.tsx) ----
    ONE DRAWING, NOT NINE BOXES. It was a grid of nine boxes, and twice the fix
@@ -328,24 +325,3 @@ button.ct-spot:hover { background: var(--ct-press); color: var(--ct-ink); }
   padding: 0 calc(8px * var(--ct-cs)); gap: calc(6px * var(--ct-cs)); font-size: calc(12px * var(--ct-cs));
   border: 1px solid var(--ct-rule); background: var(--ct-press);
 }
-
-/* ---- the pictures only: the tray under a notch (?demo=…&notch=) ---- */
-.ct-demo-screen { position: absolute; inset: 0; overflow: hidden; background: #f4f5f7; }
-.ct-demo-screen.is-dark { background: linear-gradient(160deg, #1d2a44, #3a2f4f 55%, #5a3c48); }
-.ct-demo-menu {
-  position: absolute; top: 0; left: 0; right: 0; height: var(--ct-demo-bar);
-  display: flex; align-items: center; justify-content: space-between; padding: 0 16px;
-  font-size: 13px; color: rgba(0, 0, 0, 0.85); background: rgba(255, 255, 255, 0.7); border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-}
-.ct-demo-menu > span { display: flex; gap: 18px; }
-.ct-demo-screen.is-dark .ct-demo-menu { color: rgba(255, 255, 255, 0.92); background: rgba(0, 0, 0, 0.18); border-bottom: 0; }
-.ct-demo-notch { position: absolute; top: 0; left: 50%; transform: translateX(-50%); background: #000; border-radius: 0 0 10px 10px; }
-.ct-demo-page { position: absolute; top: calc(var(--ct-demo-bar) + 28px); left: 60px; right: 60px; display: grid; gap: 14px; }
-.ct-demo-page div { height: 18px; border-radius: 4px; background: rgba(0, 0, 0, 0.07); }
-.ct-demo-screen.is-dark .ct-demo-page div { background: rgba(255, 255, 255, 0.08); }
-.ct-demo-page div:first-child { height: 34px; width: 46%; }
-.ct-demo-page div:nth-child(3) { width: 82%; }
-.ct-demo-page div:nth-child(4) { width: 64%; }
-.ct-demo-under { position: absolute; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; }
-/* The list sits the app's gap under the glass, not under the tag's clear band. */
-.ct-demo-under .ct-card { margin-top: calc(8px - 10px * var(--ct-s)); }

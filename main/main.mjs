@@ -52,6 +52,7 @@ import { createSourceUpdater } from './source-updater.mts';
 import { learnShellDataDirs, recoverShellPath } from './shell-path.mjs';
 import { installNotifier } from './notify.mjs';
 import { createCornerTag } from './corner-tag.mjs';
+import { createNotchIsland } from './notch-island.mjs';
 import { loadLiquidGlass, loadNotch } from './liquid-glass.mjs';
 import { DOC_SCHEMES, DocGrants, docPath } from './doc-scheme.mjs';
 import { quietTheFramesScrollbars } from './frame-scrollbars.mts';
@@ -1091,21 +1092,32 @@ async function createWindow() {
   // THE CORNER TAG (w-dafae58a23): what is ready for her, floating over
   // whatever app she is in. Its page is built beside the app's own, and comes
   // from the dev server only when the app's own page does.
-  cornerTag = createCornerTag({
+  // On a Mac the same tray, in the same glass, is the island in the notch
+  // (w-2a3136a92a): the corner tag was too easy to miss.
+  const trayPage = (file, part) => (trayWindow) => {
+    const dev = process.env.ZERO_DEV_URL;
+    const built = path.join(appDir, 'renderer', 'dist', file);
+    const search = part ? `part=${part}` : '';
+    if (dev && !fs.existsSync(built)) trayWindow.loadURL(`${dev.replace(/\/$/, '')}/${file}${search ? `?${search}` : ''}`);
+    else trayWindow.loadFile(built, { search });
+  };
+  const trayCommon = {
     BrowserWindow, screen: electronScreen, ipcMain, Menu, powerMonitor, config, saveConfig, mainWindow: window,
-    preload: path.join(appDir, 'main', 'corner-tag-preload.cjs'),
     glass: loadLiquidGlass(),
     told: () => notifier.told(),
+  };
+  cornerTag = process.platform === 'darwin' ? createNotchIsland({
+    ...trayCommon,
     count: (name, props) => analytics.track(name, props),
-    // On a Mac it sits under the notch rather than in a corner (w-2a3136a92a).
+    preload: path.join(appDir, 'main', 'notch-island-preload.cjs'),
     notch: loadNotch(),
+    load: trayPage('notch-island.html'),
+  }) : createCornerTag({
+    ...trayCommon,
+    count: (name, props) => analytics.track(name, props),
+    preload: path.join(appDir, 'main', 'corner-tag-preload.cjs'),
     // `part` is the tag itself or the list beside it, one page drawn twice.
-    load: (tagWindow, part) => {
-      const devTag = process.env.ZERO_DEV_URL;
-      const builtTag = path.join(appDir, 'renderer', 'dist', 'corner-tag.html');
-      if (devTag && !fs.existsSync(builtTag)) tagWindow.loadURL(`${devTag.replace(/\/$/, '')}/corner-tag.html?part=${part}`);
-      else tagWindow.loadFile(builtTag, { search: `part=${part}` });
-    },
+    load: (tagWindow, part) => trayPage('corner-tag.html', part)(tagWindow),
   });
   // Asked for once by the renderer as it mounts, rather than pushed on
   // did-finish-load, which races the first effects and would drop the very
