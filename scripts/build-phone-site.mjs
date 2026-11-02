@@ -79,7 +79,7 @@ export function buildPhoneSite({ dist = path.join(root, 'renderer', 'dist'), out
     recursive: true,
     filter: (src) => {
       const rel = path.relative(dist, src);
-      return !(rel === 'fixtures' || rel.startsWith(`fixtures${path.sep}`) || rel === 'corner-tag.html' || rel === 'notch-island.html' || rel.endsWith('.map'));
+      return !(rel === 'fixtures' || rel.startsWith(`fixtures${path.sep}`) || rel === 'corner-tag.html' || rel.endsWith('.map'));
     },
   });
   const schema = schemaOf(given);

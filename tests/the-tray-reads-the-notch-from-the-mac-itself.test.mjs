@@ -1,14 +1,14 @@
 // WHERE THE NOTCH IS (w-2a3136a92a). Electron says nothing about the notch, and
-// its width in points changes with the screen's scaled size, so the island
-// asks macOS: the two parts of the menu bar either side of the camera
-// (NSScreen's auxiliaryTopLeftArea and auxiliaryTopRightArea, macOS 12), read
-// by main/native/liquid-glass. Without that reading the island could not be
-// centred on the camera. Measured on 2026-11-01: Electron's display id is the
+// its width in points changes with the screen's scaled size, so the tray asks
+// macOS: the two parts of the menu bar either side of the camera (NSScreen's
+// auxiliaryTopLeftArea and auxiliaryTopRightArea, macOS 12), read by
+// main/native/liquid-glass. Without that reading the tray could not be centred
+// under the camera. Measured on 2026-11-01: Electron's display id is the
 // screen's NSScreenNumber (3 for the external screen, both ways), and the
 // built binary answers null for that screen, which has no notch.
 //
-// Every way the reading can be missing has to leave the island hanging from
-// the top edge rather than breaking the tray: not a Mac, no binary, an older
+// Every way the reading can be missing has to leave the tray under the middle
+// of the menu bar rather than breaking it: not a Mac, no binary, an older
 // binary built before it could read the notch, or a reading that throws.
 import { describe, expect, it } from 'vitest';
 import fs from 'node:fs';

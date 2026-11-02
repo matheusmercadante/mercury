@@ -23,8 +23,9 @@ import './corner-tag.css';
 type Ready = { id: string; title: string; says: string; since?: number; open?: string | null };
 // ready: what is new since you last left the app; before: how many were
 // already waiting then; glass: the Mac draws the glass, so this page draws none.
-// corner: the one the tray rests in.
-type State = { ready: Ready[]; before?: number; working: number; now: number; open?: boolean; scale?: number; glass?: boolean; corner?: Grip };
+// corner: the one the tray rests in. atNotch: it sits under the Mac's notch,
+// where it does not move (main/corner-tag.mjs).
+type State = { ready: Ready[]; before?: number; working: number; now: number; open?: boolean; scale?: number; glass?: boolean; corner?: Grip; atNotch?: boolean };
 type Part = 'tag' | 'card';
 type Tone = 'light' | 'dark';
 
@@ -58,7 +59,8 @@ const part: Part = params.get('part') === 'card' ? 'card' : 'tag';
 
 // For pictures and for working on the page without the app: ?demo=ready or
 // ?demo=working, with -open to show the list; ?s= draws it at a screen's scale;
-// &place=1 opens the list on its four corners.
+// &place=1 opens the list on its four corners; &notch=<width>&bar=<height>
+// draws it under a notch (0 for a screen without one), &page=dark behind it.
 function demoState(): { state: State; open: boolean; placing: boolean } | null {
   const demo = params.get('demo');
   if (!demo) return null;
@@ -71,7 +73,7 @@ function demoState(): { state: State; open: boolean; placing: boolean } | null {
   const scale = Number(params.get('s') ?? 1.1);
   const before = Number(params.get('before') ?? 0);
   return {
-    state: { ready, before, working: demo.startsWith('ready') ? 20 - n : 20, now, scale, corner: 'br' },
+    state: { ready, before, working: demo.startsWith('ready') ? 20 - n : 20, now, scale, corner: 'br', atNotch: params.has('notch') },
     open: demo.endsWith('-open'), placing: params.get('place') === '1',
   };
 }
@@ -99,6 +101,7 @@ function useTagState() {
   // the glass: dark over a light glass, light over a dark one. The Mac's own
   // light or dark setting is never asked.
   useEffect(() => { document.documentElement.classList.toggle('ct-native', !!state.glass); }, [state.glass]);
+  useEffect(() => { document.documentElement.classList.toggle('ct-at-notch', !!state.atNotch); }, [state.atNotch]);
   useEffect(() => bridge?.onTone?.((tone) => {
     const root = document.documentElement;
     root.classList.toggle('ct-tone-dark', tone === 'dark');
@@ -210,7 +213,7 @@ function Tag({ state, forceOpen = false }: { state: State; forceOpen?: boolean }
     >
     <div
       role="button"
-      aria-label={`${says.label}. Click to open ${NAME}, drag to move.`}
+      aria-label={state.atNotch ? `${says.label}. Click to open ${NAME}.` : `${says.label}. Click to open ${NAME}, drag to move.`}
       aria-expanded={open}
       className={`ct-glass ct-tag ${says.kind}${open ? ' is-open' : ''}${dragging ? ' is-dragging' : ''}`}
       onPointerEnter={() => bridge?.hover('tag', true)}
@@ -302,7 +305,7 @@ function CardBody({ state, placing, setPlacing }: { state: State; placing: boole
             </button>
           </span>
         </span>
-        <MoveButton here={state.corner} onOpen={() => setPlacing(true)} />
+        {!state.atNotch && <MoveButton here={state.corner} onOpen={() => setPlacing(true)} />}
         <span className="ct-sep" />
         <button className="ct-off" onClick={() => bridge?.settings()}>Turn off…</button>
       </div>
@@ -340,6 +343,26 @@ function Card({ state }: { state: State }) {
 function Page() {
   const state = useTagState();
   useEffect(() => { bridge?.ready(part); }, []);
+  // Under a notch: the top of a screen, its menu bar, the notch in black where
+  // there is one, and the tray centred under it with its list below.
+  if (demo && state.atNotch) {
+    const bar = Number(params.get('bar') ?? 37);
+    const notch = Number(params.get('notch') ?? 0);
+    return (
+      <div className={`ct-demo-screen${params.get('page') === 'dark' ? ' is-dark' : ''}`} style={{ '--ct-demo-bar': `${bar}px` } as React.CSSProperties}>
+        <div className="ct-demo-menu">
+          <span><b>Safari</b><span>File</span><span>Edit</span><span>View</span><span>History</span><span>Window</span></span>
+          <span><span>Sun 1 Nov</span><span>22:41</span></span>
+        </div>
+        {notch > 0 && <div className="ct-demo-notch" style={{ width: `${notch}px`, height: `${bar}px` }} />}
+        <div className="ct-demo-page"><div /><div /><div /><div /></div>
+        <div className="ct-demo-under" style={{ top: `calc(${bar + 6}px - 10px * var(--ct-s))` }}>
+          <Tag state={state} forceOpen={demo.open} />
+          {demo.open && <Card state={state} />}
+        </div>
+      </div>
+    );
+  }
   // The demo has no windows, so it lays the list out above the tag in the
   // bottom-right of the page, the way the corner rests by default.
   if (demo) {

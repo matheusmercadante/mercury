@@ -25,7 +25,6 @@ beforeEach(() => {
   write(path.join(dist, 'assets', 'main.js.map'), '{}');
   write(path.join(dist, 'fixtures', 'onboard', 'x.html'), 'demo');
   write(path.join(dist, 'corner-tag.html'), 'tag');
-  write(path.join(dist, 'notch-island.html'), 'island');
   write(icon, 'png');
 });
 
@@ -43,12 +42,11 @@ describe('the page', () => {
     expect(fs.existsSync(path.join(out, 'phone-icon.png'))).toBe(true);
   });
 
-  it('leaves the demo rows, the corner tag, the island and source maps behind', () => {
+  it('leaves the demo rows, the corner tag and source maps behind', () => {
     config({ url: 'https://abc.supabase.co', anonKey: 'eyJhbGciOi.public-key_1234567890' });
     build();
     expect(fs.existsSync(path.join(out, 'fixtures'))).toBe(false);
     expect(fs.existsSync(path.join(out, 'corner-tag.html'))).toBe(false);
-    expect(fs.existsSync(path.join(out, 'notch-island.html'))).toBe(false);
     expect(fs.existsSync(path.join(out, 'assets', 'main.js.map'))).toBe(false);
     expect(fs.existsSync(path.join(out, 'assets', 'main.js'))).toBe(true);
   });

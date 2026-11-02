@@ -32,12 +32,17 @@
 // - IT SHOWS OVER FULL-SCREEN APPS, IT HIDES FOR A WHILE AND COMES BACK, it is
 //   off for good only in Settings, it steps aside while she is in the app, and
 //   it goes when the app's window goes.
+// - ON A MAC IT SITS UNDER THE NOTCH (w-2a3136a92a), because in a corner it
+//   was too easy to miss: centred under the camera of the screen the pointer is
+//   on when it appears (shared/tray-notch.mjs), with its list centred under it.
+//   It does not move from there, so a press is only ever a click.
 //
 // What the tag counts is not decided here. Only the page knows what the inbox
 // is, so it hands over what is ready and how many are working on
 // `zero:corner-tag`; shared/corner-tag.mjs puts it newest first.
 
 import { cardPlacement, cornerPlace, EDGE_SLACK, MARGIN, hiddenUntil, keepCorner, newSince, notDismissed, readyNow, restingSpot, spotFor, tagScaleOn, tagShows, tagZoom, toneFromLuma, zoomStep, GRIPS, HIDE_CHOICES } from '../shared/corner-tag.mjs';
+import { displayUnder, listUnder, notchAnchor, underNotch } from '../shared/tray-notch.mjs';
 
 // How long the pointer may be off both the tag and its list before the list
 // shuts: long enough to cross the gap between them, short enough to feel like
@@ -78,7 +83,13 @@ export function createCornerTag({
   // What a notification has told you about since you were last at the app,
   // [{ id, at }] (main/notify.mjs). All of it counts as new.
   told = () => [],
+  // Where the notch is on a display, by its id (main/liquid-glass.mjs,
+  // loadNotch). Given, on a Mac, the tag sits under it instead of in a corner.
+  notch = null,
 }) {
+  const atNotch = mac && typeof notch === 'function';
+  // The display whose notch it sits under, picked again each time it appears.
+  let notchDisplay = null;
   const wins = { tag: null, card: null };
   const loaded = { tag: false, card: false };
   const hovered = { tag: false, card: false };
@@ -161,7 +172,7 @@ export function createCornerTag({
     const shown = fresh();
     // corner: the one it rests in, so the list's Place can say "Here now".
     const corner = tag ? cornerPlace(tag, framed(areaOf(tag))).corner : 'br';
-    const s = { ready: shown, before: Math.max(0, ready.length - shown.length), working, now: now(), open, scale: scaleNow(), glass: !!glass, corner };
+    const s = { ready: shown, before: Math.max(0, ready.length - shown.length), working, now: now(), open, scale: scaleNow(), glass: !!glass, corner, atNotch };
     send('tag', 'corner-tag:state', s);
     send('card', 'corner-tag:state', s);
   };
@@ -183,7 +194,27 @@ export function createCornerTag({
     return known ? areaOf(known) : areas()[0];
   };
 
+  // Under the notch of the display picked when it appeared, or, when that one
+  // has gone, of the display the pointer is on.
+  const notchSpot = () => {
+    let all = [];
+    try { all = screen.getAllDisplays() ?? []; } catch { /* no screens to go by */ }
+    const d = all.find((x) => x.id === notchDisplay) ?? displayUnder(screen.getCursorScreenPoint?.() ?? null, all);
+    if (!d?.bounds) return null;
+    notchDisplay = d.id;
+    let n = null;
+    try { n = notch(d.id); } catch { /* no reading: under the middle of the menu bar */ }
+    return underNotch(notchAnchor(d, n), glassOf({ x: 0, y: 0, ...tagSize }));
+  };
+
   const placeTag = () => {
+    if (atNotch) {
+      const spot = notchSpot();
+      if (!spot) return;
+      tag = { ...spot, ...tagSize };
+      if (alive('tag')) wins.tag.setBounds(rounded(tag));
+      return;
+    }
     const held = place ? spotFor(place, tagSize, framed(screenFor())) : null;
     // A tag that has never been put anywhere starts its margin in from the
     // screen's own edge; one she has parked may keep the slack she left it in.
@@ -195,7 +226,8 @@ export function createCornerTag({
 
   const placeCard = () => {
     if (!tag || !cardSize || !alive('card')) return;
-    wins.card.setBounds(rounded(cardPlacement(glassOf(tag), cardSize, areaOf(tag)).card));
+    const at = atNotch ? listUnder(glassOf(tag), cardSize, areaOf(tag)) : cardPlacement(glassOf(tag), cardSize, areaOf(tag)).card;
+    wins.card.setBounds(rounded(at));
   };
 
   /* ------------------------- the Mac's own glass ------------------------- */
@@ -289,6 +321,9 @@ export function createCornerTag({
       // A panel floats over full-screen apps without turning the whole app
       // into a background app, which would take the dock icon away.
       ...(mac ? { type: 'panel' } : {}),
+      // Under the notch its clear band reaches up into the menu bar, where a
+      // window is otherwise pushed down out of the way.
+      ...(atNotch ? { enableLargerThanScreen: true } : {}),
       webPreferences: { preload, contextIsolation: true, nodeIntegration: false, sandbox: true },
     });
     win.setAlwaysOnTop(true, 'floating');
@@ -408,9 +443,10 @@ export function createCornerTag({
       cancelOpen();
       settling = true;
       closeCard();
-      send('tag', 'corner-tag:dragging', true);
+      if (!atNotch) send('tag', 'corner-tag:dragging', true);
     }
-    if (press.moved && alive('tag')) {
+    // Under the notch it stays put: a press that wandered is neither a drag nor a click.
+    if (press.moved && alive('tag') && !atNotch) {
       tag = { ...tag, x: press.from.x + dx, y: press.from.y + dy };
       wins.tag.setPosition(Math.round(tag.x), Math.round(tag.y));
     }
@@ -433,6 +469,7 @@ export function createCornerTag({
     const p = press;
     if (!cancelled) follow();
     press = null;
+    if (p.moved && atNotch) return;
     if (p.moved) {
       tag = { ...restingSpot({ x: tag.x, y: tag.y }, tagSize, areas().map(parkable)), ...tagSize };
       if (alive('tag')) wins.tag.setBounds(rounded(tag));
@@ -474,6 +511,8 @@ export function createCornerTag({
       return;
     }
     if (!alive('tag')) { make('tag'); return; }
+    // It comes up under the notch of whichever screen you are on now.
+    if (atNotch && loaded.tag && !wins.tag.isVisible()) { notchDisplay = null; placeTag(); }
     sendState();
     if (loaded.tag && !wins.tag.isVisible()) {
       wins.tag.showInactive();
@@ -670,7 +709,7 @@ export function createCornerTag({
   // it is on now, remembered the way a drag is. The list shuts because it
   // was left behind in the old corner.
   ipcMain.handle('corner-tag:place', (_e, corner) => {
-    if (!GRIPS.includes(corner) || !tag || press) return null;
+    if (atNotch || !GRIPS.includes(corner) || !tag || press) return null;
     place = { corner, dx: MARGIN, dy: MARGIN };
     placeTag();
     saveConfig(config, { cornerTagSpot: { x: Math.round(tag.x), y: Math.round(tag.y) }, cornerTagPlace: place });

@@ -2,9 +2,8 @@ import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// Three pages: the app, the corner tag that floats over other apps
-// (main/corner-tag.mjs loads it into its own small window), and the island in
-// the notch that takes its place on a Mac (main/notch-island.mjs).
+// Two pages: the app, and the corner tag that floats over other apps
+// (main/corner-tag.mjs loads it into its own small window).
 const page = (name: string) => fileURLToPath(new URL(name, import.meta.url));
 
 // THE THEME LAB IS GONE, AND THE FLAG WENT WITH IT., 2026-08-21. There used to
@@ -24,6 +23,6 @@ export default defineConfig({
     // build had gone wrong (F-144). The limit is set above what the bundle is
     // so a chunk that really does run away still says so.
     chunkSizeWarningLimit: 4000,
-    rollupOptions: { input: { main: page('index.html'), cornerTag: page('corner-tag.html'), notchIsland: page('notch-island.html') } },
+    rollupOptions: { input: { main: page('index.html'), cornerTag: page('corner-tag.html') } },
   },
 });

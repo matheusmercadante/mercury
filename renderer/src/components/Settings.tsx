@@ -2202,12 +2202,12 @@ export function Settings({ look, onSetLook, tune, onSetTune, onResetTune, keyHin
                 while; this is the one place it turns off for good, so it can
                 never become a thing she closed once and forgot. */}
             <Group id="corner-tag" label="Agent Tray">
-              {/* On a Mac the tray is the island in the notch (main/notch-island.mjs);
+              {/* On a Mac the tray sits under the notch (main/corner-tag.mjs);
                   preload.cjs marks every other window flat. */}
               {document.documentElement.dataset.window !== 'flat' ? (
                 <Row
                   label="Show the Agent Tray"
-                  desc={`It sits in the notch at the top of the screen you are on, or hangs from the top of a screen without one, and says when an agent has something for you. Point at it for the list; click it to open ${NAME}. Right-click it to hide it a while or turn it off.`}
+                  desc={`A small tag just under the notch of the screen you are on, or under the middle of the menu bar on a screen without one, says when an agent has something for you. Point at it for the list; click it to open ${NAME}. Make it bigger or smaller with Size, at the foot of that list. Right-click it to hide it a while or turn it off.`}
                 >
                   <Switch label="Show the Agent Tray" on={w.cornerTag !== false} onChange={(v) => setWorkspace('cornerTag', v)} />
                 </Row>
