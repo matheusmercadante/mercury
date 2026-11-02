@@ -1,0 +1,127 @@
+/* THE ISLAND (w-2a3136a92a). Black, so on a Mac with a notch it reads as the
+   notch grown sideways and down rather than as a thing laid over it. The top
+   edge is the screen's own; the bottom corners are round, and where it meets
+   the top edge it flares out the way the notch does.
+
+   The page sets the sizes (main.tsx): --ni-bar is the strip it fills, the
+   notch's height or the menu bar's; --ni-ear the room either side of the
+   camera; --ni-notch the camera's width. The mark is the corner tag's own
+   (corner-tag.css, .ct-lat), apricot, all nine dots lit. */
+
+:root {
+  --ni-ink: #f5f5f7;
+  --ni-dim: rgba(245, 245, 247, 0.68);
+  --ni-faint: rgba(245, 245, 247, 0.46);
+  --ni-rule: rgba(255, 255, 255, 0.12);
+  --ni-press: rgba(255, 255, 255, 0.09);
+  /* Growing has a little spring in it; shrinking does not, because the eye
+     follows something arriving and lets something leaving go. */
+  --ni-grow: 460ms cubic-bezier(0.3, 1.32, 0.5, 1);
+  --ni-shrink: 320ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body { color: var(--ni-ink); }
+
+.ni-stage { position: absolute; inset: 0; }
+
+.ni-island {
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  background: #000; color: var(--ni-ink);
+  border-radius: 0 0 var(--ni-r) var(--ni-r);
+  transition: width var(--ni-shrink), height var(--ni-shrink), border-radius var(--ni-shrink);
+}
+.ni-island.is-growing { transition: width var(--ni-grow), height var(--ni-grow), border-radius var(--ni-grow); }
+
+/* The flare where it meets the top edge: a corner cut out of a black square
+   either side, so the edge curves into the island instead of meeting it at a
+   right angle. */
+.ni-island::before, .ni-island::after {
+  content: ''; position: absolute; top: 0; width: var(--ni-sh); height: var(--ni-sh); pointer-events: none;
+}
+.ni-island::before { right: 100%; background: radial-gradient(circle at 0 100%, transparent calc(var(--ni-sh) - 0.5px), #000 var(--ni-sh)); }
+.ni-island::after { left: 100%; background: radial-gradient(circle at 100% 100%, transparent calc(var(--ni-sh) - 0.5px), #000 var(--ni-sh)); }
+
+/* The strip: always centred, so the mark and the count stay exactly where they
+   were as the island grows around them. */
+.ni-bar {
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  height: var(--ni-bar); display: flex; align-items: center; justify-content: center;
+  white-space: nowrap; cursor: pointer;
+}
+.ni-ear { width: var(--ni-ear); display: flex; align-items: center; justify-content: center; flex: none; }
+.ni-cam { width: var(--ni-notch); flex: none; }
+.ni-count { font-size: var(--ni-type); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ni-ink); }
+.ni-flat {
+  display: flex; align-items: center; gap: calc(var(--ni-bar) * 0.26);
+  padding: 0 calc(var(--ni-bar) * 0.5); white-space: nowrap;
+}
+
+/* What it grows to show. Both are always laid out at the open width, so the
+   window can be told how tall each will be before it is needed. */
+.ni-body {
+  position: absolute; top: var(--ni-bar); left: 50%; transform: translateX(-50%);
+  width: var(--ni-open-w); box-sizing: border-box; padding: 2px 10px 10px;
+  opacity: 0; visibility: hidden; transition: opacity 120ms ease, visibility 0s linear 120ms;
+}
+.ni-body.is-on { opacity: 1; visibility: visible; transition: opacity 200ms ease 140ms, visibility 0s; }
+.ni-peek { padding-bottom: 8px; }
+
+.ni-line {
+  all: unset; box-sizing: border-box; display: flex; align-items: center; gap: 9px; width: 100%;
+  font-size: 13px; white-space: nowrap; padding: 6px 8px; border-radius: 9px; cursor: pointer; color: var(--ni-ink);
+}
+.ni-line:hover { background: var(--ni-press); }
+.ni-row { position: relative; }
+.ni-row:hover .ni-line { background: var(--ni-press); }
+.ni-row:hover .ni-when { visibility: hidden; }
+.ni-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.ni-says { color: var(--ni-dim); flex: none; }
+.ni-when { margin-left: auto; padding-left: 14px; font-size: 12px; color: var(--ni-faint); flex: none; }
+.ni-pip { width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--ct-lat); }
+.ni-pip-sp { width: 7px; flex: none; }
+.ni-quiet, .ni-line.ni-quiet { font-size: 12.5px; color: var(--ni-faint); }
+.ni-head { padding: 2px 8px 3px; }
+
+.ni-x {
+  all: unset; position: absolute; top: 50%; right: 5px; transform: translateY(-50%);
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  width: 20px; height: 20px; border-radius: 6px; color: var(--ni-dim); opacity: 0;
+}
+.ni-row:hover .ni-x { opacity: 1; }
+.ni-x:hover { background: var(--ni-press); color: var(--ni-ink); }
+.ni-x svg { width: 10px; height: 10px; display: block; fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linecap: round; }
+
+.ni-foot {
+  display: flex; align-items: center; gap: 2px; margin: 6px 0 0; padding: 7px 8px 0;
+  border-top: 1px solid var(--ni-rule); font-size: 11.5px; color: var(--ni-faint); white-space: nowrap;
+}
+.ni-foot > span:first-child { margin-right: 2px; }
+.ni-foot button { all: unset; cursor: pointer; padding: 2px 6px; border-radius: 5px; color: var(--ni-dim); }
+.ni-foot button:hover { background: var(--ni-press); color: var(--ni-ink); }
+.ni-foot .ni-sep { flex: 1; min-width: 16px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ni-island, .ni-island.is-growing { transition: none; }
+  .ni-body, .ni-body.is-on { transition: none; }
+}
+
+/* ---- the pictures only (?demo=) ---- */
+.ni-demo {
+  position: absolute; inset: 0; overflow: hidden;
+  background: linear-gradient(160deg, #1d2a44, #3a2f4f 55%, #5a3c48);
+}
+.ni-demo.is-light { background: #f4f5f7; }
+.ni-demo-menu {
+  position: absolute; top: 0; left: 0; right: 0; height: var(--ni-demo-bar);
+  display: flex; align-items: center; justify-content: space-between; padding: 0 16px;
+  font-size: 13px; color: rgba(255, 255, 255, 0.92); background: rgba(0, 0, 0, 0.18);
+}
+.ni-demo.is-light .ni-demo-menu { color: rgba(0, 0, 0, 0.85); background: rgba(255, 255, 255, 0.7); border-bottom: 1px solid rgba(0, 0, 0, 0.06); }
+.ni-demo-left, .ni-demo-right { display: flex; gap: 18px; }
+.ni-demo-notch { position: absolute; top: 0; left: 50%; transform: translateX(-50%); background: #000; border-radius: 0 0 10px 10px; }
+.ni-demo-page { position: absolute; top: calc(var(--ni-demo-bar) + 28px); left: 60px; right: 60px; display: grid; gap: 14px; }
+.ni-demo-page div { height: 18px; border-radius: 4px; background: rgba(255, 255, 255, 0.08); }
+.ni-demo.is-light .ni-demo-page div { background: rgba(0, 0, 0, 0.07); }
+.ni-demo-page div:first-child { height: 34px; width: 46%; }
+.ni-demo-page div:nth-child(3) { width: 82%; }
+.ni-demo-page div:nth-child(4) { width: 64%; }

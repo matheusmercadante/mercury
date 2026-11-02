@@ -18,6 +18,9 @@
 //                                     whatever is behind it, so it is a fallback
 //   luma(handle)                   -> how bright the screen behind the glass is,
 //                                     0 to 1, or null until there is a reading
+//   notch(displayId)               -> { x, width, height }: the camera notch on
+//                                     that screen, in points from its top left,
+//                                     or null on a screen without one
 //
 // The brightness comes from the glass's own backdrop layer, which the system
 // samples for the blur; asked to track luma, it reports it to the layer's
@@ -229,6 +232,38 @@ static napi_value Luma(napi_env env, napi_callback_info info) {
   return out;
 }
 
+// Electron's display id is the screen's NSScreenNumber. The notch is what lies
+// between the two parts of the menu bar macOS leaves either side of it.
+static napi_value Notch(napi_env env, napi_callback_info info) {
+  size_t argc = 1;
+  napi_value argv[1];
+  napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+  napi_value out;
+  napi_get_null(env, &out);
+  double id = 0;
+  if (argc < 1 || napi_get_value_double(env, argv[0], &id) != napi_ok) return out;
+  if (@available(macOS 12.0, *)) {
+    for (NSScreen *screen in [NSScreen screens]) {
+      NSNumber *number = screen.deviceDescription[@"NSScreenNumber"];
+      if (!number || number.unsignedIntValue != (uint32_t)id) continue;
+      NSRect left = screen.auxiliaryTopLeftArea, right = screen.auxiliaryTopRightArea;
+      double width = screen.frame.size.width - left.size.width - right.size.width;
+      double height = MAX(left.size.height, right.size.height);
+      if (NSIsEmptyRect(left) || NSIsEmptyRect(right) || width <= 0 || height <= 0) return out;
+      napi_value x, w, h;
+      napi_create_object(env, &out);
+      napi_create_double(env, left.size.width, &x);
+      napi_create_double(env, width, &w);
+      napi_create_double(env, height, &h);
+      napi_set_named_property(env, out, "x", x);
+      napi_set_named_property(env, out, "width", w);
+      napi_set_named_property(env, out, "height", h);
+      return out;
+    }
+  }
+  return out;
+}
+
 static napi_value Init(napi_env env, napi_value exports) {
   napi_property_descriptor props[] = {
     { "available", nullptr, Available, nullptr, nullptr, nullptr, napi_default, nullptr },
@@ -236,6 +271,7 @@ static napi_value Init(napi_env env, napi_value exports) {
     { "clear", nullptr, Clear, nullptr, nullptr, nullptr, napi_default, nullptr },
     { "tone", nullptr, Tone, nullptr, nullptr, nullptr, napi_default, nullptr },
     { "luma", nullptr, Luma, nullptr, nullptr, nullptr, napi_default, nullptr },
+    { "notch", nullptr, Notch, nullptr, nullptr, nullptr, napi_default, nullptr },
   };
   napi_define_properties(env, exports, sizeof(props) / sizeof(props[0]), props);
   return exports;

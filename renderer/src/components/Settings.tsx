@@ -2202,12 +2202,23 @@ export function Settings({ look, onSetLook, tune, onSetTune, onResetTune, keyHin
                 while; this is the one place it turns off for good, so it can
                 never become a thing she closed once and forgot. */}
             <Group id="corner-tag" label="Agent Tray">
-              <Row
-                label="Show the Agent Tray"
-                desc="A small tag over your other apps says when an agent has something for you. Drag it anywhere; it keeps that corner on every screen, and sizes itself to the screen it is on. Make it bigger or smaller with Size, at the foot of the list that opens when you point at it. Right-click it to hide it a while or turn it off."
-              >
-                <Switch label="Show the Agent Tray" on={w.cornerTag !== false} onChange={(v) => setWorkspace('cornerTag', v)} />
-              </Row>
+              {/* On a Mac the tray is the island in the notch (main/notch-island.mjs);
+                  preload.cjs marks every other window flat. */}
+              {document.documentElement.dataset.window !== 'flat' ? (
+                <Row
+                  label="Show the Agent Tray"
+                  desc={`It sits in the notch at the top of the screen you are on, or hangs from the top of a screen without one, and says when an agent has something for you. Point at it for the list; click it to open ${NAME}. Right-click it to hide it a while or turn it off.`}
+                >
+                  <Switch label="Show the Agent Tray" on={w.cornerTag !== false} onChange={(v) => setWorkspace('cornerTag', v)} />
+                </Row>
+              ) : (
+                <Row
+                  label="Show the Agent Tray"
+                  desc="A small tag over your other apps says when an agent has something for you. Drag it anywhere; it keeps that corner on every screen, and sizes itself to the screen it is on. Make it bigger or smaller with Size, at the foot of the list that opens when you point at it. Right-click it to hide it a while or turn it off."
+                >
+                  <Switch label="Show the Agent Tray" on={w.cornerTag !== false} onChange={(v) => setWorkspace('cornerTag', v)} />
+                </Row>
+              )}
             </Group>
             {/* ONE SWITCH OVER EVERYTHING THAT LEAVES THE MACHINE, and there is
                 deliberately no second one and no partial mode, because the

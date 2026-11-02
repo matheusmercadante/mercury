@@ -26,3 +26,20 @@ export function loadLiquidGlass({ mac = process.platform === 'darwin', load = cr
     luma: (win) => (native.luma ? native.luma(handle(win)) : null),
   };
 }
+
+// Where the camera notch is on a display, { x, width, height } in points from
+// its top left, or null: no notch, not a Mac, or no build of main/native. It
+// is the same binary, but a Mac without the glass can still have a notch.
+export function loadNotch({ mac = process.platform === 'darwin', load = createRequire(import.meta.url) } = {}) {
+  if (!mac) return () => null;
+  let native;
+  try {
+    native = load('./native/liquid-glass/build/liquid-glass.node');
+  } catch {
+    return () => null;
+  }
+  if (typeof native.notch !== 'function') return () => null;
+  return (displayId) => {
+    try { return native.notch(displayId) ?? null; } catch { return null; }
+  };
+}
