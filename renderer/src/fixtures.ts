@@ -2,7 +2,7 @@
 // Shapes match types.ts exactly; content is written the way the worker brief
 // tells real agents to write, so the fixtures double as a schema preview.
 
-import type { AgentSession, FolderListing, Snapshot, WorkspaceSettings } from './types';
+import type { AgentSession, BranchList, FolderListing, Snapshot, WorkspaceSettings } from './types';
 // The engine ids, labels and the default are read off the one file that holds
 // them rather than typed again here. A fixture that spelled "Claude Code" for
 // itself is a fixture that could go on saying it after the app had stopped.
@@ -909,6 +909,7 @@ export const fixtureSettings = {
   projects: [
     {
       slug: 'kestrel', name: 'Kestrel', dir: '/fixtures/kestrel', repoPath: '/Users/you/Desktop/dev/kestrel',
+      baseBranch: 'develop',
       autonomous: true,
       permission: 'workspace', permissionArgs: null, running: 2,
       instructions: [
@@ -1360,3 +1361,14 @@ export function fixtureFolders(at: string): FolderListing {
       : null,
   };
 }
+
+/** A repository with as many branches as a busy team's, for the branch chip on the new thread card. */
+export const fixtureBranches: BranchList = {
+  branches: [
+    'develop', 'feature/deck-builder-filters', 'main', 'fix/trade-offer-race', 'chore/release-0.14.2',
+    'feature/booster-pack-odds-shown-before-buying', 'fix/collection-sync-on-wake',
+    ...Array.from({ length: 40 }, (_, i) => `feature/kc-${120 + i}-${['card-art', 'match-history', 'friend-invites', 'price-alerts'][i % 4]}`),
+  ],
+  main: 'main',
+  preset: 'develop',
+};

@@ -66,7 +66,7 @@ import {
   allModels, findPeople, harnessFields, laterHint, momentFromWords, mondayMorning, moreCount,
   joinNames, placeholderFor, projectsOffered, projectSwatch, recentModels,
   sharingFields, startingProject, startingVisibility, startingChosen, teammates, threadMessage, tomorrowMorning, chosenWords, VISIBILITY_ROWS,
-  dueChoices, dueWords, headRows, keyOnTheNewThreadCard, taskFields, branchChip, branchRows,
+  dueChoices, dueWords, headRows, keyOnTheNewThreadCard, taskFields, branchChip, branchRows, BRANCH_ROWS_SHOWN,
   type Harness, type Keyboard, type ModelPick, type SendAs, type Visibility,
 } from './composer-rules';
 import './thread-composer.css';
@@ -906,29 +906,31 @@ export function ThreadComposer({
     </div>
   );
 
-  const branchFound = branchList ? branchRows(branchList, query) : { rows: [], more: 0 };
+  const branchFound = branchList ? branchRows(branchList, query) : [];
+  const branchDefault = branchList?.preset ?? branchList?.main ?? null;
   const branchMenu = (
-    <div className="tc-menu tc-rise" role="listbox" aria-label="Starts from" onKeyDown={menuKeys}>
+    <div className="tc-menu tc-rise tc-branch-menu" role="listbox" aria-label="Starts from" onKeyDown={menuKeys}>
       <span className="tc-menu-head">Starts from</span>
-      {(branchList?.branches.length ?? 0) > 8 && (
+      {(branchList?.branches.length ?? 0) > BRANCH_ROWS_SHOWN && (
         <input
           data-item
           className="tc-find"
-          placeholder="Find a branch"
+          placeholder={`Find among ${branchList?.branches.length} branches`}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter' && branchFound.rows[0]) { e.preventDefault(); setBranchPick(branchFound.rows[0]); close('text'); } }}
+          onKeyDown={(e) => { if (e.key === 'Enter' && branchFound[0]) { e.preventDefault(); setBranchPick(branchFound[0]); close('text'); } }}
         />
       )}
-      {branchFound.rows.map((b) => (
-        <button key={b} type="button" data-item className={`tc-row ${b === branch?.shown ? 'on' : ''}`} onPointerEnter={hover}
-          onClick={() => { setBranchPick(b); close('text'); }}>
-          <BranchIcon /><span className="tc-row-label">{b}</span>
-          {b === branchList?.preset ? <small>Project default</small> : !branchList?.preset && b === branchList?.main ? <small>Default</small> : null}
-        </button>
-      ))}
-      {!branchFound.rows.length && <span className="tc-none">No branch matches that.</span>}
-      {branchFound.more > 0 && <span className="tc-none">{branchFound.more} more. Type to find one.</span>}
+      <div className="tc-branch-list" style={{ ['--tc-branch-rows' as string]: BRANCH_ROWS_SHOWN }}>
+        {branchFound.map((b) => (
+          <button key={b} type="button" data-item title={b} className={`tc-row ${b === branch?.shown ? 'on' : ''}`} onPointerEnter={hover}
+            onClick={() => { setBranchPick(b); close('text'); }}>
+            <BranchIcon /><span className="tc-row-label">{b}</span>
+            {b === branchDefault && <small>Default</small>}
+          </button>
+        ))}
+        {!branchFound.length && <span className="tc-none">No branch matches that.</span>}
+      </div>
     </div>
   );
 

@@ -137,13 +137,15 @@ function Stepper({ value, min, max, onChange, label }: {
  *  whose own label already says what it is. The label is still its name to a
  *  screen reader.
  */
-function Picker<T extends string>({ label, value, options, onChange, title, bare = false }: {
+function Picker<T extends string>({ label, value, options, onChange, title, bare = false, long = false }: {
   label: string;
   value: T;
   options: Array<{ value: T; label: string }>;
   onChange: (v: T) => void;
   title?: string;
   bare?: boolean;
+  /** A list that can run long: it scrolls after a few rows. */
+  long?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const wrap = useRef<HTMLSpanElement | null>(null);
@@ -180,13 +182,14 @@ function Picker<T extends string>({ label, value, options, onChange, title, bare
           </svg>
         </button>
         {open && (
-          <span className="set-picker-menu" role="listbox" aria-label={label}>
+          <span className={`set-picker-menu${long ? ' set-picker-long' : ''}`} role="listbox" aria-label={label}>
             {options.map((o) => (
               <button
                 key={o.value}
                 type="button"
                 role="option"
                 aria-selected={o.value === value}
+                title={long ? o.label : undefined}
                 className={`set-picker-row${o.value === value ? ' on' : ''}`}
                 onClick={() => { onChange(o.value); setOpen(false); }}
               >
@@ -2603,6 +2606,7 @@ export function Settings({ look, onSetLook, tune, onSetTune, onResetTune, keyHin
                 <Row label="New threads start from" desc="The branch each new thread's folder is cut from. The new thread card can pick another one for a single thread.">
                   <Picker
                     bare
+                    long
                     label="New threads start from"
                     title="The branch new threads start from"
                     value={current.baseBranch ?? ''}

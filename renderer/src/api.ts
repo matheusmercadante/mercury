@@ -11,7 +11,7 @@ import type { AgentFolder, SessionThread } from './agent-import-card';
 import type { EngineSetupState } from './plan-setup';
 import { fixtureAgents, fixtureSnapshot, fixtureDashboards, fixtureRepeats, fixtureRuns, fixtureMock, fixtureMockDashboards, fixtureTraces, fixtureHistory, fixtureSettings, fixtureConversation, fixtureAgentFiles, fixtureSessionThreads, fixtureSearchableThreads } from './fixtures';
 import { fixtureEngineWorld, fixtureEngineSettings, fixtureSecondEngine } from './fixtures';
-import { fixtureFolders } from './fixtures';
+import { fixtureBranches, fixtureFolders } from './fixtures';
 import { NAME, Name } from '../../shared/product-name.mjs';
 import { checkProjectFolder } from '../../shared/project-folder-check.mjs';
 import { whileSystemWindowIsOpen } from './system-window';
@@ -1353,7 +1353,8 @@ export const api = {
   /** A project's local branches for the branch pickers; none where this screen cannot ask. */
   async projectBranches(p: { product: string }): Promise<BranchList> {
     const none: BranchList = { branches: [], main: null, preset: null };
-    if (useFixtures || !window.zero?.projectBranches) return none;
+    if (useFixtures) return fixtureSnapshot.products.find((x) => x.slug === p.product)?.repoPath ? fixtureBranches : none;
+    if (!window.zero?.projectBranches) return none;
     try { return await window.zero.projectBranches(p); } catch { return none; }
   },
 

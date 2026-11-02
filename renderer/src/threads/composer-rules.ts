@@ -304,15 +304,15 @@ export function branchChip(pick: string | null, list: BranchList | null): { show
   return { shown, field: pick ? { baseBranch: pick } : {} };
 }
 
-export const BRANCH_ROWS_SHOWN = 30;
+/** How many branch rows the menu shows before its list scrolls (`--tc-branch-rows`). */
+export const BRANCH_ROWS_SHOWN = 4;
 
 /** The branch menu's rows: the project default, then main, then the newest, narrowed by what was typed. */
-export function branchRows(list: BranchList, query: string): { rows: string[]; more: number } {
+export function branchRows(list: BranchList, query: string): string[] {
   const first = [list.preset, list.main].filter((b): b is string => !!b && list.branches.includes(b));
   const ordered = [...new Set([...first, ...list.branches])];
   const q = query.trim().toLowerCase();
-  const found = q ? ordered.filter((b) => b.toLowerCase().includes(q)) : ordered;
-  return { rows: found.slice(0, BRANCH_ROWS_SHOWN), more: Math.max(0, found.length - BRANCH_ROWS_SHOWN) };
+  return q ? ordered.filter((b) => b.toLowerCase().includes(q)) : ordered;
 }
 
 // Projects carry no colour of their own yet, so the swatch is read off the slug:

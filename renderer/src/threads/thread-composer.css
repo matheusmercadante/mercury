@@ -264,6 +264,16 @@
 .tc-rise.tc-right { left: auto; right: 0; bottom: calc(100% + 8px); }
 .tc-narrow { min-width: 190px; }
 .tc-wide { min-width: 300px; }
+/* A repository can hold a hundred branches, so the list scrolls after a few
+   rows and the menu stays the size of the project and priority menus beside
+   it; at its full length `fitMenu` found no room below and turned it upward. */
+.tc-branch-menu { width: 280px; min-width: 0; }
+.tc-branch-menu .tc-row-label { overflow: hidden; text-overflow: ellipsis; }
+.tc-branch-list {
+  --tc-row: 35px;
+  display: flex; flex-direction: column; gap: 1px;
+  max-height: calc(var(--tc-row) * var(--tc-branch-rows)); overflow-y: auto;
+}
 .tc-two { align-items: flex-start; white-space: normal; }
 .tc-two svg { margin-top: 2px; }
 .tc-two small { display: block; margin: 2px 0 0; padding: 0; font-size: 12px; line-height: 17px; white-space: nowrap; }

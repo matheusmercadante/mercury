@@ -100,8 +100,11 @@
    off the column's right edge. */
 .set-picker-bare { gap: 0; }
 .set-row-ctl .set-picker-menu { left: auto; right: 0; }
-/* A project's branches can run to dozens. */
-.set-picker-menu { max-height: 320px; overflow-y: auto; }
+/* A project's branches can run to a hundred: five rows show and the rest
+   scroll, at a fixed width with a long name cut short, so the menu is the size
+   of the other pickers on the page. */
+.set-picker-menu.set-picker-long { max-height: calc(30px * 5 + 8px); overflow-y: auto; width: 240px; }
+.set-picker-long .set-picker-row { flex: none; overflow: hidden; text-overflow: ellipsis; }
 
 /* SESSION, WEEK AND FABLE, the same meters on every account, each ending with
    when it resets. One grid for all the rows, so the bars and the times line up.
