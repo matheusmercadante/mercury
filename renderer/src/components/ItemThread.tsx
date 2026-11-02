@@ -387,8 +387,8 @@ export function ItemThread({ onOpenFileMark, item, engine, engineChoice, codexMo
               page, so it is signed in the label it already has rather than in
               a byline of its own. */}
           <div className={unshipped ? 'appendix-label appendix-unshipped' : 'appendix-label'}>
-            {outcome.field === 'result' ? 'Result' : unshipped ? 'Not shipped' : 'Latest checkpoint'}
-            {ranSaid && <span className="appendix-ran">{ranSaid}</span>}
+            {outcome.field === 'result' ? ranSaid ?? 'Result' : unshipped ? 'Not shipped' : 'Latest checkpoint'}
+            {ranSaid && outcome.field !== 'result' && <span className="appendix-ran">{ranSaid}</span>}
           </div>
           {md(clean(outcome.text))}
         </div>
@@ -412,7 +412,7 @@ export function ItemThread({ onOpenFileMark, item, engine, engineChoice, codexMo
   const talkName = chat && team ? conversationName(item, team.products.get(item.product), team.me, (id) => firstName(team.byId.get(id) ?? null)) : null;
   const moveToThread = (uid: string) => {
     void api.teamMoveToThread({ product: item.product, id: item.id, on: uid })
-      .then((r) => say(r?.ok ? 'Moved to a new thread. The link is under the message.' : r?.error ?? 'That did not move.'));
+      .then((r) => say(r?.ok ? 'Moved to a new thread.' : r?.error ?? 'That did not move.'));
   };
 
   // With no answer to lead with, the page draws the conversation as it always is, under the summary.

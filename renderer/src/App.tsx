@@ -90,7 +90,7 @@ import { approvalAnswered, approvalAsker, approvalReads, approvalShown } from '.
 // there is anything to confirm the card has closed.
 import { sentLine, sendingLine } from './compose-says';
 import { wearJustMade, type JustMade } from './just-made';
-import { asideBesides, belongsInInbox, belongsInProgress, belongsOnTheRail, byRunningOrder, clipToSentence, hiddenUntil, inProgressTab, isProposal, notStarted, parkedByAgent, waitCameBack, replyClearsSchedule, replyKeyWorksIn, rowTitle, statusForReply, stillAsksYou, stoppable, threadsOwedAnAnswer, waitsInLater, waitsThatCanEnd, withdrawReply } from './list-rules';
+import { asideBesides, belongsInInbox, belongsInProgress, belongsOnTheRail, byRunningOrder, clipToSentence, heldRowStarts, hiddenUntil, inProgressTab, isProposal, notStarted, parkedByAgent, waitCameBack, replyClearsSchedule, replyKeyWorksIn, rowTitle, statusForReply, stillAsksYou, stoppable, threadsOwedAnAnswer, waitsInLater, waitsThatCanEnd, withdrawReply } from './list-rules';
 import { filedByThePerson, wordWaits } from '../../shared/answers.mjs';
 import { agentKey, agentRow, asksSomething, byRecency, listed as agentIsListed, onTheRail, railLine, reachesInbox, progressAfterReply, replyReaches, whereItRuns } from '../../shared/agents.mjs';
 import { focusTheReplyBox } from './focus-at-end';
@@ -130,7 +130,7 @@ import { MARK_UNREAD, SAY } from './team/chat-events';
 import { aVoiceNoteIsRecording } from './team/useVoiceRecorder';
 import { aBoxIsListening } from './dictation';
 import { MentionRows } from './team/rooms/MentionRows';
-import { AgentsLine, CornerFaces, MateThreads, NeedsFaces, PersonThreads, SpaceBar, TeamStrip, TeamThreads } from './team/everything/TeamStrip';
+import { AgentsLine, CornerFaces, MateThreads, NeedsFaces, NeedsRail, PersonThreads, SpaceBar, TeamStrip, TeamThreads } from './team/everything/TeamStrip';
 import { JobBlock, Place as MemberPlace, PlaceAction, PlaceList, PlaceMates, SendBox, type PlaceRow } from './team/everything/PlacePage';
 import { nowAndFinished, pressOpensIn, readHomeLayout, waitsOnYou, writeHomeLayout, youWaitOn, type HomeLayout } from './team/everything/place';
 import { buildMembers, hideMember, mateRunsOf, orderMembers, personCardsOf, readCardRows, readHidden, readOrder, splitHidden, teamRunsOf, unhideMember, writeCardRows, writeHidden, writeOrder, type CardRows, type Hidden, type Member } from './team/everything/members';
@@ -1071,18 +1071,31 @@ export default function App() {
   const [optionSel, setOptionSel] = useState<number | null>(null);
   // The items whose action is held in the grace window, or written and not
   // yet back in a snapshot. The write waits for Z; the SIGNAL must not: the
-  // item leaves the inbox and shows under In progress immediately, because a
-  // sent thing still sitting in the inbox reads as not sent. More than one,
-  // because a slow main process can still be writing the last one when the
-  // next is held.
+  // item leaves the inbox at once, and one whose action starts an agent on it
+  // (`startingIds`) shows under In progress, because a sent thing still sitting
+  // in the inbox reads as not sent. More than one, because a slow main process
+  // can still be writing the last one when the next is held.
   const [pendingIds, setPendingIds] = useState<ReadonlySet<string>>(() => new Set());
-  const holdRow = useCallback((id: string) => setPendingIds((s) => (s.has(id) ? s : new Set(s).add(id))), []);
-  const letRowGo = useCallback((id: string) => setPendingIds((s) => {
-    if (!s.has(id)) return s;
-    const next = new Set(s);
-    next.delete(id);
-    return next;
-  }), []);
+  const [startingIds, setStartingIds] = useState<ReadonlySet<string>>(() => new Set());
+  const holdRow = useCallback((id: string, starts: boolean) => {
+    setPendingIds((s) => (s.has(id) ? s : new Set(s).add(id)));
+    setStartingIds((s) => {
+      if (s.has(id) === starts) return s;
+      const next = new Set(s);
+      if (starts) next.add(id); else next.delete(id);
+      return next;
+    });
+  }, []);
+  const letRowGo = useCallback((id: string) => {
+    const without = (s: ReadonlySet<string>) => {
+      if (!s.has(id)) return s;
+      const next = new Set(s);
+      next.delete(id);
+      return next;
+    };
+    setPendingIds(without);
+    setStartingIds(without);
+  }, []);
   // The last held action when it was an answer, which reads as queued while its row is held.
   const [heldAnswer, setHeldAnswer] = useState<string | null>(null);
 
@@ -2360,7 +2373,7 @@ export default function App() {
       // The grace window: the write waits for Z, the signal must not, because a
       // sent thing still sitting in the inbox reads as not sent. A deferred row
       // is the exception, and it has somewhere to be: Scheduled.
-      if (pendingIds.has(i.id) && deferredUntil <= now) return true;
+      if (startingIds.has(i.id) && deferredUntil <= now) return true;
       // A message waits on whoever did not speak last, and the row names them, so
       // it never reads as an agent at work.
       if (isDirect(snap?.products.find((p) => p.slug === i.product)) && !isTaskRow(i)) return iSpokeLast(i, team?.products.get(i.product), team?.me ?? null);
@@ -2388,7 +2401,7 @@ export default function App() {
     // threads/page-rules.ts): a queued row is told by its Status cell, and
     // what you just sent is on top.
   ].sort(byRunningOrder(score)),
-  [items, agentList, agentMode, scope, pendingIds, dueAt, hiddenAt, score, now, team, teamProgress, liveIds, shippingIds, stalledIds]);
+  [items, agentList, agentMode, scope, startingIds, dueAt, hiddenAt, score, now, team, teamProgress, liveIds, shippingIds, stalledIds]);
 
   // AND THE TAB COUNTS EACH THREAD ONCE: the list, less what Needs you holds,
   // the way `tabState` below has it for the board and `done` for the archive.
@@ -3945,7 +3958,6 @@ export default function App() {
       markSeen(item);
     },
     tabOf: (item) => tabOfState(stateOfMine(item)),
-    onOpenList: (v) => openView(v),
     onChanged: () => { void refresh(); },
   });
   // A group opened from anywhere takes the page from a teammate.
@@ -4326,7 +4338,7 @@ export default function App() {
     const flushed = flushPending().catch((err) => console.warn('a held action was not written', err));
     if (!stay) leaveResolved(item);
     setModal(null);
-    holdRow(item.id); // out of the inbox NOW; the write can wait, the signal cannot
+    holdRow(item.id, heldRowStarts(item, goes)); // out of the inbox NOW; the write can wait, the signal cannot
     // Only an answer passes `goes`, and only an answer starts an agent.
     setHeldAnswer(goes ? item.id : null);
     // "PRESS Z", NOT A BARE LETTER. The toast used to read "Closed: Added the
@@ -5794,6 +5806,7 @@ export default function App() {
         // A document open over its chat goes first, as its close button says.
         if (e.key === 'Escape' && openDoc) { e.preventDefault(); closeArtifact(); return; }
         if (e.key === 'Escape') { e.preventDefault(); teammatesUi.back(); }
+        if (e.key === 'g' || e.key === 'G') { const box = document.querySelector<HTMLInputElement>('.cx-search input'); if (box) { e.preventDefault(); box.focus(); } }
         return;
       }
       if (connectionsShown && e.key !== 'n' && e.key !== 'N') {
@@ -6061,7 +6074,7 @@ export default function App() {
         // The page stays open: full screen draws the box under it.
         // An open box focuses itself only when it opens, so R on one already
         // there has to put the caret back (focus-at-end.ts).
-        else if (e.key === 'r' || e.key === 'R') { e.preventDefault(); setModal('reply'); if (modal === 'reply') focusTheReplyBox(); else if (sayWhoseBox(arrived.current, keyOf(focused), Date.now())) showToast(replyingTo({ people: conversationNames(focused), title: rowTitle(focused) })); }
+        else if (e.key === 'r' || e.key === 'R') { e.preventDefault(); setModal('reply'); if (modal === 'reply') focusTheReplyBox(); else if (sayWhoseBox(arrived.current, keyOf(focused), Date.now())) { const whose = replyingTo({ people: conversationNames(focused) }); if (whose) showToast(whose); } }
         // N MEANS THE SAME THING ON BOTH SCREENS. The + in the top bar is on
         // this screen too and its tooltip says "New task (N)", so the key is
         // already advertised here.
@@ -6176,7 +6189,7 @@ export default function App() {
           else if (multiSel.size) batchDone(multiSel);
           else if (pointed && view === 'inbox') markDone(pointed);
           break;
-        case 'r': case 'R': if (!multiSel.size && pointed && replyKeyWorksIn(view)) { e.preventDefault(); showToast(replyingTo({ people: conversationNames(pointed), title: rowTitle(pointed) })); setFocused(pointed); markSeen(pointed); setModal('reply'); } break;
+        case 'r': case 'R': if (!multiSel.size && pointed && replyKeyWorksIn(view)) { e.preventDefault(); const whose = replyingTo({ people: conversationNames(pointed) }); if (whose) showToast(whose); setFocused(pointed); markSeen(pointed); setModal('reply'); } break;
         // 1 AND 2 ANSWER A CODEX CONVERSATION'S ROW WITHOUT OPENING IT, and I
         // brings a declined one back from Closed. Only on those rows: on every
         // other row they stay dead, as they were. They were Y and N until
@@ -6460,6 +6473,7 @@ export default function App() {
   const [taskHeader, setTaskHeader] = useState<HTMLDivElement | null>(null);
   // The socket look B of w-581dbc6cc4's round teleports the code mark into.
   const [cornerHeaderTarget, setCornerHeaderTarget] = useState<HTMLSpanElement | null>(null);
+  const [connectionsCorner, setConnectionsCorner] = useState<HTMLSpanElement | null>(null);
 
   // A schedule set on a thread. On one RUN of a repeating task it moves that
   // task's rule rather than making a second one; on ordinary work it makes that
@@ -6801,7 +6815,7 @@ export default function App() {
     const out = await api.threadEdit(item.product, item.id, { blockedBy: on ? [on] : [] });
     const task = isTaskRow(item);
     showToast(!out.ok ? 'That change did not save.'
-      : on ? (task ? 'Blocked. Its holder hears when that finishes.' : 'It waits in Later and comes back when that ends.')
+      : on ? (task ? 'Blocked.' : 'It waits in Later and comes back when that ends.')
         : task ? 'Not blocked any more.' : 'It is not waiting any more.');
     void refresh();
   };
@@ -6930,6 +6944,9 @@ export default function App() {
   const evKey = teamMode ? evPick ?? 'me' : null;
   const evOn = teamMode && search === null && !settingsOpen && !teamShown && !focusedRepeat && !focused && !teammatesShown && !roomShown && !filesShown && !connectionsShown
     && (view !== 'inbox' || !!evPick);
+  // The team panel beside the Needs you list; the faces row stands in for it when the window is narrow.
+  const railShown = teamMode && homeLayout === 'list' && !onPhone() && view === 'inbox' && search === null && !evOn && !todayOn && !tasksOn
+    && !settingsOpen && !teamShown && !focused && !focusedRepeat && !teammatesShown && !roomShown && !filesShown && !connectionsShown;
   const evMember = evOn ? members.find((m) => m.key === evKey) ?? null : null;
   // Hiding the card that is open goes back to your threads.
   const hideCard = (m: Member) => {
@@ -6947,7 +6964,7 @@ export default function App() {
     // under Everything else ("you shouldn't put teammates in the top bar",
     // w-33511040d7).
     corner: onPhone() ? null
-      : homeLayout === 'list' ? <NeedsFaces members={evSplit.shown} picked={evOn ? evKey : null} waits={waits} onPick={(key) => pickMember(key)} onAdd={teammatesUi.live ? teammatesUi.onNew : undefined} />
+      : homeLayout === 'list' ? <NeedsFaces members={evSplit.shown} picked={evOn ? evKey : null} waits={waits} onPick={(key) => pickMember(key)} onAdd={teammatesUi.live ? teammatesUi.onNew : undefined} narrowOnly={railShown} />
       : evOn ? null : <CornerFaces members={evSplit.shown} onPick={(key) => pickMember(key)} />,
     progress: homeLayout === 'list' && !onPhone() ? { count: mineShown ? shownCount(yoursOnly(progressTab, teammateIdOf)) : 0, on: evOn && evKey === 'me' } : undefined,
     today: homeLayout === 'list' && !onPhone() ? { on: todayOn, onToday: () => { goNeedsYou(); setTodayOn(true); } } : undefined,
@@ -7055,7 +7072,7 @@ export default function App() {
         chat={room ? roomsUi.chatIn(room) : roomsUi.live
           ? <SendBox placeholder={`Message ${first}`} empty={<p className="pl-hello">No messages with {first} yet.</p>}
             onSend={(text) => roomsUi.startChat(id, placeMember.name, text)} />
-          : <SendBox placeholder={`Message ${first}`} empty={<p className="pl-hello">Messages with {first} start a thread you both see.</p>}
+          : <SendBox placeholder={`Message ${first}`} empty={<p className="pl-hello">No messages with {first} yet.</p>}
             onSend={async (text) => { setComposeInitial({ to: id, body: text }); setModal('compose'); return null; }} />}
         side={<>
           <PlaceList title="Waiting on you" now={now} rows={[
@@ -7063,7 +7080,7 @@ export default function App() {
             ...mentionsBy.map((m) => ({ key: m.id, title: m.body || `In ${m.roomName}`, word: m.roomName, at: m.at, tone: 'ask' as const, onOpen: () => roomsUi.openMention(m) })),
           ]} />
           <PlaceList title={`You are waiting on ${first}`} now={now} rows={given.map((i) => itemRow(i, dueSaid(dayDeadline(i.due), now, { ahead: true })?.word ?? '', 'later'))} />
-          <PlaceList title="In progress" now={now} rows={theirs.now.map(cardRow)} empty={sharesThreads(id) ? `${first} has nothing in progress.` : `${first} shares no threads with the team.`} />
+          <PlaceList title="In progress" now={now} rows={theirs.now.map(cardRow)} />
           <PlaceList title="Finished this week" now={now} rows={theirs.finished.map(cardRow)} />
           <PlaceMates title={`${first}'s AI teammates`} mates={theirMates} waits={waits} onPick={(key) => pickMember(key)} />
         </>} />;
@@ -7084,7 +7101,7 @@ export default function App() {
         side={<>
           <JobBlock job={t?.job ?? null} onSave={(job) => teammatesUi.setJob(id, job)} />
           <PlaceList title="Waiting on you" now={now} rows={asks.map((i) => itemRow(i, '', 'ask'))} />
-          <PlaceList title="In progress" now={now} rows={split.now.map((i) => itemRow(i, word(i)[0], word(i)[1]))} empty="Nothing in progress. Message it or give it a task." />
+          <PlaceList title="In progress" now={now} rows={split.now.map((i) => itemRow(i, word(i)[0], word(i)[1]))} />
           <PlaceList title="Finished this week" now={now} rows={split.finished.map((i) => itemRow(i, 'Done', 'done'))} />
         </>} />;
     } else {
@@ -7094,7 +7111,7 @@ export default function App() {
       const ownerMember = members.find((m) => m.key === `person:${tm?.owner}`);
       placeEl = tm && <MemberPlace m={{ ...placeMember, name: tm.name }} about={`${first}'s AI teammate`} onBack={back} backTo={backTo}
         chat={<SendBox placeholder={`Write to ${tm.name}`}
-          empty={<p className="pl-hello">{tm.name} works for {first}. {tm.open ? `${first} lets anyone on the team give it work, so it starts on what you write.` : `What you write goes to ${first} as a request.`}</p>}
+          empty={<p className="pl-hello">No messages with {tm.name} yet.</p>}
           onSend={async (text) => { const r = await api.teamMessageMate({ owner: tm.owner, mate: tm.id, text }); if (r.ok) { showToast(tm.open ? `Sent to ${tm.name}` : `Sent to ${first} to pass on`); void refresh(); } return r.ok ? null : r.error ?? 'That did not send.'; }} />}
         side={<>
           <JobBlock job={tm.job} />
@@ -7331,6 +7348,7 @@ export default function App() {
           {/* Not while Settings or the Team page covers the thread: the thread's
               state and Summary button were left standing in their header. */}
           {focused && !settingsOpen && !teamShown && <span style={{display:'contents'}} ref={setCornerHeaderTarget}/>}
+          {connectionsShown && <span style={{display:'contents'}} ref={setConnectionsCorner}/>}
           {/* SEARCH, NEW THREAD AND DISPLAY (approved 2026-10-01): the whole of
               the right end on the Inbox, which is the one page of threads now
               (w-05ff3d1438). Display holds the view, the sort and the filters.
@@ -7457,7 +7475,7 @@ export default function App() {
                   points here. */}
               {planWords && !snap.supervisor.running?.length && !run && !focused && !focusedRepeat && !teammatesShown && <PlanBar words={planWords} onSetup={setSetupPlan} />}
               {connectionsShown ? (
-                <ConnectionsPlace now={now} focus={connectionsPage!.focus} onNotice={showToast} />
+                <ConnectionsPlace now={now} focus={connectionsPage!.focus} onNotice={showToast} corner={connectionsCorner} />
               ) : filesShown ? (
                 <FilesPlace project={filesPage!.project} onProject={(project) => setFilesPage({ project })} now={now} onNotice={showToast}
                   onPlace={(p) => {
@@ -7728,7 +7746,7 @@ export default function App() {
                   />
                 )}
                 {evTop}
-                {roomShown ? roomsUi.page : todayEl ? todayEl : tasksEl ? tasksEl : placeEl ? placeEl : evSpace ? evSpace : <>
+                {roomShown ? roomsUi.page : todayEl ? todayEl : tasksEl ? tasksEl : placeEl ? placeEl : evSpace ? evSpace : <div className={railShown ? 'nr-home' : undefined}><div className={railShown ? 'nr-list' : undefined}>
                 <PhoneStatus message={snap.phoneStatus} />
                 {snap.phoneConnect ? <ConnectComputer email={snap.phoneConnect.email} onSignOut={() => { void api.teamSignOut().then(() => refresh()); }} />
                 : clearMoves || (emptyView && !theirRows.length && !(view === 'inbox' && search === null && (leadCount || sharedFileNews.length || followingNews.length))) ? (
@@ -7840,7 +7858,7 @@ export default function App() {
                     setSelected(i);
                   }}
                 />}
-                </>}
+                </div>{railShown && <NeedsRail members={evSplit.shown} picked={null} waits={waits} onPick={(key) => pickMember(key)} onAdd={teammatesUi.live ? teammatesUi.onNew : undefined} />}</div>}
                 </>}
                 </>
               )}
@@ -9003,7 +9021,7 @@ export default function App() {
       })()}
       {!!snap?.teammates?.sending?.length && (
         <AgentSending held={snap.teammates.sending} raised={!!toast && !sentLineShown}
-          onUndo={async (id) => { const r = await api.teammates<boolean>('unsend', { id }); showToast(r.ok && r.value ? 'Taken back. It was not sent.' : 'It had already gone.'); void refresh(); }} />
+          onUndo={async (id) => { const r = await api.teammates<boolean>('unsend', { id }); showToast(r.ok && r.value ? 'Taken back.' : 'It had already gone.'); void refresh(); }} />
       )}
       {/* AND NO TOAST FOR A NEW VERSION. It was the third of the four drawn for
           w-86452550e5 and the argument against it is the one she agreed with: a

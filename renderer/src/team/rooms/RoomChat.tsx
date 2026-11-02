@@ -31,12 +31,13 @@ import { AttachRow } from '../../components/AttachRow';
 import { collectFiles, isImageName, type PendingAttachment } from '../../attachments';
 import { pictureUrl } from '../../picture';
 import { holdAtBottom } from '../../thread-bottom';
-import { sendKeyFor, unsentWords } from '../../reply-keys';
+import { sendKeyFor } from '../../reply-keys';
 import { I } from './icons';
 import type { MessageMarks } from '../decisions';
 import { LINE_MISSING } from '../../reveal-line';
 import { Face } from '../people';
-import { cardName, chatWidth, clockOf, mentionsIn, readChatWidth, writeChatWidth } from './room-rules';
+import { cardName, chatWidth, mentionsIn, readChatWidth, writeChatWidth } from './room-rules';
+import { clockOf } from '../../teammates/chat-lines';
 import { drawnRoots, holdsRead, mentionMarkdown, myNewest, newLineAt, quickOnBar, roomReader, storedName, wordsLeftAfterSend } from './room-chat-rules';
 
 export type ChatPerson = { id: string; name: string; avatarUrl: string | null; me: boolean };
@@ -447,7 +448,6 @@ function Composer({ roomId, threadId, placeholder, people, onSend, onPutFile, on
   // A send that failed, so it can be tried again, and is when the connection comes back.
   const [failed, setFailed] = useState(false);
   const ready = !!text.trim() || attachments.length > 0 || recording;
-  const unsent = unsentWords({ words: text, files: attachments.length, sending: busy });
   // EVERYTHING STAYS IN THE BOX UNTIL THE ROOM HAS IT. Each file keeps the
   // name it was given when it went into the box, so a second try puts the
   // same file rather than another copy, and a file the room already has
@@ -562,7 +562,6 @@ function Composer({ roomId, threadId, placeholder, people, onSend, onPutFile, on
           onFromFiles={onPutFile ? (f) => add([f]) : undefined}
           onVoice={onPutFile ? (note) => add([{ name: note.name, dataBase64: note.dataBase64, image: isImageName(note.name), draftId: note.draftId }]) : undefined}
           onNotice={setError} voiceKey={voiceKey} voice={voiceCtl} onRecording={setRecording} />
-        {unsent && <span className="dock-unsent">{unsent}</span>}
         <button type="button" className="dock-send" disabled={!ready || busy} onClick={() => void send()} title={`Send · ${sendKeyFor(true)}`}>
           {busy ? sendingWords(sending, roomId, attachments) : <>Send <kbd>{sendKeyFor(true)}</kbd></>}
         </button>

@@ -936,7 +936,8 @@ export function ThreadComposer({
   const sendAsChoice = (
     <span className="tc-seg" role="group" aria-label="Send as">
       {(['message', 'task'] as SendAs[]).map((k) => (
-        <button key={k} type="button" className={sendAs === k ? 'on' : ''} aria-pressed={sendAs === k}
+        // Named in full: a bare "Task" is also the Tasks tab behind the card.
+        <button key={k} type="button" className={sendAs === k ? 'on' : ''} aria-pressed={sendAs === k} aria-label={`Send as a ${k}`}
           onClick={() => { setSendAs(k); if (k === 'message') setDue(null); textRef.current?.focus(); }}>
           {k === 'task' ? 'Task' : 'Message'}
         </button>
@@ -1368,7 +1369,7 @@ export function ThreadComposer({
             e.preventDefault();
             ideaList.current?.querySelector<HTMLButtonElement>('button')?.focus();
           }}
-          placeholder={mate === 'new' ? 'What should they do? They set themselves up from it and ask what they need' : mateRow ? `What should ${mateRow.name} do?` : person ? (sendAs === 'task' && !extra.length ? `What should ${person.name.split(/\s+/)[0]} do?` : `Message ${names}`) : placeholderFor(null)}
+          placeholder={mate === 'new' ? 'What should they do?' : mateRow ? `What should ${mateRow.name} do?` : person ? (sendAs === 'task' && !extra.length ? `What should ${person.name.split(/\s+/)[0]} do?` : `Message ${names}`) : placeholderFor(null)}
           onPaste={async (e) => {
             const pasted = await fromPaste(e);
             if (pasted.length) { e.preventDefault(); setAttachments((a) => [...a, ...pasted]); }
@@ -1422,7 +1423,7 @@ export function ThreadComposer({
         {person ? (
           <div className="tc-bar">
             {headChips}
-            {taskToMany && <span className="tc-why">A task goes to one person. Send it as a message, or keep one name in To.</span>}
+            {taskToMany && <span className="tc-why">A task goes to one person.</span>}
             {team && sendAs === 'task' && (
               <span className="tc-anchor" ref={anchor('visibility')}>
                 <button type="button" data-trigger className={`tc-chip ${open === 'visibility' ? 'open' : ''}`} title="Who sees it"

@@ -1,6 +1,6 @@
 // A FILE KEEPS ITS PLACE AND ITS OWN NAME, WHOEVER NAMES IT.
 //
-// Round 5, read in the copies' stores:
+// Read in the team's stores:
 // - Maya's Files had a tile "dc1bdc0f055d-mvwlg12b-oxe1xc-group-bookings-spec.md",
 //   "Not on this computer yet". An agent had named the copy it read in
 //   _team-threads/.../attachments as a bare word, outside any attachments path, so
@@ -129,9 +129,9 @@ describe('the Move menu\'s search', () => {
 
 describe('a file that has not reached this computer', () => {
   it('says whose computer has it', () => {
-    expect(missingWords('Dev')).toBe('On Dev\'s computer. It opens here once it comes across.');
+    expect(missingWords('Dev')).toBe('On Dev\'s computer.');
   });
   it('says so plainly when nobody is known', () => {
-    expect(missingWords(null)).toBe('Not on this computer yet. It opens here once it comes across.');
+    expect(missingWords(null)).toBe('Not on this computer yet.');
   });
 });

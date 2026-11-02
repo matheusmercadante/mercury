@@ -19,9 +19,8 @@ const place = read('renderer/src/team/everything/everything.css');
 const app = read('renderer/src/App.tsx');
 
 describe('the same words', () => {
-  it('Waiting on you on Today, as on a place and a row', () => {
+  it('Waiting on you on a place and a row, never Waits on you', () => {
     const page = read('renderer/src/team/TodayPage.tsx');
-    expect(page).toContain('label="Waiting on you"');
     expect(page).not.toContain('Waits on you');
     expect(app).toContain('<PlaceList title="Waiting on you"');
   });
@@ -44,12 +43,11 @@ describe('the same spacing', () => {
     expect(rule(today, '.td')).toContain('var(--text-x, 32px)');
   });
   it('one small label', () => {
-    expect(rule(today, '.td-label')).toMatch(/font: 11px var\(--mono\); letter-spacing: \.08em/);
     expect(rule(files, '.fp-sent-label')).toMatch(/font: 11px var\(--mono\); letter-spacing: \.08em/);
     expect(place).toMatch(/\.pl-sec h3 \{[^}]*font: 11px var\(--mono\)[^}]*letter-spacing: \.08em/);
   });
   it('one empty line', () => {
-    for (const r of [rule(files, '.fp-empty'), rule(today, '.td-empty, .td-quiet')]) expect(r).toMatch(/font-size: 13\.5px; line-height: 20px; color: var\(--text-faint\)/);
+    for (const r of [rule(files, '.fp-empty'), rule(today, '.td-empty')]) expect(r).toMatch(/font-size: 13\.5px; line-height: 20px; color: var\(--text-faint\)/);
     expect(rule(files, '.fp-empty')).toMatch(/margin: 26px 0 0/);
   });
 });

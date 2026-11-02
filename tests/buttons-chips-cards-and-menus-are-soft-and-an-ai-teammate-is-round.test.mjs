@@ -47,9 +47,10 @@ describe('the scale', () => {
     expect(styles).toMatch(/--radius:\s*var\(--artifact-corner-small\);/);
     expect(styles).toMatch(/--tag-radius:\s*var\(--radius\);/);
   });
-  it('still lets the film look square everything', () => {
+  it('keeps the film look round too', () => {
+    // Rounded in every theme since 2026-11-02 (one-corner-for-the-whole-app).
     const grid = styles.slice(styles.indexOf(':root[data-skin="ember-grid"] {'));
-    expect(grid.slice(0, grid.indexOf('}'))).toMatch(/--radius:\s*0px/);
+    expect(grid.slice(0, grid.indexOf('}'))).not.toMatch(/--radius:/);
   });
 });
 
@@ -63,7 +64,7 @@ describe('what you press or type in takes the small corner', () => {
     ['.av-btn', 'a viewer button'], ['.av-pin-tag', 'a pin\'s tag'], ['.av-reply-write textarea', 'a reply to a comment'],
     ['.cn-button', 'a Connections button'], ['.cn-input', 'a Connections field'],
     ['.approval-actions button', 'Allow and Deny'], ['.rm-input', 'a group\'s field'], ['.rm-search', 'Find groups'],
-    ['.gc-find', 'find in a chat'], ['.th-follow', 'Follow'], ['.tm-seg', 'a team switch'], ['.rm-btn', 'a group button'],
+    ['.gc-find', 'find in a chat'], ['.th-follow', 'Follow'], ['.tm-seg', 'a team switch'], ['.rm-btn', 'a group button'], ['.tq-sent-line', 'a thread a teammate sent you'],
   ])('%s (%s)', (sel) => {
     const v = cornerOf(sel.includes(',') ? sel.split(',')[0].trim() : sel);
     expect(v, sel).toMatch(SMALL);
@@ -72,9 +73,9 @@ describe('what you press or type in takes the small corner', () => {
 
 describe('cards, sheets and menus take the artifact corner', () => {
   it.each([
-    ['.tq-doc-card', 'the file a teammate sends in its chat'], ['.tq-sent', 'the Needs you card at the top of its chat'],
+    ['.tq-doc-card', 'the file a teammate sends in its chat'],
     ['.approval-card', 'the permission card'], ['.modal', 'a sheet or dialog'], ['.cn-tile', 'a Connections card'], ['.cn-sheet', 'a Connections sheet'],
-    ['.av-note', 'a comment card in the viewer'], ['.av-write textarea', 'the comment box, like the reply box'],
+    ['.av-note', 'a comment card in the viewer'], ['.av-write-box', 'the note box, like the reply box'],
     ['.th-menu', 'a thread menu'], ['.th-pop', 'the view and filters menu'], ['.tc-menu', 'the composer\'s menus'],
     ['.chat-menu', 'a message\'s menu'], ['.chat-confirm', 'a delete question'], ['.chat-emoji', 'the emoji picker'],
     ['.prio-menu', 'priority'], ['.when-menu', 'when'], ['.slash-menu', 'slash commands'], ['.mention-menu', 'mentions'],

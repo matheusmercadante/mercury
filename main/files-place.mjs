@@ -30,6 +30,16 @@ const FILES_FOR_AGENTS = 40;
  * project's name, null for a chat. A chat's copy joins the project file of the
  * same name, as the agent's tools match it (mcp/core/reach.mjs).
  */
+/** Counts for tests: how many threads were parsed for their files. */
+export const filesOfInternals = { parses: 0 };
+
+// Every list of Files reads every thread, so a thread is parsed again only when
+// its lines did: one agent writing must not re-read thousands of threads.
+const PARSED_KEEP = 20000;
+const parsed = new Map();
+const refKey = (r) => `${r.kind}:${r.ownerId ?? r.product ?? ''}:${r.threadId ?? r.id ?? r.roomId ?? ''}`;
+const linesKey = (lines) => { const last = lines.at(-1); return `${lines.length}#${last?.ts ?? ''}#${JSON.stringify(last?.patch ?? last ?? null)?.length ?? 0}`; };
+
 export function filesOf(threads) {
   const files = new Map();
   const add = (key, project, family, thread, marks) => {
@@ -39,7 +49,16 @@ export function filesOf(threads) {
   };
   // A teammate's words relayed to an agent name a file of their conversation, never of this thread.
   const ownLines = (t) => t.lines.filter((l) => !(l?.source === 'system' && l.patch?.from));
-  const read = (t) => ({ families: threadFiles([...filesInLines(ownLines(t)), ...otherFilesInLines(ownLines(t))]), marks: marksOf(entriesOf(t.lines)) });
+  const read = (t) => {
+    const key = `${refKey(t.ref)}@${linesKey(t.lines)}`;
+    const had = parsed.get(key);
+    if (had) return had;
+    filesOfInternals.parses += 1;
+    const out = { families: threadFiles([...filesInLines(ownLines(t)), ...otherFilesInLines(ownLines(t))]), marks: marksOf(entriesOf(t.lines)) };
+    if (parsed.size >= PARSED_KEEP) parsed.delete(parsed.keys().next().value);
+    parsed.set(key, out);
+    return out;
+  };
   const chats = [];
   const named = [];
   for (const t of threads) {
@@ -48,13 +67,18 @@ export function filesOf(threads) {
     if (t.ref.kind === 'chat' || t.ref.kind === 'room') { chats.push({ t, families, marks }); continue; }
     for (const fam of families) named.push({ t, fam, marks });
   }
+  // Only a file of the same name can be another thread's home for it.
+  const sameName = new Map();
+  for (const e of named) sameName.set(e.fam.key, [...(sameName.get(e.fam.key) ?? []), e]);
   for (const e of named) {
-    const project = homeElsewhere(e, named) ?? e.t.project;
+    const project = homeElsewhere(e, sameName.get(e.fam.key)) ?? e.t.project;
     add(`${projectKey(project)}\0${e.fam.key}`, project, e.fam, e.t, e.marks);
   }
+  const inProjects = new Map();
+  for (const f of files.values()) if (f.project) inProjects.set(f.familyKey, [...(inProjects.get(f.familyKey) ?? []), f]);
   for (const { t, families, marks } of chats) {
     for (const fam of families) {
-      const same = [...files.values()].filter((f) => f.familyKey === fam.key && f.project);
+      const same = inProjects.get(fam.key) ?? [];
       if (same.length) for (const f of same) add(f.key, f.project, fam, t, marks);
       else add(`\0${fam.key}`, null, fam, t, marks);
     }
@@ -261,7 +285,7 @@ export function appFilesPlace({ store, team = null, accountRoot, storeRoot, noti
     if (wrote) held = await cloud.read();
     const merged = shelf();
     const readable = new Set(held.folders.map((f) => f.id));
-    const files = filesOf(threads());
+    const files = allFiles();
     for (const [key, p] of local.places) {
       const file = files.find((f) => f.key === key);
       const folder = p.folder ? merged.canon(p.folder) : null;
@@ -338,12 +362,49 @@ export function appFilesPlace({ store, team = null, accountRoot, storeRoot, noti
     return out;
   }
 
-  const find = (key) => filesOf(threads()).find((f) => f.key === key) ?? null;
+  // The same threads give the same files: an open thread asks on every change in the app.
+  let last = { sig: null, files: [] };
+  const allFiles = () => {
+    const ts = threads();
+    const sig = ts.map((t) => `${refKey(t.ref)}@${linesKey(t.lines)}|${t.title}|${t.project}|${(t.dirs ?? []).join(',')}`).join('\n');
+    if (sig !== last.sig) last = { sig, files: filesOf(ts) };
+    return last.files;
+  };
+  const find = (key) => allFiles().find((f) => f.key === key) ?? null;
 
-  const onDisk = async (src, product, thread = null) => {
-    const found = await resolveArtifact({ src, product, products: readable(), accountRoot, storeRoot, thread });
+  const onDisk = async (src, product, thread = null, products = readable()) => {
+    const found = await resolveArtifact({ src, product, products, accountRoot, storeRoot, thread });
     return found.ok ? found.path : null;
   };
+
+  // An open file asks for every copy it names on each change in the app, so a
+  // project's copies are found and hashed once per state of the threads.
+  let copiesFor = { files: null, products: null, byProject: new Map() };
+  const copiesNow = (files) => {
+    if (copiesFor.files !== files) copiesFor = { files, products: readable(), byProject: new Map() };
+    return copiesFor;
+  };
+  function copiesIn(files, project) {
+    const { products, byProject } = copiesNow(files);
+    const key = projectKey(project);
+    if (!byProject.has(key)) {
+      byProject.set(key, (async () => {
+        const out = [];
+        for (const f of files) {
+          if (projectKey(f.project) !== key) continue;
+          for (const v of f.chain) {
+            for (const c of v.copies) {
+              const there = await onDisk(c.path, c.thread.ref.product, null, products);
+              const bytes = there && await bytesOf(there).catch(() => null);
+              if (bytes) out.push({ f, v, c, bytes });
+            }
+          }
+        }
+        return out;
+      })());
+    }
+    return byProject.get(key);
+  }
   const nameInRoom = (src) => String(src).replace(/^\.?\/?attachments\//, '');
   // A group's file may still be in the cloud, and drawing the list fetches nothing.
   async function openedOf(file, v, { fetch = false } = {}) {
@@ -455,7 +516,7 @@ export function appFilesPlace({ store, team = null, accountRoot, storeRoot, noti
   return {
     async list() {
       crossSoon();
-      const files = filesOf(threads());
+      const files = allFiles();
       const lib = shelf();
       const placed = [...lib.places.values()].filter((p) => p.folder);
       const threadOf = (ref) => `${ref.ownerId ?? ref.product}/${ref.threadId ?? ref.id}`;
@@ -528,7 +589,7 @@ export function appFilesPlace({ store, team = null, accountRoot, storeRoot, noti
     /** A file's place is by its identity, so this holds for every version, past and to come. */
     async moveFile({ key, folder = null, by = team?.state?.().me?.id ?? null }) {
       const lib = shelf();
-      const file = filesOf(threads()).find((f) => f.key === key);
+      const file = allFiles().find((f) => f.key === key);
       if (!file) throw new Error('that file is gone');
       const into = folder ? lib.folders.find((f) => f.id === lib.canon(folder)) : null;
       if (folder && !into) throw new Error('that folder is gone');
@@ -602,7 +663,7 @@ export function appFilesPlace({ store, team = null, accountRoot, storeRoot, noti
       if (!here || !store.readItem(product, id)) return { ok: false, error: 'that thread is gone' };
       const lines = store.readHistory(product, id, { max: Number.MAX_SAFE_INTEGER });
       const clean = String(basePath ?? '').replace(/^\.\//, '');
-      const names = taken ?? filesOf(threads()).find((f) => f.chain.some((v) => v.copies.some((c) => c.thread.ref.id === id && c.path === clean)))?.chain.map((v) => v.name) ?? [];
+      const names = taken ?? allFiles().find((f) => f.chain.some((v) => v.copies.some((c) => c.thread.ref.id === id && c.path === clean)))?.chain.map((v) => v.name) ?? [];
       const saved = saveNextVersion({ dir: here.dir, threadId: id, lines, basePath, baseId, text, taken: names });
       if (!saved.ok) return saved;
       if (here.team?.direct) store.answerItem(product, id, { answer: editedWords(saved.shown, saved.path) });
@@ -619,7 +680,7 @@ export function appFilesPlace({ store, team = null, accountRoot, storeRoot, noti
       if (reviewKind(name) !== 'image') return null;
       const family = familyOfName(name);
       const n = Number(/[-_ ]v(\d+)\.[^.]+$/i.exec(name)?.[1] ?? 0);
-      for (const f of filesOf(threads()).filter((x) => familyIn(x.key) === family)) {
+      for (const f of allFiles().filter((x) => familyIn(x.key) === family)) {
         const v = f.chain.find((x) => x.name === name) ?? (n ? f.chain[n - 1] : null);
         const found = v && await openedOf(f, v);
         if (found) return found;
@@ -646,7 +707,7 @@ export function appFilesPlace({ store, team = null, accountRoot, storeRoot, noti
     async lineFor({ product, id }) {
       const isHere = (t) => t.ref.kind === 'thread' && t.ref.product === product && t.ref.id === id;
       const out = [];
-      for (const whole of filesOf(threads()).filter((f) => f.chain.some((v) => v.copies.some((c) => isHere(c.thread))))) {
+      for (const whole of allFiles().filter((f) => f.chain.some((v) => v.copies.some((c) => isHere(c.thread))))) {
         const { chain } = await lineChain(whole);
         if (!chain.length) continue;
         out.push({
@@ -666,38 +727,35 @@ export function appFilesPlace({ store, team = null, accountRoot, storeRoot, noti
      * `path`: copies in the same project with the same bytes, under whatever
      * name. `file` is the version's name in this thread; theirs are given it.
      */
-    async sameFile({ product, id, path: src, file: here }) {
+    async sameFile({ product, id, path: src, file: here }, files = allFiles()) {
       const none = { key: null, notes: [], approvals: [] };
-      const files = filesOf(threads());
       const isHere = (t) => t.ref.kind !== 'shared' && t.ref.product === product && t.ref.id === id;
       const home = files.find((f) => f.chain.some((v) => v.copies.some((c) => isHere(c.thread) && c.path === src)));
-      const mine = await onDisk(src, product);
+      const mine = await onDisk(src, product, null, copiesNow(files).products);
       const me = mine && await bytesOf(mine);
       if (!home || !me) return none;
       const notes = [];
       const approvals = [];
-      for (const f of files) {
-        if (projectKey(f.project) !== projectKey(home.project)) continue;
-        for (const v of f.chain) {
-          for (const c of v.copies) {
-            if (isHere(c.thread)) continue;
-            const there = await onDisk(c.path, c.thread.ref.product);
-            const it = there && await bytesOf(there);
-            if (!it || it.size !== me.size || it.hash !== me.hash) continue;
-            for (const n of f.notes) {
-              if (n.thread !== c.thread || n.file !== v.id || notes.some((x) => x.id === n.id)) continue;
-              const { thread, ...rest } = n;
-              notes.push({ ...rest, file: here, in: thread.title, key: f.key });
-            }
-            for (const a of f.approvals) {
-              if (a.thread !== c.thread || a.file !== v.id) continue;
-              const { thread: _t, ...rest } = a;
-              approvals.push({ ...rest, file: here, key: f.key });
-            }
-          }
+      for (const { f, v, c, bytes: it } of await copiesIn(files, home.project)) {
+        if (isHere(c.thread) || it.size !== me.size || it.hash !== me.hash) continue;
+        for (const n of f.notes) {
+          if (n.thread !== c.thread || n.file !== v.id || notes.some((x) => x.id === n.id)) continue;
+          const { thread, ...rest } = n;
+          notes.push({ ...rest, file: here, in: thread.title, key: f.key });
+        }
+        for (const a of f.approvals) {
+          if (a.thread !== c.thread || a.file !== v.id) continue;
+          const { thread: _t, ...rest } = a;
+          approvals.push({ ...rest, file: here, key: f.key });
         }
       }
       return { key: home.key, notes, approvals };
+    },
+
+    /** sameFile for every file a thread names, from one reading of the threads. */
+    async sameFiles({ product, id, copies }) {
+      const files = allFiles();
+      return Promise.all((copies ?? []).map((c) => this.sameFile({ product, id, path: String(c?.path ?? ''), file: String(c?.file ?? '') }, files)));
     },
 
     /** A comment, approval or "seen" from the big view, written where it belongs. */

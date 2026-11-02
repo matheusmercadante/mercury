@@ -326,7 +326,7 @@ export interface ConnectionTile {
   since: number | null; nextTryAt: number | null; stoppedTryingAt: number | null;
   seen: number | null; seenAtLeast: boolean; things: string | null;
   changed: string[]; reads: string[]; writes: string[];
-  group: string; access: ConnectionAccess; needs: string | null; custom: boolean; address: string; redirect: string | null; hasClient: boolean;
+  group: string; access: ConnectionAccess; needs: string | null; hint: string | null; said: { reads: string; writes?: string } | null; custom: boolean; address: string; redirect: string | null; hasClient: boolean;
   lastUsedAt: number | null; failures: ConnectionFailure[]; endsAt: number | null;
   copyable: boolean; copyAsks: string | null; copy?: KeptCopy | null;
   chooses?: boolean; chosen?: string[]; offered?: { name: string; description: string; runsAlone: boolean }[];
@@ -1726,7 +1726,7 @@ declare global {
       filesPlaceEdit?(p: { key: string; text: string }): Promise<{ ok: boolean; error?: string; goes?: 'sent'; to?: string }>;
       filesPlaceMark?(p: { key: string; mark: ArtifactMark }): Promise<{ ok: boolean; error?: string }>;
       filesPlaceFolder?(p: FileFolderAct): Promise<{ ok: boolean; error?: string; folder?: string | null }>;
-      fileElsewhere?(p: { product: string; id: string; path: string; file: string }): Promise<FileElsewhere>;
+      fileElsewhere?(p: { product: string; id: string; copies: { path: string; file: string }[] }): Promise<FileElsewhere[]>;
       fileLine?(p: { product: string; id: string }): Promise<FileLine[]>;
       teamComment(p: { personId: string; threadId: string; text: string }): Promise<TeamCallResult>;
       teamContinueBrief(p: { personId: string; threadId: string }): Promise<{ title: string; body: string; files: { name: string; srcPath: string }[]; from: { personId: string; threadId: string } }>;
