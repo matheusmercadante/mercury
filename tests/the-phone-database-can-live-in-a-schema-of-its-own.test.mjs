@@ -156,7 +156,9 @@ describe('the Mac', () => {
     const ch = { on: (kind, filter) => { listened.push(filter); return ch; }, subscribe: () => ch };
     const backend = supabaseBackend({ channel: () => ch, removeChannel: () => {} }, { schema: 'mercury' });
     backend.subscribeRooms(() => {});
-    expect(listened.length).toBe(8);
+    // Every listener the file has, so one Agentbox adds is counted too.
+    const written = fs.readFileSync(path.join(repo, 'main', 'team', 'rooms-supabase.mjs'), 'utf8').match(/\.on\('postgres_changes'/g).length;
+    expect(listened.length).toBe(written);
     for (const f of listened) expect(f.schema).toBe('mercury');
   });
 
