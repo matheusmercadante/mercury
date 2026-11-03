@@ -1074,9 +1074,9 @@ export function registerIpc({ store, supervisor, config, window, analytics = NO_
   // An edited document, as the next version of itself. In a conversation it goes
   // as a message, which is what carries a file to the other person; elsewhere as
   // a mark, which starts nothing.
-  ipcMain.handle('zero:file-new-version', async (_e, { product, id, path: basePath, text } = {}) => {
+  ipcMain.handle('zero:file-new-version', async (_e, { product, id, path: basePath, text, since } = {}) => {
     try {
-      const out = filesPlaceNow().editOnThread({ product, id, path: basePath, text });
+      const out = filesPlaceNow().editOnThread({ product, id, path: basePath, text, since });
       if (!out.ok) return out;
       push();
       void team?.syncNow?.()?.catch?.(() => {});
@@ -1119,7 +1119,7 @@ export function registerIpc({ store, supervisor, config, window, analytics = NO_
     return { ...(await branchesIn(repoPath)), preset: config.projectBaseBranch?.[product] ?? null };
   });
 
-  ipcMain.handle('zero:compose', async (_e, { product, title, body, kind, priority, runAt, start, labels, engine, model, effort, baseBranch, assignee, due, visibility, visibleTo, fromPhone }) => {
+  ipcMain.handle('zero:compose', async (_e, { product, title, body, kind, priority, runAt, start, labels, engine, model, effort, baseBranch, assignee, due, visibility, visibleTo, fromPhone, onMac }) => {
     const branch = await branchOffered(product, baseBranch);
     const out = store.composeItem(product, {
       baseBranch: branch,
@@ -1152,6 +1152,8 @@ export function registerIpc({ store, supervisor, config, window, analytics = NO_
       // fields cannot be corrected separately.
       model: supervisor.modelOffered(engine, model),
     });
+    // Before the wake below, so its first run cannot start in the cloud.
+    if (onMac === true && out?.id) supervisor.setThreadOnMac({ [out.id]: true });
     // A real thread ends the walk's hold on agents (`Supervisor#sentByThem`).
     supervisor.sentByThem(labels);
     // THAT a task was written, and whether in practice. Never its words.
