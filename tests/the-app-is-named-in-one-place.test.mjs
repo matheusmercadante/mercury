@@ -115,6 +115,10 @@ describe('nothing spells a name this app has had', () => {
     // makes the fixture a record of a conversation nobody had.
     'called Powerup', 'Powerup application, also known as Zero',
     'Found it. the inbox and Harbour read different stores',
+    // A COMPANY THAT SHARES THIS FORK'S NAME. Agentbox's sample lead table
+    // (renderer/src/artifact-fixtures.ts) lists Mercury the bank; editing the
+    // fixture instead would conflict with every sync that touches it.
+    'Mercury,Banking,San Francisco',
   ];
 
   // COMMENTS ARE NOT COPY AND ARE NOT CHECKED. They quote her, verbatim, with
