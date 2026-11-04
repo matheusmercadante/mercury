@@ -2,7 +2,7 @@ import { nameSlug } from '../../shared/product-name.mjs';
 
 // Ticket IDs are global; the visible snapshot is the only lookup source.
 // Do not reinterpret URLs, filenames, or partial IDs as navigation promises.
-// A branch is `<slug>/w-…` (main/task-folders.mjs).
+// A branch is `<slug>/w-…` (main/task-folders.mts).
 const BRANCH = `(?:${nameSlug}\\/)?`;
 const REFERENCE = new RegExp(`^${BRANCH}(w-[a-f0-9]{10})(?:-[a-z0-9-]+)?$`, 'i');
 const IN_TEXT = new RegExp(`(?<![\\w/.:@-])${BRANCH}w-[a-f0-9]{10}(?:-[a-z0-9]+(?:-[a-z0-9]+)*)?(?![\\w/-]|\\.[a-z0-9])`, 'gi');

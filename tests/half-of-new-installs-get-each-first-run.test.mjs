@@ -7,9 +7,9 @@ import { describe, expect, it } from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { ARMS, armFor, readArm } from '../shared/onboarding-arm.mjs';
-import { createAnalytics } from '../main/analytics.mjs';
-import { sanitize } from '../shared/analytics-events.mjs';
+import { ARMS, armFor, readArm } from '../shared/onboarding-arm.mts';
+import { createAnalytics } from '../main/analytics.mts';
+import { sanitize } from '../shared/analytics-events.mts';
 import { envName } from '../shared/product-name.mjs';
 
 const dir = () => fs.mkdtempSync(path.join(os.tmpdir(), 'arm-'));

@@ -24,7 +24,7 @@ import { fileURLToPath } from 'node:url';
 import { NAME, WAS, nameSlug, readEnv, envNames } from '../shared/product-name.mjs';
 import { appHome, defaultStoreRoot, storeRootEnv } from '../main/store/home.mjs';
 import { JOIN_SCHEME, JOIN_SITE } from '../shared/room-links.mjs';
-import { SHIPPED_FROM } from '../main/ship-conflict-brief.mjs';
+import { SHIPPED_FROM } from '../main/ship-conflict-brief.mts';
 import { ticketReference, ticketPieces } from '../renderer/src/ticket-references';
 
 const repo = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -85,7 +85,7 @@ describe("Agentbox's store root", () => {
 });
 
 describe("Agentbox's data folder", () => {
-  // main/main.mjs walks WAS for an older Chromium data folder, and that folder
+  // main/main.mts walks WAS for an older Chromium data folder, and that folder
   // holds the single-instance lock.
   it('is not on the list of names Mercury falls back to', () => {
     for (const was of AGENTBOX_NAMES) expect(WAS).not.toContain(was);

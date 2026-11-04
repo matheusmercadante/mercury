@@ -13,7 +13,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { servedHere } from '../main/cloud/run.mjs';
+import { servedHere } from '../main/cloud/run.mts';
 import { envName } from '../shared/product-name.mjs';
 
 let tmp;

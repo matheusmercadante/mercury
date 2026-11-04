@@ -6,6 +6,6 @@ export const HOSTED_SERVICES = Object.freeze({
   // Agentbox Cloud (CLOUD_ADDRESS): its sign-in, runs on its server, and a
   // release baking it in (main/cloud/config.mjs cloudAccountConfig).
   cloud: false,
-  // The Feedback card's server function (FEEDBACK_ADDRESS in main/feedback.mjs).
+  // The Feedback card's server function (FEEDBACK_ADDRESS in main/feedback.mts).
   feedback: false,
 });

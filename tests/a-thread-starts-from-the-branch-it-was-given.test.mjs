@@ -20,7 +20,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { ensureTaskFolder, releaseTaskFolder, taskBranch, taskFolderPath } from '../main/task-folders.mjs';
+import { ensureTaskFolder, releaseTaskFolder, taskBranch, taskFolderPath } from '../main/task-folders.mts';
 import { whereTheWorkStands } from '../main/git-change.mjs';
 
 const git = (cwd, ...args) => execFileSync('git', args, { cwd, encoding: 'utf8' }).trim();

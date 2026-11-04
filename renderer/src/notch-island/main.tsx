@@ -10,7 +10,7 @@
 // it moves, so the Mac's glass can follow it.
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { HIDE_CHOICES, cardLines, cardScale, inPoints } from '../../../shared/corner-tag.mjs';
+import { HIDE_CHOICES, cardLines, cardScale, inPoints } from '../../../shared/corner-tag.mts';
 import { NAME } from '../../../shared/product-name.mjs';
 import { Lattice, Move, markMoves } from '../corner-tag/lattice';
 import '../corner-tag/corner-tag.css';
@@ -75,7 +75,7 @@ function useIslandState() {
   const [state, setState] = useState<State>(demo ?? { ready: [], working: 0, now: Date.now(), mode: 'shut', bar: 30, notch: 0 });
   useEffect(() => bridge?.onState((s) => setState(s)), []);
   // The tray's one number for its size, and the list's share of it
-  // (shared/corner-tag.mjs, tagScale and cardScale).
+  // (shared/corner-tag.mts, tagScale and cardScale).
   useEffect(() => {
     if (!state.scale) return;
     const root = document.documentElement;

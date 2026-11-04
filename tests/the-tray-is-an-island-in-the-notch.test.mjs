@@ -22,8 +22,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CLOSE_AFTER_MS, OPEN_AFTER_MS, SCREEN_EVERY_MS, SETTLE_MS } from '../main/notch-island.mjs';
-import { TONE_EVERY_MS } from '../main/corner-tag.mjs';
-import { tagScaleOn } from '../shared/corner-tag.mjs';
+import { TONE_EVERY_MS } from '../main/corner-tag.mts';
+import { tagScaleOn } from '../shared/corner-tag.mts';
 import { notchIslandRig, fakeGlass, DELL, WAITING } from './helpers/notch-island-rig.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -38,7 +38,7 @@ function up(opts) {
 
 describe('it is the tray on a Mac', () => {
   it('is what the app starts on a Mac, in the same glass, and the corner tag everywhere else', () => {
-    const main = fs.readFileSync(path.join(root, 'main/main.mjs'), 'utf8');
+    const main = fs.readFileSync(path.join(root, 'main/main.mts'), 'utf8');
     expect(main).toMatch(/cornerTag = process\.platform === 'darwin' \? createNotchIsland\(/);
     expect(main).toMatch(/notch: loadNotch\(\)/);
     expect(main).toMatch(/trayCommon = \{[\s\S]{0,200}glass: loadLiquidGlass\(\)/);
@@ -46,7 +46,7 @@ describe('it is the tray on a Mac', () => {
   });
 
   it('counts a hide the way the corner tag does', () => {
-    const main = fs.readFileSync(path.join(root, 'main/main.mjs'), 'utf8');
+    const main = fs.readFileSync(path.join(root, 'main/main.mts'), 'utf8');
     expect(main).toMatch(/createNotchIsland\(\{[\s\S]{0,300}count: \(name, props\) => analytics\.track\(name, props\)/);
   });
 

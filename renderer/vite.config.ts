@@ -3,7 +3,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 // Three pages: the app, the corner tag that floats over other apps
-// (main/corner-tag.mjs loads it into its own small window), and the island in
+// (main/corner-tag.mts loads it into its own small window), and the island in
 // the notch that takes its place on a Mac (main/notch-island.mjs).
 const page = (name: string) => fileURLToPath(new URL(name, import.meta.url));
 

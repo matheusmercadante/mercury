@@ -7,7 +7,7 @@ import { EventEmitter } from 'node:events';
 import { reportDocumentHeight, wantsDocumentHeight } from '../main/frame-document-height.mts';
 import { quietTheFramesScrollbars } from '../main/frame-scrollbars.mts';
 import { HtmlPreview } from '../renderer/src/components/HtmlPreview.tsx';
-import { DOC_SCHEME } from '../shared/schemes.mjs';
+import { DOC_SCHEME } from '../shared/schemes.mts';
 
 describe('expanded HTML shows the whole page', () => {
   it('installs the sizing bridge only in the requested document frame', () => {

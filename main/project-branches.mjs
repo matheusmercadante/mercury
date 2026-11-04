@@ -12,7 +12,7 @@ const listed = (out) => String(out ?? '').split('\n').map((l) => l.trim())
 
 /**
  * `{ branches, main }`, newest commit first. `main` is the branch a thread
- * starts from when nobody chose one (main/task-folders.mjs `baseRef`), or null.
+ * starts from when nobody chose one (main/task-folders.mts `baseRef`), or null.
  * A folder that is not a repository answers no branches.
  */
 export function branchesIn(repoPath) {

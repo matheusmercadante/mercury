@@ -14,7 +14,7 @@ import path from 'node:path';
 import { afterAll } from 'vitest';
 import { setAppHome } from './app-home.mjs';
 import { FORKED_FROM } from '../shared/product-name.mjs';
-import { keepAnswerModesIn } from '../main/answer-modes.mjs';
+import { keepAnswerModesIn } from '../main/answer-modes.mts';
 
 const home = fs.mkdtempSync(path.join(os.tmpdir(), 'agentbox-home-'));
 // UNDER EVERY NAME THIS APP HAS HAD, not just one. An agent session inherits
@@ -27,8 +27,8 @@ setAppHome(home);
 // do, and none of them may reach that store.
 for (const was of FORKED_FROM) process.env[`${was.toUpperCase()}_HOME`] = home;
 
-// AND A FOLDER OF HER OWN for what a reply may do, as main/main.mjs gives the
-// app at start: until one is named, no mode is kept (main/answer-modes.mjs).
+// AND A FOLDER OF HER OWN for what a reply may do, as main/main.mts gives the
+// app at start: until one is named, no mode is kept (main/answer-modes.mts).
 const userDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agentbox-user-'));
 keepAnswerModesIn({ userDir, storeRoot: home });
 
@@ -46,7 +46,7 @@ process.env.TZ = 'America/Los_Angeles';
 process.env.AGENTBOX_CLOUD_CONFIG = path.join(home, 'no-cloud-runs-here.json');
 
 // NOBODY IS SIGNED IN. AGENTBOX_PERSON_ID names whoever is signed into the team
-// on this Mac; main sets it at sign-in (main/team/index.mjs) so the store server
+// on this Mac; main sets it at sign-in (main/team/index.mts) so the store server
 // a worker talks through stamps every line with its author, and
 // main/store/work-items.mjs reads it. A session the app spawns for a work item
 // INHERITS it, so the suite read real machine state: tests whose premise is

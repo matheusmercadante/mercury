@@ -20,7 +20,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { belongsInInbox, belongsInProgress, belongsOnTheRail, stoppable, gaveUpOnTheAnswer } from '../renderer/src/list-rules.ts';
-import { Supervisor } from '../main/supervisor.mjs';
+import { Supervisor } from '../main/supervisor.mts';
 import { Name } from '../shared/product-name.mjs';
 
 const ANSWERED = Date.parse('2026-10-23T21:55:03Z');

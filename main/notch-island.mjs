@@ -9,7 +9,7 @@
 // IT WEARS THE TRAY'S GLASS, NOT ITS OWN. A black island fused to the notch was
 // built first and sent back: "not the app's style, that black is too strong;
 // keep the design that exists". So it is the corner tag's material exactly
-// (main/corner-tag.mjs): the Mac's own Liquid Glass where there is one, clear
+// (main/corner-tag.mts): the Mac's own Liquid Glass where there is one, clear
 // while shut like the tag and regular while open like its list, with the ink
 // following how bright the screen behind it is. The page reports the island's
 // shape on every frame it moves, and the glass is put there.
@@ -27,9 +27,9 @@
 // What it drops: there is nothing to drag or place. It sits where the notch
 // is, on the screen the pointer is on, at the notch's height.
 
-import { hiddenUntil, newSince, notDismissed, readyNow, tagScaleOn, tagShows, tagZoom, toneFromLuma, zoomStep, HIDE_CHOICES } from '../shared/corner-tag.mjs';
+import { hiddenUntil, newSince, notDismissed, readyNow, tagScaleOn, tagShows, tagZoom, toneFromLuma, zoomStep, HIDE_CHOICES } from '../shared/corner-tag.mts';
 import { displayUnder, islandAnchor, islandBounds, OPEN_WIDTH } from '../shared/notch-island.mjs';
-import { CLOSE_AFTER_MS, OPEN_AFTER_MS, TONE_EVERY_MS } from './corner-tag.mjs';
+import { CLOSE_AFTER_MS, OPEN_AFTER_MS, TONE_EVERY_MS } from './corner-tag.mts';
 
 export { CLOSE_AFTER_MS, OPEN_AFTER_MS };
 // How long the page takes to shrink the island (notch-island.css); the window
@@ -49,13 +49,13 @@ const MODES = ['shut', 'open'];
 
 export function createNotchIsland({
   BrowserWindow, screen, ipcMain, Menu, powerMonitor, config, saveConfig, mainWindow, load, preload,
-  // The notch on a display, by its id (main/liquid-glass.mjs, loadNotch).
+  // The notch on a display, by its id (main/liquid-glass.mts, loadNotch).
   notch = () => null,
-  // The Mac's own Liquid Glass (main/liquid-glass.mjs), or null, and then the
+  // The Mac's own Liquid Glass (main/liquid-glass.mts), or null, and then the
   // page draws the tray's own glass.
   glass = null,
   // What a notification has told you about since you were last at the app
-  // (main/notify.mjs), counted as new the way the corner tag counts it.
+  // (main/notify.mts), counted as new the way the corner tag counts it.
   told = () => [],
   count = () => {}, now = () => Date.now(), setTimer = setTimeout, clearTimer = clearTimeout, mac = process.platform === 'darwin',
 }) {

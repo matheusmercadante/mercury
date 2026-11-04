@@ -18,7 +18,7 @@ import { describe, it, expect } from 'vitest';
 import { HOSTED_SERVICES } from '../shared/hosted-services.mjs';
 import { CLOUD_ADDRESS } from '../shared/cloud-address.mjs';
 import { cloudAccountConfig } from '../main/cloud/config.mjs';
-import { FEEDBACK_ADDRESS, feedbackUrl, sendFeedback } from '../main/feedback.mjs';
+import { FEEDBACK_ADDRESS, feedbackUrl, sendFeedback } from '../main/feedback.mts';
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ON = { cloud: true, feedback: true };
@@ -89,7 +89,7 @@ describe('feedback', () => {
   });
 
   it('is not offered on screen when it has nowhere to go', () => {
-    const ipc = fs.readFileSync(path.join(repo, 'main', 'ipc.mjs'), 'utf8');
+    const ipc = fs.readFileSync(path.join(repo, 'main', 'ipc.mts'), 'utf8');
     expect(ipc).toMatch(/feedback: !!feedbackUrl\(config\)/);
     const app = fs.readFileSync(path.join(repo, 'renderer', 'src', 'App.tsx'), 'utf8');
     expect(app).not.toMatch(/onFeedback=\{\(\) => setFeedbackOpen\(true\)\}/);

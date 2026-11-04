@@ -11,11 +11,11 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { Supervisor } from '../main/supervisor.mjs';
-import { Store } from '../main/store.mjs';
-import { readSettings, setProjectBaseBranch } from '../main/settings.mjs';
+import { Supervisor } from '../main/supervisor.mts';
+import { Store } from '../main/store.mts';
+import { readSettings, setProjectBaseBranch } from '../main/settings.mts';
 import { branchesIn } from '../main/project-branches.mjs';
-import { taskBranch } from '../main/task-folders.mjs';
+import { taskBranch } from '../main/task-folders.mts';
 import { occurrenceFields } from '../main/repeats.mjs';
 
 const git = (cwd, ...args) => execFileSync('git', args, { cwd, encoding: 'utf8' }).trim();

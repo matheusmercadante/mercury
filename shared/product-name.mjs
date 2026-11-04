@@ -37,7 +37,7 @@
 export const NAME = 'Mercury';
 
 /**
- * Every name this app has had, newest first. main/main.mjs walks this to find
+ * Every name this app has had, newest first. main/main.mts walks this to find
  *  the data folder an existing install already writes to, because Chromium
  *  names that folder after the app and a rename would otherwise hand her an
  *  empty one and lose her theme, her zoom and her project order. HISTORY IS

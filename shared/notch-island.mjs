@@ -8,7 +8,7 @@
 // the height of the menu bar, the way a notch would.
 //
 // What it counts, when it shows, how it hides and how you turn it off are the
-// corner tag's rules (shared/corner-tag.mjs), unchanged. main/notch-island.mjs
+// corner tag's rules (shared/corner-tag.mts), unchanged. main/notch-island.mjs
 // owns the window and renderer/src/notch-island the page.
 
 /** The bar's height on a screen whose menu bar does not say: one that hides itself. */
@@ -21,7 +21,7 @@ export const OPEN_WIDTH = 440;
  * Where the island hangs on this display: the middle of its notch, or of its
  * top edge on a screen without one, and how tall the bar it fills is.
  * `notch` is { x, width, height } in points from the screen's top left
- * (main/liquid-glass.mjs, loadNotch), or null.
+ * (main/liquid-glass.mts, loadNotch), or null.
  */
 export function islandAnchor(display, notch) {
   const b = display.bounds;
