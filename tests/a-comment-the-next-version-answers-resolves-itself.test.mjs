@@ -125,6 +125,10 @@ beforeEach(async () => {
   const n1 = { do: 'note', id: 'n1', file: 'plan.md', place: { kind: 'whole' }, text: 'Shorter intro' };
   store.fileMark('website', thread.id, n1);
   await noteToItsAgent({ store, supervisor, product: 'website', id: thread.id, mark: n1 });
+  // A version answers a note only when it is newer than the note's sending, to
+  // the millisecond (`answeredNotes`). An agent's next version always is; here
+  // the next line could land in the same millisecond, and failed 3 runs in 6.
+  for (const sent = Date.now(); Date.now() <= sent;) { /* let the clock move on */ }
 });
 
 describe('on a thread in the store', () => {
