@@ -3,7 +3,6 @@
 // button and built like its menu; what they say lives here.
 import type { UsageLimit } from './types';
 import { accountName } from '../../shared/account-names.mts';
-import { teammateIdOf } from '../../shared/teammates.mjs';
 
 export type CloudMode = 'mac' | 'full' | 'all';
 
@@ -87,6 +86,8 @@ export interface CloudStatus {
   plan?: string | null;
   /** Runs on this Mac the cloud could take now (supervisor `_movableToCloud`). */
   movable?: string[];
+  /** The keys saved for cloud runs, by name only (main/cloud/keys.mjs). */
+  keys?: { name: string; savedAt: number | null; label?: string | null }[];
 }
 
 const agentName = (engine: 'claude' | 'codex') => (engine === 'codex' ? 'Codex' : 'Claude Code');
@@ -263,7 +264,6 @@ export function threadPlace(
   session: { where?: string; movable?: boolean } | null,
   cloud: CloudStatus | null,
 ): 'cloud' | 'here' | 'kept' | 'move' | 'needs' | null {
-  if (teammateIdOf(item)) return null;
   // The phone has no cloud status, only the computer's word on each run.
   if (session?.movable && session.where !== 'cloud') return 'move';
   if (!onCloudPlan(cloud)) return null;

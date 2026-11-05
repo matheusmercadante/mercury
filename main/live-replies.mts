@@ -73,16 +73,19 @@ export interface ReplyPayload {
   now?: boolean;
   from?: string | null;
   answer?: unknown;
+  /** A reply set for later: written down now, handed to no session. */
+  later?: boolean;
 }
 
 export function submitReply(supervisor: ReplySupervisor, payload: ReplyPayload, commit: () => Promise<ReplyItem | null | undefined> | ReplyItem | null | undefined) {
-  const { product, id, status, permissionMode, now = false, from = null } = payload;
+  const { product, id, status, permissionMode, now = false, from = null, later = false } = payload;
   const answer = from ? framedTeammate(from, payload.answer) : payload.answer;
   const key = JSON.stringify([product, id]);
   const sends = supervisor._replySends ??= new Map();
   const previous = sends.get(key) ?? Promise.resolve();
   const session = supervisor.sessions?.get(id);
-  const live = session?.product === product && typeof session.child?.steer === 'function'
+  // A reply set for later waits in the ledger for its time, never in a session.
+  const live = !later && session?.product === product && typeof session.child?.steer === 'function'
     && !(from && session.remoteIdle)
     && status !== 'done' && typeof answer === 'string' && answer.trim() && answer !== '(withdrawn)';
   // Observe rejections immediately, including when an earlier reply is still
@@ -187,6 +190,17 @@ export function queuedReplyText(item: QueuedItem, history: QueuedLine[], deliver
 }
 
 const toldNameOf=(item: QueuedItem)=>(item.wrote?.answer?.source==='system'?item.wrote.answer.from:null);
+
+// A pressed option, as the app writes it (pickOption in renderer/src/App.tsx).
+const PICK=/^Option \d+: [^\n]+$/;
+
+// A pick is the go-ahead. Bare, "Option 2: Binary units" after "then wait for
+// my pick" was read as a choice to note, and the run ended with nothing built
+// (F-182).
+export function framedPick(answer: string): string{
+ if(!PICK.test(answer))return answer;
+ return `${answer}\n\nThey chose this from the options you offered. Choosing is the go-ahead: do what that option says now, rather than only noting the choice. Anything their standing instructions say needs their yes still does.`;
+}
 
 // A teammate's words, as a turn reads them. A hand-off from a teammate is work
 // to do, not the person's yes to anything.

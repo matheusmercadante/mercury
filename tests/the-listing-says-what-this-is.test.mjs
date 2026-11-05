@@ -49,8 +49,10 @@ describe('the npm listing', () => {
 
   it('describes the app in one sentence that names both engines', () => {
     const said = pkg.description;
-    // The exact wording settled in w-5a90aa1ea4. Not a paraphrase of it.
-    expect(said).toBe('An inbox for managing dozens of Claude Code and Codex agents.');
+    // The repo description she picked on 2026-10-16 (option A in
+    // reports/listings-ready-to-submit.md), cut to its first sentence, so npm
+    // and GitHub say the same thing. Not a paraphrase of it.
+    expect(said).toBe('A desktop GUI for running dozens of Claude Code and Codex agents in parallel, each in its own git worktree.');
     // One sentence: the description is one line, not several sentences.
     expect(said.match(/\./g)).toHaveLength(1);
     // And it has to still be true when a third engine lands, which is what
@@ -65,6 +67,8 @@ describe('the npm listing', () => {
     // page shows no Repository link and no Issues link at all.
     const REPO = 'https://github.com/matheusmercadante/mercury';
     expect(pkg.repository.url).toBe(`git+${REPO}.git`);
+    // Agentbox's homepage is its website since w-32efa85cd6; Mercury has no
+    // website, so its homepage is the fork's README.
     expect(pkg.homepage).toBe(`${REPO}#readme`);
     expect(pkg.bugs.url).toBe(`${REPO}/issues`);
     // The old private repo must never be where a stranger is SENT. The update

@@ -3213,6 +3213,20 @@ body {
 .opt-row a { pointer-events: none; }
 .opt-rec { font-size: 11.5px; color: var(--text-faint); flex-shrink: 0; padding-left: 8px; }
 
+/* The tasks a close question is about, named so one filed far up the thread
+   can be found. The dot matches the filed list's (threads-made.css). */
+.opt-named { margin: 0 0 6px; }
+.close-ask-at-task > .opt-strip { margin-top: 12px; }
+.opt-named-row {
+  display: flex; align-items: center; gap: 10px; width: 100%; min-height: 30px; padding: 0 16px;
+  appearance: none; background: transparent; border: 0; cursor: pointer; text-align: left;
+  font: inherit; font-size: 14px; color: var(--text); transition: background 0.15s;
+}
+.opt-named-row:hover { background: var(--wash); }
+.opt-named-row:focus-visible { outline: 1px solid var(--text-faint); outline-offset: -1px; }
+.opt-named-dot { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.opt-named-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 .reply-dock { margin-top: 26px; border-top: 1px solid var(--line); padding-top: 16px; }
 .reply-dock textarea {
   width: 100%;
@@ -5554,6 +5568,16 @@ img.product-mark { object-fit: cover; opacity: 1; }
   padding: 6px 12px; font: 13.5px inherit; font-family: inherit; color: var(--text); cursor: pointer;
 }
 a.set-ghost { text-decoration: none; display: inline-block; }
+.set-row.set-key-replace { display: flex; align-items: center; gap: 9px; }
+.set-key-input {
+  flex-grow: 1; min-width: 0; height: 32px; padding: 0 10px; box-sizing: border-box; background: var(--surface); border: 1px solid var(--line-strong);
+  border-radius: var(--radius); outline: 0; font: inherit; font-size: 13px; color: var(--text);
+}
+.set-key-input:focus { border-color: var(--text-faint); }
+.set-key-replace { flex-wrap: wrap; }
+.set-key-name { flex-basis: 100%; font-size: 14px; color: var(--text); }
+.set-key-said { flex-basis: 100%; font-size: 12.5px; line-height: 17px; color: var(--text-dim); }
+.set-key-input::placeholder { color: var(--text-faint); }
 .set-ghost:hover { background: var(--bg-hover); }
 .set-ghost:disabled { color: var(--text-faint); cursor: default; }
 

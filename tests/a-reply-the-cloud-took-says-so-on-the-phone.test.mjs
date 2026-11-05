@@ -77,7 +77,7 @@ describe('a reply in its thread', () => {
   it('the thread draws the words for the cloud, and offers no Send now on a reply the cloud has', () => {
     const page = read('mobile/src/app/thread/[product]/[id].tsx');
     expect(page).toContain("e.cloud ? `Working in ${NAME} Cloud`");
-    expect(page).toMatch(/e\.pending && !e\.refused && !e\.cloud && !e\.sent && sendNow/);
+    expect(page).toMatch(/e\.pending && !e\.refused && !e\.cloud && !e\.toCloud && !e\.scheduled && !e\.sent && sendNow/);
   });
 });
 

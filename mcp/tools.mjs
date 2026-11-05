@@ -33,6 +33,18 @@ import { AGENT_CREATION_KINDS } from '../shared/contracts.mjs';
 // server lived in that product's repo, which told every worker the wrong name
 // for the thing it was writing to.
 import { Name, possessive } from '../shared/product-name.mjs';
+import { EFFORT_WORDS, MODEL_WORDS, effortWord, modelWord } from '../shared/model-words.mjs';
+
+// The model and effort an agent wrote, in the words a run starts with.
+function runWords(fields) {
+  for (const [field, read] of [['model', modelWord], ['effort', effortWord]]) {
+    if (fields[field] === undefined) continue;
+    const out = read(fields[field]);
+    if (out.error) throw new Error(out.error);
+    fields[field] = out[field];
+  }
+  return fields;
+}
 
 // What fetch_skill tells a reader it has, and what it tells them is missing.
 // Stated once, here, so the header cannot claim a tool that was removed.
@@ -59,9 +71,15 @@ const guard = (fn) => async (args) => {
   try { return await fn(args ?? {}); } catch (err) { return { ...text(`error: ${err?.message ?? err}`), isError: true }; }
 };
 
-// `ownItem` is the row this server's session was started for, if any.
-export function buildTools({ holder, ownItem = process.env.ZERO_ITEM || null, requestCloudResource = null } = {}) {
+// `ownItem` is the row this server's session was started for, if any, and
+// `ownProduct` its project.
+export function buildTools({ holder, ownItem: givenItem, ownProduct = process.env.ZERO_PRODUCT || null, requestCloudResource = null } = {}) {
+  const ownItem = givenItem === undefined ? process.env.ZERO_ITEM || null : givenItem;
   const account = resolveAccount();
+  // Cloud runs share one process, whose own ZERO_ITEM belongs to no run or to
+  // another, so a tool that asks which thread it is on is told this session's.
+  const env = () => (givenItem === undefined ? process.env : { ...process.env, ZERO_ITEM: givenItem ?? '', ZERO_PRODUCT: ownProduct ?? '' });
+  const thisRun = () => ({ env: env() });
   const claims = createClaimRegistry({ holder: holder ?? `mcp-${process.pid}` });
   const accountId = String(process.env.STORE_ACCOUNT_ID ?? '').trim() || account.accountId;
   const hasTeam = teammatesExist(accountId);
@@ -146,14 +164,14 @@ export function buildTools({ holder, ownItem = process.env.ZERO_ITEM || null, re
         replacesEdits: z.boolean().optional().describe('with versionOf: you mean to undo what someone typed in an earlier version, because they asked. Without it, an edit your version leaves out is merged back in'),
       },
       run: async ({ product, folder, versionOf, replacesEdits, ...doc }) => {
-        const version = doc.content == null ? null : documentVersion({ product, versionOf, path: doc.path ?? null, content: replacesEdits ? null : doc.content, ownItem });
+        const version = doc.content == null ? null : documentVersion({ product, versionOf, path: doc.path ?? null, content: replacesEdits ? null : doc.content, ownItem, env: env() });
         const into = version ? version.product : product;
         // A merge keeps what somebody else saved while this run was writing, so
         // what lands is the merge, not the words this run arrived with.
         const written = await writeDocument(into, version ? { ...doc, id: undefined, path: version.path, title: doc.title ?? version.title, ...(version.content != null ? { content: version.content } : {}) } : doc);
         if (doc.content == null) return json(written);
-        noteWrittenForRun(into, written.path);
-        const named = await nameOnThread(written, { ownItem, update: (id, patch) => claims.update(id, patch), note: version?.note });
+        noteWrittenForRun(into, written.path, thisRun());
+        const named = await nameOnThread(written, { ownItem, env: env(), update: (id, patch) => claims.update(id, patch), note: version?.note });
         if (replacesEdits && version && named.onThread) await claims.update(ownItem, { artifact: { do: 'reconcile', file: path.basename(written.path), replace: true } });
         return json({ ...written, ...named, ...(version ? { versionOf: version.of } : {}), ...(version?.merged ? { merged: version.merged, note: version.note } : {}), ...fileWrittenDocument({ path: written.path, folder }) });
       },
@@ -204,8 +222,13 @@ export function buildTools({ holder, ownItem = process.env.ZERO_ITEM || null, re
         priority: z.number().int().optional().describe('higher goes first; defaults to 0'),
         parent: z.string().optional().describe('another work item id: the thread this one came out of. It decides where the filing lands. With a parent it is a proposal, waiting in Later and drawn on that thread with one press, so they answer it where the conversation already is; with none it is a row of its own in their inbox, addressed to them, whatever it says.'),
         runAt: z.number().int().optional().describe('epoch ms before which nothing happens with this item: it cannot be claimed and will not start. Use it when the work genuinely belongs to a later moment. A missed moment is not lost; the item simply becomes available once it passes.'),
+        model: z.string().max(80).optional().describe(MODEL_WORDS),
+        effort: z.string().optional().describe(EFFORT_WORDS),
       },
-      run: ({ product, ...fields }) => json(claims.file(product, fields)),
+      run: ({ product, ...fields }) => {
+        runWords(fields);
+        return json(claims.file(product, fields));
+      },
     },
     {
       name: 'claim_work_item',
@@ -243,8 +266,11 @@ export function buildTools({ holder, ownItem = process.env.ZERO_ITEM || null, re
         solution: z.string().optional().describe(`no longer shown; leave it out (older threads may still carry one, ${SUMMARY_WORDS} words at most)`),
         blockedBy: z.array(z.string()).optional().describe('ids of threads this one waits on, or "person:<name>" for someone on the team whose code, answer or review it waits on. A thread that waits only on others leaves their Needs you, says whom it waits on, and comes back when that person writes or after 3 days, so set this rather than offering "wait for them" as a choice'),
         blocks: z.array(z.string()).optional().describe('ids of threads that wait on this one'),
+        model: z.string().max(80).optional().describe(MODEL_WORDS),
+        effort: z.string().optional().describe(EFFORT_WORDS),
       },
       run: async ({ id, ...patch }) => {
+        runWords(patch);
         if (patch.blockedBy) patch.blockedBy = waitsNamed(patch.blockedBy);
         return json(noteToAnotherThread(id, patch, { ownItem }) ?? await claims.update(id, patch));
       },
@@ -264,7 +290,7 @@ export function buildTools({ holder, ownItem = process.env.ZERO_ITEM || null, re
       name: 'read_repeating_task',
       description: 'The standing instruction behind this run, if this thread is one run of a repeating task: the words every run after this one is briefed with, plus the schedule and when it next runs. Read it before changing it; set_repeating_task replaces the whole instruction.',
       schema: {},
-      run: () => json(readStandingInstruction()),
+      run: () => json(readStandingInstruction(thisRun())),
     },
     {
       name: 'set_repeating_task',
@@ -272,7 +298,7 @@ export function buildTools({ holder, ownItem = process.env.ZERO_ITEM || null, re
       schema: {
         instruction: z.string().describe('the whole standing instruction, as the person would have typed it'),
       },
-      run: ({ instruction }) => json(setStandingInstruction({ instruction })),
+      run: ({ instruction }) => json(setStandingInstruction({ instruction }, thisRun())),
     },
 
     /* ------------------------------- teammates ------------------------------ */
@@ -287,7 +313,7 @@ export function buildTools({ holder, ownItem = process.env.ZERO_ITEM || null, re
         options: z.array(z.string()).optional().describe('short answers the person can tap, when asking them a question'),
         document: z.string().optional().describe('a document you wrote in this project, by its path, for anything long. It shows as a card to open beside your one sentence'),
       },
-      run: ({ text: words, to, options, document }) => json(teamPost({ text: words, to, options, document })),
+      run: ({ text: words, to, options, document }) => json(teamPost({ text: words, to, options, document }, thisRun())),
     },
     {
       name: 'team_pass',
@@ -298,13 +324,13 @@ export function buildTools({ holder, ownItem = process.env.ZERO_ITEM || null, re
         details: z.string().describe('everything they need to do it'),
         project: z.string().optional().describe('the project the work is in, when it is not the teammate\'s own (from another thread it defaults to that thread\'s)'),
       },
-      run: ({ to, title, details, project }) => json(teamPass({ to, title, details, project })),
+      run: ({ to, title, details, project }) => json(teamPass({ to, title, details, project }, thisRun())),
     },
     {
       name: 'team_remember',
       description: 'Keep a standing preference the person stated ("from now on", "always", "never", "I prefer") in a few words, in their terms. The person sees it in the team chat and can undo it. If you have a method file, put it there too: your method is what every later run reads.',
       schema: { text: z.string().describe('the preference, in a few words') },
-      run: ({ text: words }) => json(teamRemember({ text: words })),
+      run: ({ text: words }) => json(teamRemember({ text: words }, thisRun())),
     },
     {
       name: 'team_playbook',
@@ -313,7 +339,7 @@ export function buildTools({ holder, ownItem = process.env.ZERO_ITEM || null, re
         playbook: z.string().describe('its title, like "How you write posts"'),
         lesson: z.string().optional().describe('the lesson, one sentence in their terms'),
       },
-      run: ({ playbook, lesson }) => json(teamPlaybook({ playbook, lesson })),
+      run: ({ playbook, lesson }) => json(teamPlaybook({ playbook, lesson }, thisRun())),
     },
     {
       name: 'team_hire',
@@ -322,17 +348,17 @@ export function buildTools({ holder, ownItem = process.env.ZERO_ITEM || null, re
         name: z.string().describe('a name that says its role, like Support lead'),
         job: z.string().describe('its job in plain words'),
       },
-      run: ({ name, job }) => json(teamHire({ name, job })),
+      run: ({ name, job }) => json(teamHire({ name, job }, thisRun())),
     },
     {
       name: 'team_method',
-      description: 'Write your method, the one file every run of yours reads whole: send text to write all of it, or old (one passage exactly as it reads now) and new (what replaces it) to change one part. Use it when you cannot edit the method file with your own tools. The version it replaces is kept.',
+      description: 'Write your method, the one file every run of yours reads whole: send text to write all of it, or old (one passage exactly as it reads now) and new (what replaces it) to change one part. Always use this rather than editing the file: a run in the cloud edits a copy that never comes back. The version it replaces is kept.',
       schema: {
         text: z.string().optional().describe('your whole method'),
         old: z.string().optional().describe('one passage of it, exactly as it reads now'),
         new: z.string().optional().describe('what replaces that passage'),
       },
-      run: (args) => json(teamMethod(args)),
+      run: (args) => json(teamMethod(args, thisRun())),
     },
     {
       name: 'team_setup',
@@ -361,13 +387,13 @@ export function buildTools({ holder, ownItem = process.env.ZERO_ITEM || null, re
         voiceWords: z.string().optional().describe('how you write, in one sentence of your own, instead of voice'),
         ready: z.boolean().optional(),
       },
-      run: (args) => json(teamSetup(args)),
+      run: (args) => json(teamSetup(args, thisRun())),
     },
     {
       name: 'team_roster',
       description: 'The person\'s teammates (agents with standing jobs) with their role and job, and the last twenty things said in the team chat. Works on any thread.',
       schema: {},
-      run: () => json(teamRoster()),
+      run: () => json(teamRoster(thisRun())),
     },
 
     /* ---------------------------- people on the team ------------------------ */
@@ -386,7 +412,7 @@ export function buildTools({ holder, ownItem = process.env.ZERO_ITEM || null, re
         versionOf: z.string().optional().describe('the name of a file already on this thread or conversation that the one file in files replaces. It is sent under that name with the next -v2, -v3, so it opens as the next version of the same file, with its comments. Without it a file is a separate file'),
         folder: z.string().optional().describe('a folder of this thread\'s project to file these in, by name, such as Launch. It is made if there is none'),
       },
-      run: (args) => json(teamTell(args)),
+      run: (args) => json(teamTell(args, thisRun())),
     },
     {
       name: 'team_file',
@@ -395,7 +421,7 @@ export function buildTools({ holder, ownItem = process.env.ZERO_ITEM || null, re
         files: z.array(z.string()).describe('the files, by path in this thread\'s folder, its project or the project\'s code'),
         folder: z.string().describe('the folder\'s name, such as Launch, or with its project, such as Company > Launch'),
       },
-      run: (args) => json(teamFile(args)),
+      run: (args) => json(teamFile(args, thisRun())),
     },
     {
       name: 'team_task',
@@ -410,13 +436,13 @@ export function buildTools({ holder, ownItem = process.env.ZERO_ITEM || null, re
         folder: z.string().optional().describe('a folder of this thread\'s project to file these in, by name, such as Launch. It is made if there is none'),
         blockedBy: z.array(z.string()).optional().describe('what it waits on: a person\'s name, or a thread id from team_threads (a task is a thread there). Their row says Blocked on, and it clears by itself when that thread is finished or that person writes to them'),
       },
-      run: (args) => json(teamTask(args)),
+      run: (args) => json(teamTask(args, thisRun())),
     },
     {
       name: 'team_threads',
       description: 'What the team is working on: every thread your owner can see, with who has it and where it stands, and their direct messages if your owner lets you read them. A task given to a person carries `task`: who gave it, the day or moment it is due, whether it is late, and what blocks it. Look before you start new work: if someone is already on it, say so instead of starting a second.',
       schema: {},
-      run: () => json(teamThreads()),
+      run: () => json(teamThreads(thisRun())),
     },
     {
       name: 'team_read',
@@ -426,7 +452,7 @@ export function buildTools({ holder, ownItem = process.env.ZERO_ITEM || null, re
         thread: z.string().optional().describe('the thread id'),
         folder: z.string().optional().describe('a folder\'s name: what is in it, with each file\'s path. Read with no arguments, this also lists every folder'),
       },
-      run: (args) => json(teamRead(args)),
+      run: (args) => json(teamRead(args, thisRun())),
     },
 
     /* -------------------------------- chats -------------------------------- */

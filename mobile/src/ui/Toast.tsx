@@ -8,7 +8,8 @@
 // important information. Not only is it poorly placed but I can't dismiss it."
 // Now it sits at the foot, over a thread's reply box (`toastLift`,
 // lib/overlays.ts), and a swipe down or the cross takes it away at once.
-import { router, useGlobalSearchParams, useSegments } from 'expo-router';
+import { useGlobalSearchParams, useSegments } from 'expo-router';
+import { router } from '../lib/router';
 import { useEffect, useMemo, useRef } from 'react';
 import { Animated, Easing, PanResponder, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,7 +17,7 @@ import Svg, { Path } from 'react-native-svg';
 import { threadOnScreen, toastLife, toastLift, toastTapOpens, TOAST_GOES_MS, TOAST_SWIPE_PX } from '../lib/overlays';
 import { useCloud, type Toast as Said } from '../state/cloud';
 import { T } from './parts';
-import { color } from './theme';
+import { color, corner } from './theme';
 
 function Clock() {
   const left = useRef(new Animated.Value(1)).current;
@@ -64,7 +65,7 @@ function Card({ toast, dismiss }: { toast: Said; dismiss: () => void }) {
       <Pressable disabled={!opens} onPress={open} accessibilityRole={opens ? 'button' : undefined}
         style={{
           minHeight: 40, flexDirection: 'row', alignItems: 'center', gap: 4, paddingLeft: 14, paddingRight: 4,
-          backgroundColor: color.pop, borderWidth: 1, borderColor: color.line, overflow: 'hidden',
+          backgroundColor: color.pop, borderWidth: 1, borderRadius: corner.card, borderColor: color.line, overflow: 'hidden',
           shadowColor: '#000', shadowOpacity: color.lift, shadowRadius: 35, shadowOffset: { width: 0, height: 24 }, elevation: 16,
         }}>
         {/* Only a toast that names a thread stays on one line; a plain one wraps (`.toast-plain`). */}

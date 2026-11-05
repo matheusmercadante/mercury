@@ -9,7 +9,7 @@ import { laterTabShown } from '../later-tab';
 import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { LiveMark } from '../components/LiveMark';
 import { createPortal } from 'react-dom';
-import { useRowDrag } from './row-drag';
+import { scrollerOf, useRowDrag } from './row-drag';
 import { chord } from '../this-keyboard';
 import type { Person, Product, ThreadCard, ThreadStateWord, View, WorkItem } from '../types';
 import { priorityIdOf, priorityLabelOf, PRIORITIES, type PriorityId } from '../priority';
@@ -20,6 +20,7 @@ import { PriorityIcon } from '../components/Priority';
 import { asideBesides, notStarted, rowTitle, waitCameBack } from '../list-rules';
 import { deadlineOf, dueSaid } from '../../../shared/team-tasks.mjs';
 import { waitWords } from '../../../shared/thread-waits.mjs';
+import { needsLeft, needsWord } from '../../../shared/cloud-needs.mjs';
 import { closedOverWords, iSpokeLast, isWorkThread } from '../../../shared/team-rules.mjs';
 import { commentLine } from './teammate-thread';
 import { fileNewsFor, fileNewsLine } from '../../../shared/artifact-marks.mjs';
@@ -35,7 +36,7 @@ import { STATE_WORD, linkWords } from './summary-rules';
 import { facesOnButton, peopleWorthADot, togglePicked, whoseWord } from './people-rules';
 import { stopKey } from './walk-rules';
 import { PinMark } from './ThreadMenu';
-import { cardClickIntent, cardsUnder, clickMarks, marqueeBox, marqueeMarks, type Box } from './board-select';
+import { bandDrag, cardClickIntent, clickMarks, marqueeMarks, type Box } from './board-select';
 import { shownToPeople } from '../../../shared/thread-cards.mjs';
 import { Name } from '../../../shared/product-name.mjs';
 import { FleetContext } from '../fleet';
@@ -105,6 +106,8 @@ export function inStep(el: Element | null) {
 export const LiveContext = createContext<Set<string>>(new Set());
 /** The ones of those running in the cloud rather than on this Mac. */
 export const CloudContext = createContext<Set<string>>(new Set());
+/** The sign-ins and keys saved for cloud runs, by variable name: a thread waits only on the rest. */
+export const SavedKeysContext = createContext<readonly string[]>([]);
 /** Runs on this Mac the cloud could take now, and the press that moves one (CloudStatus `movable`). */
 export const MoveToCloudContext = createContext<{ ids: Set<string>; move: (id: string, product: string) => void } | null>(null);
 
@@ -731,6 +734,7 @@ export function ThreadCells({ item, product, now, person, tab }: {
   const tryAgain = useContext(TryAgainContext);
   const retry = tryAgain && offersTryAgain(item, facts) ? <TryAgainButton onPress={() => tryAgain(item)} /> : undefined;
   const allItems = useContext(ItemsContext);
+  const savedKeys = useContext(SavedKeysContext);
   const waits = team ? waitWords(item, { items: allItems, cards: team.state.cards ?? [], nameOf: (id: string) => team.byId.get(id)?.name ?? 'Someone' }) : null;
   const nameFirst = (id: string) => firstName(team?.byId.get(id) ?? null);
   const inNeedsYou = tab === 'inbox';
@@ -739,7 +743,9 @@ export function ThreadCells({ item, product, now, person, tab }: {
   const worded = waits && !cell.live ? { ...cell, word: waits.word, title: waits.title }
     : peopleWaitOnYou ? { ...cell, word: 'Waiting on you', mark: 'need' as const }
       : team && (cell.word === STATE_WORD.waiting || iSpokeLast(item, product, team.me)) ? { ...cell, word: waitingWord(item, product, team.me, nameFirst, { inNeedsYou: tab === 'inbox' }) } : cell;
-  const shownWord = cellUnderTab(worded.word, tab, { fromPeople: !!waits || peopleWaitOnYou });
+  // A cloud run that asked for a key is waiting on it, not finished (round one of the key power test).
+  const wants = inNeedsYou && !cell.live && !waits && !peopleWaitOnYou ? needsWord(needsLeft(item, savedKeys)) : null;
+  const shownWord = wants ?? cellUnderTab(worded.word, tab, { fromPeople: !!waits || peopleWaitOnYou });
   const status = shownWord === null ? undefined : { ...worded, word: shownWord };
   // WHO SEES IT, AT A GLANCE (2026-10-01). One mark after the title, always: the
   // people on a thread the team or chosen people can see, the lock on one only
@@ -999,37 +1005,33 @@ export function InboxBoard({ items, products, display, now, onOpenItem, stateOf,
     const wrap = wrapRef.current;
     if (!wrap) return;
     e.preventDefault();
-    const at = (ev: { clientX: number; clientY: number }) => {
-      const r = wrap.getBoundingClientRect();
-      return { x: ev.clientX - r.left, y: ev.clientY - r.top };
-    };
-    const start = at(e);
     const before = new Set(marked ?? []);
     const add = e.shiftKey || e.metaKey || e.ctrlKey;
-    let moved = false;
-    const move = (ev: PointerEvent) => {
-      const p = at(ev);
-      if (!moved && Math.hypot(p.x - start.x, p.y - start.y) < 4) return;
-      moved = true;
-      const b = marqueeBox(start, p);
-      setBand(b);
-      const r = wrap.getBoundingClientRect();
-      const under = [...wrap.querySelectorAll<HTMLElement>('[data-board-id]')].map((el) => {
-        const c = el.getBoundingClientRect();
-        return { id: el.dataset.boardId ?? '', box: { left: c.left - r.left, top: c.top - r.top, right: c.right - r.left, bottom: c.bottom - r.top } };
-      });
-      markNow.current?.(marqueeMarks(before, cardsUnder(b, under), add));
-    };
+    const scroller = scrollerOf(wrap);
+    const d = bandDrag({
+      from: { x: e.clientX, y: e.clientY },
+      wrapRect: () => wrap.getBoundingClientRect(),
+      cards: () => [...wrap.querySelectorAll<HTMLElement>('[data-board-id]')].map((el) => ({ id: el.dataset.boardId ?? '', box: el.getBoundingClientRect() })),
+      scroller: scroller && { rect: () => scroller.getBoundingClientRect(), scrollBy: (dy) => { scroller.scrollTop += dy; } },
+      frame: requestAnimationFrame,
+      cancelFrame: cancelAnimationFrame,
+      onBand: setBand,
+      onHits: (hits) => markNow.current?.(marqueeMarks(before, hits, add)),
+    });
+    const move = (ev: PointerEvent) => d.move(ev.clientX, ev.clientY);
+    const scrolled = () => d.scrolled();
     const stop = () => {
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
       window.removeEventListener('pointercancel', stop);
-      setBand(null);
+      scroller?.removeEventListener('scroll', scrolled);
+      return d.end();
     };
-    const up = () => { stop(); if (!moved && !add && before.size) markNow.current?.(new Set()); };
+    const up = () => { if (!stop() && !add && before.size) markNow.current?.(new Set()); };
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
     window.addEventListener('pointercancel', stop);
+    scroller?.addEventListener('scroll', scrolled, { passive: true });
   };
   return <div className={`list hm-me th-board-wrap${band ? ' banding' : ''}`} ref={wrapRef} onPointerDown={startBand}>
     {band && <div className="th-band" aria-hidden="true" style={{ left: band.left, top: band.top, width: band.right - band.left, height: band.bottom - band.top }} />}

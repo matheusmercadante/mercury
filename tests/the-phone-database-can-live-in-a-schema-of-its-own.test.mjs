@@ -42,6 +42,8 @@ const { supabaseBackend } = await import('../main/team/supabase-backend.mjs');
 const { cloudClient } = await import('../renderer/src/cloud-rest.ts');
 const { readCloudConfig } = await import('../renderer/src/cloud-bridge.ts');
 const { buildPhoneSite } = await import('../scripts/build-phone-site.mjs');
+const { sharedFileWorker } = await import('../cloud/web/shared-file-worker.mjs');
+const { Name } = await import('../shared/product-name.mjs');
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const migrations = path.join(repo, 'cloud', 'supabase', 'migrations');
@@ -231,5 +233,53 @@ describe('the phone site', () => {
     expect(build({ url: 'https://api.example', anonKey: 'eyJhbGciOi.public-key_1234567890' }))
       .toContain(`content='{"url":"https://api.example","anonKey":"eyJhbGciOi.public-key_1234567890"}'`);
     expect(() => build({ url: 'https://api.example', anonKey: 'eyJhbGciOi.public-key_1234567890', schema: "x'><script>" })).toThrow(/schema/);
+  });
+
+  // A FILE SHARED BY LINK (/f/<token>) IS READ BY THE SITE'S OWN WORKER,
+  // cloud/web/shared-file-worker.mjs, which asks the database itself. Agentbox
+  // wrote it for `public` and its own name; on this database the link found
+  // nothing and its preview named the wrong app (sync of 2026-11-05).
+  describe('its worker for a shared file', () => {
+    const row = { name: 'plan.md', kind: 'markdown', type: 'text/markdown', body: '# Plan', owner_name: 'Maya' };
+    const shell = { ASSETS: { fetch: async () => new Response('<html><head><title>x</title></head><body></body></html>') } };
+    const open = async (opts) => {
+      const asked = [];
+      const w = sharedFileWorker({ cloud: 'https://api.example', anonKey: 'k', ...opts }, { fetchImpl: async (url, init) => { asked.push({ url, headers: init.headers }); return new Response(JSON.stringify([row])); } });
+      const html = await (await w.fetch(new Request('https://app.example/f/pR3nY0q7Lw2Xc9Vb5Tz1'), shell)).text();
+      return { asked, html };
+    };
+
+    it('asks for the file in the schema it was built with, and names this app', async () => {
+      const { asked, html } = await open({ schema: 'mercury', appName: Name });
+      expect(asked[0].url).toBe('https://api.example/rest/v1/rpc/file_link_view');
+      expect(asked[0].headers['accept-profile']).toBe('mercury');
+      expect(asked[0].headers['content-profile']).toBe('mercury');
+      expect(html).toContain(`<title>Plan · ${Name}</title>`);
+      expect(html).toContain(`<meta property="og:description" content="Shared by Maya on ${Name}">`);
+      expect(html).toContain(`<meta property="og:site_name" content="${Name}">`);
+    });
+
+    it('sends no profile at all for public, as before', async () => {
+      const { asked } = await open({});
+      expect(asked[0].headers['accept-profile']).toBeUndefined();
+      expect(asked[0].headers['content-profile']).toBeUndefined();
+    });
+
+    it('is built with the schema and this app\'s name baked in', () => {
+      const dir = tmp();
+      const dist = path.join(dir, 'dist');
+      fs.mkdirSync(dist);
+      fs.writeFileSync(path.join(dist, 'index.html'), '<!doctype html><html><head></head><body></body></html>');
+      fs.writeFileSync(path.join(dir, 'icon.png'), 'png');
+      const build = (cfg) => {
+        fs.writeFileSync(path.join(dir, 'team.config.json'), JSON.stringify(cfg));
+        buildPhoneSite({ dist, out: path.join(dir, 'out'), configFile: path.join(dir, 'team.config.json'), icon: path.join(dir, 'icon.png'), legal: path.join(dir, 'none'), log: () => {}, stamp: null });
+        return fs.readFileSync(path.join(dir, 'out', '_worker.js'), 'utf8');
+      };
+      const named = build({ url: 'https://api.example', anonKey: 'eyJhbGciOi.public-key_1234567890', schema: 'mercury' });
+      expect(named).toContain('"schema":"mercury"');
+      expect(named).toContain(`"appName":${JSON.stringify(Name)}`);
+      expect(build({ url: 'https://api.example', anonKey: 'eyJhbGciOi.public-key_1234567890' })).not.toContain('"schema"');
+    });
   });
 });
