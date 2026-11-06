@@ -2,7 +2,7 @@
 // that did not start one has to say why on the spot. So every state main reports
 // is one card, with at most one button, and an idle Mercury draws none.
 import { describe, expect, it } from 'vitest';
-import { clock, meetingCard } from '../renderer/src/meeting-card.ts';
+import { canRecord, clock, meetingCard } from '../renderer/src/meeting-card.ts';
 
 const idle = { hex: true, phase: 'idle', title: null, startedAt: null, product: 'work', problem: null, model: null, preparing: null };
 const projectName = (slug) => (slug === 'work' ? 'Work' : null);
@@ -63,6 +63,28 @@ describe('the card', () => {
 
   it('shows a model downloading', () => {
     expect(card({ preparing: 412 })).toMatchObject({ title: 'Downloading the model', text: '412 MB', press: null });
+  });
+});
+
+// The first recording on a Mac is refused by design: Hex asks macOS for the call's
+// audio and says "then try again". The row that tries again was hidden behind the
+// very card saying so, and only its × brought it back.
+describe('pressing Record meeting', () => {
+  it('is offered when nothing is happening, and after a refusal or a model offer', () => {
+    expect(canRecord(idle)).toBe(true);
+    expect(canRecord({ ...idle, problem: 'Allow Hex, then try again' })).toBe(true);
+    expect(canRecord({ ...idle, hex: false, problem: 'not installed' })).toBe(true);
+    expect(canRecord({ ...idle, model: { from: 'A', to: 'B', size: '1 MB' } })).toBe(true);
+  });
+
+  it('is not offered while a recording is going, or while its model downloads', () => {
+    for (const phase of ['starting', 'recording', 'transcribing']) expect(canRecord({ ...idle, phase })).toBe(false);
+    expect(canRecord({ ...idle, preparing: 0 })).toBe(false);
+  });
+
+  it('is not offered where nothing can record, such as a browser tab', () => {
+    expect(canRecord(null)).toBe(false);
+    expect(canRecord(undefined)).toBe(false);
   });
 });
 

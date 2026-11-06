@@ -118,6 +118,7 @@ export function createMeetings({ locate, store, saveTranscript, wake, stateFile,
   let view: MeetingView = { hex: true, phase: 'idle', title: null, startedAt: null, product: kept.product ?? null, problem: null, model: null, preparing: null };
   let shown = JSON.stringify(view);
   let offered: string | null = null;
+  let switching: string | null = null;
   let looking: Promise<void> | null = null;
   let refusals = 0;
 
@@ -161,6 +162,11 @@ export function createMeetings({ locate, store, saveTranscript, wake, stateFile,
       startedAt: same ? view.startedAt : began,
       preparing,
     });
+    // The install answers at once; how its download ended is only ever on the status.
+    if (switching && body.model?.error) {
+      switching = null;
+      set({ problem: body.model.error });
+    } else if (body.model?.id === switching && !preparing) switching = null;
   }
 
   const gone = () => set({ phase: 'idle', title: null, startedAt: null, preparing: null });
@@ -334,6 +340,7 @@ export function createMeetings({ locate, store, saveTranscript, wake, stateFile,
       if (!hex || !offered) return;
       const installing = await hex.install(offered);
       if (!installing.ok) return say(installing);
+      switching = offered;
       offered = null;
       set({ model: null });
       await look(hex);

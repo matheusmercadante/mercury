@@ -135,6 +135,36 @@ describe('a model that cannot hear the meeting', () => {
     expect(m.view().model).toBe(null);
   });
 
+  it('says so when the download fails, which Hex reports only on its status', async () => {
+    const hex = fakeHex({ models: [ENGLISH, V3] });
+    const m = make(hex);
+    await m.record({ product: 'work' });
+    await m.useModel();
+    hex.status.mockResolvedValue(status({ model: { id: 'parakeet_unified_en', preparing: null, error: 'the download stopped' } }));
+    await m.tick();
+    expect(m.view().problem).toBe('the download stopped');
+  });
+
+  it('does not bring up an old model error nobody here asked about', async () => {
+    const hex = fakeHex();
+    hex.status.mockResolvedValue(status({ model: { id: 'parakeet_v3', preparing: null, error: 'an old failure' } }));
+    const m = make(hex);
+    await m.tick();
+    expect(m.view().problem).toBe(null);
+  });
+
+  it('stops watching for an error once the new model is in place', async () => {
+    const hex = fakeHex({ models: [ENGLISH, V3] });
+    const m = make(hex);
+    await m.record({ product: 'work' });
+    await m.useModel();
+    hex.status.mockResolvedValue(status({ model: { id: 'parakeet_v3', preparing: null, error: null } }));
+    await m.tick();
+    hex.status.mockResolvedValue(status({ model: { id: 'parakeet_v3', preparing: null, error: 'later and unrelated' } }));
+    await m.tick();
+    expect(m.view().problem).toBe(null);
+  });
+
   it('is not offered on a Mac that only reads English', async () => {
     const hex = fakeHex({ models: [ENGLISH, V3] });
     await make(hex, { languages: ['en'] }).record({ product: 'work' });

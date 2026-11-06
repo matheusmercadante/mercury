@@ -73,8 +73,8 @@ export function WorkspaceNavigation({ view, collapsed, onView, onSearch: _onSear
   // shared/where-it-runs-from.mts). Null on every copy that can, which is
   // nearly all of them. `place` is what its × closes.
   move?: { place: string | null; error?: string | null } | null; onMove?: () => void;
-  // A RECORDING, OR WHAT STOPPED ONE (SidebarMeeting.tsx). Null when idle, and
-  // then `onRecord` is the row that starts one.
+  // A RECORDING, OR WHAT STOPPED ONE (SidebarMeeting.tsx), and `onRecord`, the row
+  // that starts one, absent while one is going.
   meeting?: MeetingCard | null; onMeeting?: (action: MeetingPress | 'dismiss') => void; onRecord?: () => void;
   page?: string | null; inboxCount?: number; scheduledCount?: number; usage?: ReactNode; onSettings?: () => void; onInstructions?: () => void;
   // THE TEAM TAB. No people and no counts here: approved 2026-09-30, a list of
@@ -201,7 +201,7 @@ export function WorkspaceNavigation({ view, collapsed, onView, onSearch: _onSear
         {asRow && meetingView}
         {!updateCard && updateView}
         {!moveCard && moveView}
-        {onRecord && !meeting && <button aria-label="Record meeting" title="Record meeting" onClick={onRecord}><RecordIcon /><span>Record meeting</span></button>}
+        {onRecord && <button aria-label="Record meeting" title="Record meeting" onClick={onRecord}><RecordIcon /><span>Record meeting</span></button>}
         {/* THE SIDEBAR NEVER SAYS WHICH PLAN YOU ARE ON (w-e217e577e5,
             2026-10-07, and this is a standing rule rather than one round's
             taste). A row reading "Claude · Max 20x" shipped here for a few

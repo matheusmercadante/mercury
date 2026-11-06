@@ -62,6 +62,9 @@ export function meetingCard(m: MeetingState | null | undefined, projectName: (sl
   return null;
 }
 
+/** A card saying why the last press failed never stands in the way of the next one. */
+export const canRecord = (m: MeetingState | null | undefined) => !!m && m.phase === 'idle' && m.preparing == null;
+
 export function clock(ms: number): string {
   const seconds = Math.max(0, Math.floor(ms / 1000));
   const two = (n: number) => String(n).padStart(2, '0');

@@ -143,7 +143,7 @@ import { buildMembers, mateRunsOf, orderMembers, personCardsOf, readHidden, read
 import { boardItems, cardOpens, evColumns, flipEvView, readEvView, whoseBoard, writeEvView, type EvTab, type EvView } from './team/everything/whose-board';
 import { needsByWho, readFolded, readNeedsGroup, stackRows, toggleFolded, whoIsWaiting, writeNeedsGroup, type NeedsGroup, type StackKey } from './threads/stack-rules';
 import { FeedbackCard } from './components/FeedbackCard';
-import { meetingCard } from './meeting-card';
+import { canRecord, meetingCard } from './meeting-card';
 import { searchFieldInStrip, workspaceDestinations, workspacePageTitle } from './workspace-navigation.mjs';
 import { UsagePill } from './components/UsagePill';
 import { engineWordFor } from './byline';
@@ -7442,7 +7442,7 @@ export default function App() {
         onMove={() => { void api.updateMove(); }}
         meeting={meetingNow}
         onMeeting={(action) => { void api.meeting({ action }); }}
-        onRecord={snap?.meeting ? recordMeeting : undefined}
+        onRecord={canRecord(snap?.meeting) ? recordMeeting : undefined}
         /* WHAT IS LEFT OF YOUR LIMIT, in the slot the foot has held for it
            since 2026-10-01 and nothing ever filled. Drawn unconditionally:
            UsagePill is nothing at all until a reading lands. */
@@ -8334,7 +8334,7 @@ export default function App() {
         onFirstRun={walkAgain}
         onTutorial={() => startTutorial(comeBackTo(snap.products, productFilter, rememberedProject()))}
         recordInto={snap.products.find((p) => p.slug === recordInto)?.name ?? null}
-        onRecord={snap.meeting && !meetingNow ? () => { setModal(null); recordMeeting(); } : undefined}
+        onRecord={canRecord(snap.meeting) ? () => { setModal(null); recordMeeting(); } : undefined}
         onStopRecording={snap.meeting?.phase === 'recording' ? () => { setModal(null); void api.meeting({ action: 'stop' }); } : undefined}
         onImportAgents={() => { setModal(null); setImportAgents(true); }}
         products={rankedProducts}
