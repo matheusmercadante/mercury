@@ -281,18 +281,11 @@ export function createMeetings({ locate, store, saveTranscript, wake, stateFile,
 
     nextLookMs,
 
-    /** Looks until the returned function is called; a look that fails is said and the next one still comes. */
+    /** Looks for as long as the app runs, without holding it open; a look that fails is said and the next one still comes. */
     watch() {
-      let timer: NodeJS.Timeout | null = null;
-      let stopped = false;
-      const again = () => {
-        if (stopped) return;
-        timer = setTimeout(() => { void once(); }, nextLookMs());
-        timer.unref?.();
-      };
+      const again = () => { setTimeout(() => { void once(); }, nextLookMs()).unref?.(); };
       const once = () => me.tick().catch((err: Error) => console.warn('zero: could not look at the meetings:', err?.message ?? err)).finally(again);
       void once();
-      return () => { stopped = true; if (timer) clearTimeout(timer); };
     },
 
     async record({ product, title }: { product: string; title?: string }) {

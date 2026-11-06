@@ -929,7 +929,7 @@ async function createWindow() {
   phoneApply = applyThrough(phoneChannels);
   // Every minute, so no engine search: that is a login shell on this thread.
   phoneSettings = () => phoneChannels.get('zero:settings-read')?.({ sender: null }, { search: false }) ?? null;
-  quitStep(app, 'before-quit', 'meetings.stop', meetings.watch());
+  meetings.watch();
   updater.start();
   // A task the app just shipped moved main: look now rather than in half an
   // hour, so the restart is offered while she still remembers the task.
