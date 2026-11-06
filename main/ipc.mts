@@ -97,6 +97,8 @@ import type { UpdateTerminals } from './agent-updates.mts';
 import type { AttachmentFile } from './save-attachments.mts';
 import type { PostInput } from './teammates.mts';
 import type { ConversationInput } from './agents.mts';
+import { HEX_SITE } from './hex-meetings.mts';
+import type { Meetings } from './meetings.mts';
 
 export interface IpcEvent { sender?: unknown; senderFrame?: { parent?: unknown } | null }
 export type IpcListener = { bivarianceHack(event: IpcEvent, payload?: unknown): unknown }['bivarianceHack'];
@@ -182,6 +184,7 @@ export interface IpcDeps {
   analytics?: IpcAnalytics;
   docGrants?: { grant(file: string, roots: string[]): unknown } | null;
   updater?: IpcUpdater;
+  meetings?: Meetings | null;
   host: IpcHost;
   team?: IpcTeam | null;
   connections?: IpcConnections | null;
@@ -266,7 +269,7 @@ const NO_UPDATER: IpcUpdater = {
 const TEAMMATE_OPS = new Set(['create', 'describe', 'start', 'update', 'stop', 'remove', 'post', 'goAhead', 'remember', 'forget', 'method', 'unsend']);
 const ROOM_OPS = new Set(['refresh', 'send', 'markRead', 'markDone', 'markUnread', 'react', 'decide','edit', 'deleteMessage', 'putFile', 'putFileFrom', 'file', 'fileOnDisk', 'fileText', 'markFile', 'older', 'saveProfile', 'goInvisible', 'comeBack', 'link', 'revokeLink', 'preview', 'listed', 'invitesSent', 'joinByLink', 'joinListed', 'acceptInvite', 'invite', 'create', 'rename', 'leave', 'remove', 'pin', 'mute']);
 
-export function registerIpc({ store, supervisor, config, window, analytics = NO_ANALYTICS, docGrants = null, updater = NO_UPDATER, host, team = null, connections = null, copies = null, onCount = () => {} }: IpcDeps) {
+export function registerIpc({ store, supervisor, config, window, analytics = NO_ANALYTICS, docGrants = null, updater = NO_UPDATER, host, team = null, connections = null, copies = null, meetings = null, onCount = () => {} }: IpcDeps) {
   // The three Electron things, or a plain Node stand-in for them. There is no
   // default: a caller that forgets says so here rather than throwing eighty
   // lines further down on `ipcMain.handle` of undefined.
@@ -731,6 +734,7 @@ export function registerIpc({ store, supervisor, config, window, analytics = NO_
       // offer the restart are ones she may already be looking at. Settings
       // reads the whole of it; ⌘K reads `ready` alone.
       update: updater.state(),
+      meeting: meetings?.view() ?? null,
       // False draws no Feedback row: the card would have nowhere to send.
       feedback: !!feedbackUrl(config),
       config: {
@@ -2806,6 +2810,18 @@ export function registerIpc({ store, supervisor, config, window, analytics = NO_
   // A copy run from source answers no to it rather than throwing: there is no
   // bundle to move (main/source-updater.mts).
   ipcMain.handle('zero:update-move', () => updater.move?.() ?? { moved: false, error: null });
+
+  // Every press on a recording (main/meetings.mts). What it changes reaches the
+  // screen through the snapshot, so nothing is answered here.
+  ipcMain.handle('zero:meeting', async (_e, { action, product }: { action: string; product?: string }) => {
+    if (!meetings) return;
+    if (action === 'record' && product && store.listProducts().some((p) => p.slug === product)) await meetings.record({ product });
+    if (action === 'stop') await meetings.stop();
+    if (action === 'model') await meetings.useModel();
+    if (action === 'open') await meetings.openHex();
+    if (action === 'dismiss') meetings.dismiss();
+    if (action === 'get') (await shellNow()).openExternal(HEX_SITE);
+  });
 
   // Handed back so the Cmd+Y/Cmd+N chord answers through the same door the
   // buttons do, rather than reaching past it into approvals.answer.

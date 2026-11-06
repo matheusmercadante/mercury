@@ -3,6 +3,7 @@
 
 import type { Engine } from '../../shared/engines.mjs';
 import type { AgentVoice } from '../../shared/agent-voice.mjs';
+import type { MeetingState } from './meeting-card';
 
 export type { AgentVoice };
 
@@ -1238,6 +1239,8 @@ export interface Snapshot {
   // the same reason `restartNeeded` does: it becomes true hours into a session,
   // on a screen she is already looking at.
   update?: UpdateState;
+  /** A meeting being recorded, or what stopped one (main/meetings.mts). */
+  meeting?: MeetingState | null;
   /** Whether the Feedback card has somewhere to send (main/feedback.mts feedbackUrl). */
   feedback?: boolean;
   /**

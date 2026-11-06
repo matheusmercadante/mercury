@@ -32,7 +32,11 @@ export interface Command {
 /** What was found inside things, a labelled group of rows each (renderer/src/found-inside.ts). */
 export interface InsideSection { key: string; label: string; rows: Command[] }
 
-export function Palette({ products, supervisorPaused, itemCommands = [], batch = false, order = [], look, machine = 'dark', onSetLook, staleFiles = [], updateReady = null, onInstallUpdate, onCheckUpdate, moveToApplications = false, onMoveToApplications, filtering = false, onOpenFilter, onClearFilter, onView, teamLayout = false, onPause, onResume, onRankFirst, onOpenProjects, onNewProject, onNewThread, onStanding, onSettings, onUsage, onShortcuts, roomsOn = false, groups = [], onGroups, onPickGroup, teamLists, filePages, onConnections, teammates = null, onTeammates, onPauseTeammate, boardUp = false, onFlipView, keyHints, onSetKeyHints, onSearch, findThreads, findChats, findInside, onSearchFor, onFirstRun, onTutorial, onEndTutorial, onImportAgents, onClose, cloud = null, onCloudMode, open = true, phone = false, typed = '' }: {
+export function Palette({ products, supervisorPaused, itemCommands = [], batch = false, order = [], look, machine = 'dark', onSetLook, staleFiles = [], updateReady = null, onInstallUpdate, onCheckUpdate, moveToApplications = false, onMoveToApplications, filtering = false, onOpenFilter, onClearFilter, onView, teamLayout = false, onPause, onResume, onRankFirst, onOpenProjects, onNewProject, onNewThread, onStanding, onSettings, onUsage, onShortcuts, roomsOn = false, groups = [], onGroups, onPickGroup, teamLists, filePages, onConnections, teammates = null, onTeammates, onPauseTeammate, boardUp = false, onFlipView, keyHints, onSetKeyHints, onSearch, findThreads, findChats, findInside, onSearchFor, onFirstRun, onTutorial, onEndTutorial, onImportAgents, onClose, cloud = null, onCloudMode, open = true, phone = false, typed = '', recordInto = null, onRecord, onStopRecording }: {
+  /** The project a recording would land in, by name, and the two presses (main/meetings.mts). */
+  recordInto?: string | null;
+  onRecord?: () => void;
+  onStopRecording?: () => void;
   products: Product[];
   supervisorPaused: boolean;
   itemCommands?: Command[];
@@ -138,6 +142,8 @@ export function Palette({ products, supervisorPaused, itemCommands = [], batch =
     // way to start a thread. "It is the thing I do most" (power-test-1, issue
     // 22).
     { id: 'new-thread', label: 'New thread', hint: 'ask an agent for something', keywords: 'task compose write message ask start', keyHint: 'N', run: onNewThread },
+    ...(onRecord ? [{ id: 'record-meeting', label: 'Record meeting', hint: recordInto ? `into ${recordInto}` : undefined, keywords: 'gravar reunião reuniao call zoom meet teams transcript hex', run: onRecord }] : []),
+    ...(onStopRecording ? [{ id: 'stop-recording', label: 'Stop recording', keywords: 'parar gravar gravação gravacao reunião reuniao meeting hex', run: onStopRecording }] : []),
     // Actions on the selected item next, so every chord can be searched for.
     ...itemCommands,
     // One Filter row rather than a row per project, which filled the list. It
@@ -368,7 +374,7 @@ export function Palette({ products, supervisorPaused, itemCommands = [], batch =
       run: () => onSetKeyHints(!keyHints),
     },
 
-  ], [itemCommands, batch, products, supervisorPaused, order, onNewProject, onNewThread, filtering, onOpenFilter, onClearFilter, onView, teamLayout, onPause, onResume, onRankFirst, onOpenProjects, onStanding, onSettings, onShortcuts, look, machine, onSetLook, staleFiles, updateReady, onInstallUpdate, moveToApplications, onMoveToApplications, boardUp, onFlipView, keyHints, onSetKeyHints, onSearch, onFirstRun, onTutorial, onEndTutorial, onImportAgents, cloud, onCloudMode]);
+  ], [itemCommands, batch, products, supervisorPaused, order, onNewProject, onNewThread, recordInto, onRecord, onStopRecording, filtering, onOpenFilter, onClearFilter, onView, teamLayout, onPause, onResume, onRankFirst, onOpenProjects, onStanding, onSettings, onShortcuts, look, machine, onSetLook, staleFiles, updateReady, onInstallUpdate, moveToApplications, onMoveToApplications, boardUp, onFlipView, keyHints, onSetKeyHints, onSearch, onFirstRun, onTutorial, onEndTutorial, onImportAgents, cloud, onCloudMode]);
   return open ? <PaletteBox commands={commands} findThreads={findThreads} findChats={findChats} findInside={findInside} onSearchFor={onSearchFor} onClose={onClose} phone={phone} typed={typed} /> : null;
 }
 
@@ -391,7 +397,7 @@ export function threadRows(query: string, findThreads?: (q: string) => Command[]
 // The box itself, mounted fresh each time ⌘K opens, so it starts empty and focused.
 /** Commands about the Mac or its keyboard, which a phone has neither of, and
  *  Search threads, which the phone's field already is. */
-export const NOT_ON_A_PHONE = ['search', 'keyhints', 'shortcuts', 'stale', 'update', 'update-check', 'update-move', 'first-run', 'tutorial', 'import-agents', 'open-terminal', 'remote-control', 'flip-view'];
+export const NOT_ON_A_PHONE = ['record-meeting', 'stop-recording', 'search', 'keyhints', 'shortcuts', 'stale', 'update', 'update-check', 'update-move', 'first-run', 'tutorial', 'import-agents', 'open-terminal', 'remote-control', 'flip-view'];
 
 /** The rows in the order drawn, and the label over the row each section starts
  *  at. A phone searches threads more than it runs commands, so they go first. */

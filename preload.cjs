@@ -174,6 +174,8 @@ contextBridge.exposeInMainWorld('zero', {
   updateCheck: () => ipcRenderer.invoke('zero:update-check'),
   updateInstall: () => ipcRenderer.invoke('zero:update-install'),
   updateMove: () => ipcRenderer.invoke('zero:update-move'),
+  // A press on a recording (main/meetings.mts); its state rides the snapshot.
+  meeting: (payload) => ipcRenderer.invoke('zero:meeting', payload),
   // What just arrived, not what to say about it. Whether she is looking at the
   // window is a fact only the main process holds, so the page reports and does
   // not decide (main/notify.mts).

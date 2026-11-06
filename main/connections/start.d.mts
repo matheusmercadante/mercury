@@ -26,3 +26,5 @@ export interface Connected {
 }
 
 export declare function startConnections(options: StartConnectionsOptions): Connected;
+
+export declare function recoveryProduct(store: { listProducts(): { slug: string; team?: { direct?: unknown } | null }[] }, lastProduct?: string | null): string | null;

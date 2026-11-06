@@ -11,6 +11,8 @@ export const NO_GLYPH = '·';
 const BY_ID: Record<string, string> = {
   'new-project': '+',
   'new-thread': '✎',
+  'record-meeting': '●',
+  'stop-recording': '■',
   filter: '≡',
   'clear-filter': '×',
   'end-tutorial': '×',

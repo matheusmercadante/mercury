@@ -84,7 +84,7 @@ function RestartIcon() {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3"/><path d="M19.5 4.5v4h-4"/></svg>;
 }
 
-function CloseIcon() {
+export function CloseIcon() {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg>;
 }
 
@@ -96,14 +96,17 @@ function CloseIcon() {
  *  below or under the pointer moves. The markup is the same narrow and wide,
  *  and CSS hides the card while narrow (threads/pages.css).
  */
-function RailCard({ icon, title, text, closeTip, changed, onClose, row }: {
-  icon: ReactNode; title: string; text: string; closeTip: string; changed?: string; onClose: () => void; row: ReactNode;
+export function RailCard({ icon, title, text, closeTip, changed, closable = true, quiet = false, onClose, row }: {
+  icon: ReactNode; title: string; text: string; closeTip: string; changed?: string; closable?: boolean;
+  /** Nothing to press: wide, the row is not drawn as the card's button. */
+  quiet?: boolean;
+  onClose: () => void; row: ReactNode;
 }) {
-  return <div className="sb-update-slot">
+  return <div className={`sb-update-slot${quiet ? ' sb-update-quiet' : ''}`}>
     <div className="sb-update-card sb-update-rise" title={changed || undefined}>
       <div className="sb-update-card-title">{icon}<span>{title}</span></div>
-      <button type="button" className="sb-update-close" aria-label={SIDE_SAY.close} title={closeTip} onClick={onClose}><CloseIcon /></button>
-      <p>{text}</p>
+      {closable && <button type="button" className="sb-update-close" aria-label={SIDE_SAY.close} title={closeTip} onClick={onClose}><CloseIcon /></button>}
+      {text && <p>{text}</p>}
     </div>
     {row}
   </div>;

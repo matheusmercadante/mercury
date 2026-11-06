@@ -70,6 +70,8 @@ import { writeHeldThenReload } from './write-before-reload.mts';
 import { IS_SHE_TYPING_IN_THE_PAGE, theAppKeepsThisInput, theAppKeepsThisLetterInAPage } from '../shared/artifact-keys.mts';
 import { NAME, Name, WAS } from '../shared/product-name.mjs';
 import { JOIN_SCHEME, ourLink, tokenFromLink } from '../shared/room-links.mjs';
+import { findHex, hexCli } from './hex-meetings.mts';
+import { createMeetings, saveTranscriptIn } from './meetings.mts';
 import { getMic } from './mic.mts';
 import type { IpcConfig } from './ipc.mts';
 import type { CornerTagConfig } from './corner-tag.mts';
@@ -898,12 +900,22 @@ async function createWindow() {
     onWhoChanged: () => { void team?.publishConnections?.(); },
   });
   quitStep(app, 'before-quit', 'connections.stop', () => connected.stop());
+  const meetings = createMeetings({
+    locate: () => { const bin = findHex(); return bin ? hexCli(bin) : null; },
+    store,
+    saveTranscript: saveTranscriptIn((slug) => store.productDir(slug)),
+    wake: () => supervisor.wake(),
+    stateFile: path.join(userDir, 'meetings.json'),
+    languages: [...new Set(app.getPreferredSystemLanguages().map((l) => l.split('-')[0]))],
+    onChange: () => { try { pushUpdate(); } catch { /* no window yet */ } },
+  });
   const ipc = registerIpc({
     store, supervisor, config, window, analytics, docGrants, updater,
     host: filingHost,
     team,
     connections: connected.connections,
     copies: connected.copies,
+    meetings,
   });
   // The Agents menu's Allow/Deny, bound to the real door now that there is one.
   // See the `installMenu` call above for what writing the file instead did to a
@@ -917,6 +929,7 @@ async function createWindow() {
   phoneApply = applyThrough(phoneChannels);
   // Every minute, so no engine search: that is a login shell on this thread.
   phoneSettings = () => phoneChannels.get('zero:settings-read')?.({ sender: null }, { search: false }) ?? null;
+  quitStep(app, 'before-quit', 'meetings.stop', meetings.watch());
   updater.start();
   // A task the app just shipped moved main: look now rather than in half an
   // hour, so the restart is offered while she still remembers the task.

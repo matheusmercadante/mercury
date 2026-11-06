@@ -97,6 +97,11 @@ Paste a list, send over a board of issues, or type one task. Each item becomes
 its own row, and each row is its own agent, already working in its own git
 worktree and on its own branch, so no two agents touch the same files.
 
+Or record a meeting. With [Hex](https://anoma.ly/hex/) installed, Record meeting
+captures your microphone and the call on your own machine, with no bot joining.
+When it ends, the transcript is saved in the project, and a private thread
+writes the notes and proposes the tasks for you to approve.
+
 <img src="docs/readme/file.webp" alt="Twelve issues from a project board go over in one message and appear as twelve agents working" width="100%">
 
 ### 2. Walk away

@@ -19,6 +19,12 @@
    Every icon is grey: the accent here is a red-orange and read as a bug. */
 @keyframes sb-update-spin { to { transform: rotate(360deg); } }
 
+/* A recording's dot is the voice note's (team/chat.css), and the one mark here
+   in the accent: it means the microphone is on, not that something broke. */
+@keyframes sb-meeting-live { 50% { opacity: .35; } }
+.workspace-navigation svg.sb-meeting-dot { color: var(--accent); animation: sb-meeting-live 1.2s steps(2, jump-none) infinite; }
+@media (prefers-reduced-motion: reduce) { .workspace-navigation svg.sb-meeting-dot { animation: none; } }
+
 .sb-update-card { position: relative; margin: 0 0 14px; padding: 12px; border: 1px solid var(--line-strong); border-radius: var(--radius); display: flex; flex-direction: column; gap: 6px; }
 .sb-update-card-title { display: flex; align-items: center; gap: 8px; padding-right: 22px; font-size: 13.5px; color: var(--text); }
 .sb-update-card-title svg { width: 16px; height: 16px; color: var(--text-dim); flex: none; }
@@ -52,6 +58,9 @@
 .gt-rail:not(.workspace-collapsed) .sb-update-slot > .sb-update-row { position: relative; z-index: 1; margin: 3px 12px; width: calc(100% - 24px); height: 30px; padding: 0; justify-content: center; border: 1px solid var(--line-strong); background: var(--wash); color: var(--text); }
 .gt-rail:not(.workspace-collapsed) .sb-update-slot > .sb-update-row:hover { background: var(--wash-strong); }
 .gt-rail:not(.workspace-collapsed) .sb-update-slot > .sb-update-row svg { display: none; }
+/* Nothing to press: no button to stand on, so the card closes up under its words. */
+.gt-rail:not(.workspace-collapsed) .sb-update-quiet > .sb-update-row { visibility: hidden; }
+.workspace-navigation .sb-update-quiet .sb-update-rise { padding-bottom: 12px; }
 .th-me { display: flex; align-items: center; gap: 9px; height: 46px; padding: 8px 0 0 8px; margin-top: 8px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--text); min-width: 0; box-sizing: border-box; }
 .th-me .tm-av { width: 22px; height: 22px; line-height: 20px; font-size: 9px; flex: none; }
 .workspace-collapsed .th-me > span:nth-child(2), .workspace-collapsed .th-me-signin { display: none; }

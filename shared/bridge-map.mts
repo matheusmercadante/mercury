@@ -91,6 +91,8 @@ export const REQUEST_CHANNELS: Readonly<Record<string, string>> = {
   teamEdit: 'zero:team-edit',
   // The microphone, asked for when a voice note starts recording.
   micAccess: 'zero:mic-access',
+  // A press on a recording (main/meetings.mts).
+  meeting: 'zero:meeting',
   teamMessage: 'zero:team-message',
   teamSeen: 'zero:team-seen',
   teamMoveToThread: 'zero:team-move-to-thread',

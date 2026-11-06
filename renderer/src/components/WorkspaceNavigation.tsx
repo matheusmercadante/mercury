@@ -5,7 +5,9 @@ import { Face } from '../team/people';
 import { Name } from '../../../shared/product-name.mjs';
 import { SidebarIcon } from './SidebarIcon';
 import { AppMark } from './AppMark';
+import { RecordIcon, SidebarMeeting } from './SidebarMeeting';
 import { SidebarMove, SidebarUpdate } from './SidebarUpdate';
+import type { MeetingCard, MeetingPress } from '../meeting-card';
 import { changeLines, closedHere, readMoveClosed, readUpdateClosed, writeMoveClosed, writeUpdateClosed } from '../update-row';
 import { AccountMenu } from '../team/account-menu';
 import type { Invisible } from '../team/rooms/GoInvisible';
@@ -46,7 +48,7 @@ function SearchGlyph() {
  *  deselected tab that is --text-faint at 400, exactly the word Inbox beside it;
  *  on the active one it is --text at 500. There is one rule rather than two.
  */
-export function WorkspaceNavigation({ view, collapsed, onView, onSearch: _onSearch, onCompose: _onCompose, inboxCount = 0, scheduledCount: _scheduledCount = 0, usage, onSettings, onInstructions, page: pageIn, hasTeam = false, onTeam, teamPage = false, team = null, onInvite, statuses = true, onAccount, onSignIn, onFeedback, onSignOut, update = null, onUpdate, move = null, onMove, invisible = null, inboxLabel = 'Threads', onPalette, rail = false, onHover, groups = null, onGroupsPage = false, onTeammatesPage = false, onFiles, filesPage = false, onConnections, connectionsPage = false, onTasks, tasksPage = false }: {
+export function WorkspaceNavigation({ view, collapsed, onView, onSearch: _onSearch, onCompose: _onCompose, inboxCount = 0, scheduledCount: _scheduledCount = 0, usage, onSettings, onInstructions, page: pageIn, hasTeam = false, onTeam, teamPage = false, team = null, onInvite, statuses = true, onAccount, onSignIn, onFeedback, onSignOut, update = null, onUpdate, move = null, onMove, meeting = null, onMeeting, onRecord, invisible = null, inboxLabel = 'Threads', onPalette, rail = false, onHover, groups = null, onGroupsPage = false, onTeammatesPage = false, onFiles, filesPage = false, onConnections, connectionsPage = false, onTasks, tasksPage = false }: {
   /** Whether one of the teammates' pages is up, which unlights Threads. */
   onTeammatesPage?: boolean;
   /** The Files place, and whether it is the page. */
@@ -71,6 +73,9 @@ export function WorkspaceNavigation({ view, collapsed, onView, onSearch: _onSear
   // shared/where-it-runs-from.mts). Null on every copy that can, which is
   // nearly all of them. `place` is what its × closes.
   move?: { place: string | null; error?: string | null } | null; onMove?: () => void;
+  // A RECORDING, OR WHAT STOPPED ONE (SidebarMeeting.tsx). Null when idle, and
+  // then `onRecord` is the row that starts one.
+  meeting?: MeetingCard | null; onMeeting?: (action: MeetingPress | 'dismiss') => void; onRecord?: () => void;
   page?: string | null; inboxCount?: number; scheduledCount?: number; usage?: ReactNode; onSettings?: () => void; onInstructions?: () => void;
   // THE TEAM TAB. No people and no counts here: approved 2026-09-30, a list of
   // who is busy is not worth seeing all the time, and the Team page is where
@@ -113,6 +118,7 @@ export function WorkspaceNavigation({ view, collapsed, onView, onSearch: _onSear
   const moveCard = showMove && !asRow;
   const moveView = showMove && move && onMove && <SidebarMove place={move.place} error={move.error ?? null}
     collapsed={collapsed} rail={rail} onMove={onMove} onClose={closeMove} />;
+  const meetingView = meeting && onMeeting && <SidebarMeeting card={meeting} collapsed={collapsed} rail={rail} onPress={onMeeting} onClose={() => onMeeting('dismiss')} />;
   const waiting = Number.isFinite(inboxCount) ? Math.max(0, Math.floor(inboxCount)) : 0;
   const waitingDescription = `${waiting} ${waiting === 1 ? 'thread' : 'threads'} waiting`;
   // ONE PAGE OF YOUR THREADS (approved 2026-10-01). In progress, Scheduled and
@@ -188,11 +194,14 @@ export function WorkspaceNavigation({ view, collapsed, onView, onSearch: _onSear
     <div className="workspace-bottom">
       {/* The card sits above the foot list; with the sidebar shut it is a
           row inside it (SidebarUpdate.tsx). */}
+      {!asRow && meetingView}
       {updateCard && updateView}
       {moveCard && moveView}
       <div className="workspace-utilities th-side-foot">
+        {asRow && meetingView}
         {!updateCard && updateView}
         {!moveCard && moveView}
+        {onRecord && !meeting && <button aria-label="Record meeting" title="Record meeting" onClick={onRecord}><RecordIcon /><span>Record meeting</span></button>}
         {/* THE SIDEBAR NEVER SAYS WHICH PLAN YOU ARE ON (w-e217e577e5,
             2026-10-07, and this is a standing rule rather than one round's
             taste). A row reading "Claude · Max 20x" shipped here for a few

@@ -6,6 +6,7 @@ import {updateFixture} from './agent-update-fixture';
 
 import type { AccountUsageReading, AgentConversation, ArtifactMark, BranchList, ConnectAnswer, ConnectAsk, ConnectionsList, ConnectionTile, CopyAct, CloudPlan, AnswerMode, CodexModeId, DemoOpened, FileFolderAct, FolderListing,FreshUser, PermissionMode, PhoneLink, PhoneRoute, RepeatRule, RepeatShape, RoomsResult, Settings, Snapshot, TeammatesResult, TeamCallResult, TeammateThreadWork, FoundInThreads, FileElsewhere, FileLine, FilesPlaceList, FilesPlaceView, TeamMessageFile, ThreadEditPatch, UpdateState, Usage, UsageLimit, WorkItem } from './types';
 import type { LedgerLine } from './thread-history';
+import type { MeetingState } from './meeting-card';
 import type { AgentFile as AgentFileRow } from './onboarding';
 import type { AgentFolder, SessionThread } from './agent-import-card';
 import type { EngineSetupState } from './plan-setup';
@@ -320,6 +321,19 @@ function fixtureWrite(scope: 'project' | 'workspace', p: any): Settings {
  *  version 0.2.0 whatever world it was pressed in is a button that cannot
  *  photograph the ordinary answer: nothing new.
  */
+function meetingShape(wanted: string, product: string | null): MeetingState {
+  const idle: MeetingState = { hex: true, phase: 'idle', title: null, startedAt: null, product, problem: null, model: null, preparing: null };
+  const shapes: Record<string, Partial<MeetingState>> = {
+    recording: { phase: 'recording', title: 'Design sync', startedAt: Date.now() - 754_000 },
+    transcribing: { phase: 'transcribing', title: 'Design sync' },
+    model: { model: { from: 'Parakeet Unified', to: 'Parakeet v3', size: '720 MB' } },
+    downloading: { preparing: 412 },
+    refused: { problem: 'Allow Hex in System Settings › Privacy & Security › Screen & System Audio Recording, then try again' },
+    missing: { hex: false, problem: 'Meetings are recorded by Hex, which is not installed here.' },
+  };
+  return { ...idle, ...shapes[wanted] };
+}
+
 export function updateShape(wanted: string): UpdateState {
   const shapes: Record<string, Partial<UpdateState>> = {
     // `readyAt` is set back on purpose: the sidebar card wears it, and a
@@ -460,6 +474,9 @@ export const api = {
       // she is meant to press could never be looked at before shipping.
       const wanted = params.get('update');
       if (wanted) base.update = updateShape(wanted);
+      // &meeting=... summons a recording's states, for the same reason.
+      const meetingWorld = params.get('meeting');
+      if (meetingWorld) base.meeting = meetingShape(meetingWorld, base.products[0]?.slug ?? null);
       // The approval queue is opt-in (&approvals): a worker frozen mid-command
       // is a real state worth being able to look at, and it is not the state
       // every other fixtures screenshot wants a card floating over.
@@ -1886,6 +1903,13 @@ export const api = {
   onChanged(fn: () => void): () => void {
     if (useFixtures) return () => {};
     return window.zero!.onChanged(fn);
+  },
+
+  /** A press on a recording (main/meetings.mts). What it changes comes back on the snapshot. */
+  async meeting(p: { action: 'record' | 'stop' | 'model' | 'open' | 'dismiss' | 'get'; product?: string }): Promise<void> {
+    if (useFixtures) return;
+    const zero = window.zero as any;
+    await zero?.meeting?.(p);
   },
 
   /** The phone door (main/phone-link.mts). Null where there is none: the

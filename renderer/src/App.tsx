@@ -143,6 +143,7 @@ import { buildMembers, mateRunsOf, orderMembers, personCardsOf, readHidden, read
 import { boardItems, cardOpens, evColumns, flipEvView, readEvView, whoseBoard, writeEvView, type EvTab, type EvView } from './team/everything/whose-board';
 import { needsByWho, readFolded, readNeedsGroup, stackRows, toggleFolded, whoIsWaiting, writeNeedsGroup, type NeedsGroup, type StackKey } from './threads/stack-rules';
 import { FeedbackCard } from './components/FeedbackCard';
+import { meetingCard } from './meeting-card';
 import { searchFieldInStrip, workspaceDestinations, workspacePageTitle } from './workspace-navigation.mjs';
 import { UsagePill } from './components/UsagePill';
 import { engineWordFor } from './byline';
@@ -7169,6 +7170,10 @@ export default function App() {
   // merely further up.
   // A phone keeps its own top bar (phone.css).
   const narrowSidebar = !onPhone();
+  const meetingNow = meetingCard(snap?.meeting, (slug) => snap?.products.find((p) => p.slug === slug)?.name ?? null);
+  // A recording lands in the project on screen, else where the last one landed.
+  const recordInto = snap ? (comeBackTo(snap.products, focused?.product, productFilter, snap.meeting?.product, rememberedProject()) ?? snap.products.find((p) => !p.practice)?.slug ?? null) : null;
+  const recordMeeting = () => { if (recordInto) void api.meeting({ action: 'record', product: recordInto }); };
   // The sidebar's Search row and ⌘K search threads on a desktop; a phone has
   // neither, so only there does the list draw a magnifier, and it opens ⌘K.
   const searchInTheList = onPhone() ? () => setModal('palette') : undefined;
@@ -7435,6 +7440,9 @@ export default function App() {
            offering the move. Null on every copy that can. */
         move={announcesMove(snap?.update, { walking, closed: '' }) ? { place: snap?.update?.place ?? null, error: snap?.update?.moveError ?? null } : null}
         onMove={() => { void api.updateMove(); }}
+        meeting={meetingNow}
+        onMeeting={(action) => { void api.meeting({ action }); }}
+        onRecord={snap?.meeting ? recordMeeting : undefined}
         /* WHAT IS LEFT OF YOUR LIMIT, in the slot the foot has held for it
            since 2026-10-01 and nothing ever filled. Drawn unconditionally:
            UsagePill is nothing at all until a reading lands. */
@@ -8325,6 +8333,9 @@ export default function App() {
         onCloudMode={(mode) => { setModal(null); void api.setWorkspaceSetting({ key: 'cloudRuns', value: mode }); }}
         onFirstRun={walkAgain}
         onTutorial={() => startTutorial(comeBackTo(snap.products, productFilter, rememberedProject()))}
+        recordInto={snap.products.find((p) => p.slug === recordInto)?.name ?? null}
+        onRecord={snap.meeting && !meetingNow ? () => { setModal(null); recordMeeting(); } : undefined}
+        onStopRecording={snap.meeting?.phase === 'recording' ? () => { setModal(null); void api.meeting({ action: 'stop' }); } : undefined}
         onImportAgents={() => { setModal(null); setImportAgents(true); }}
         products={rankedProducts}
         typed={paletteTyped}
