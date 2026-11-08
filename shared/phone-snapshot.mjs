@@ -369,6 +369,8 @@ const CHOICES = {
     visibleTo: (v) => Array.isArray(v) && v.length <= 50 && v.every((x) => typeof x === 'string' && x.length <= 80),
     // To Auto (shared/auto-route.mjs), and no other label.
     labels: (v) => Array.isArray(v) && v.length === 1 && v[0] === 'auto',
+    // When a recording began: it is what makes this thread a meeting (main/meetings.mts).
+    meeting: (v) => Number.isFinite(v) && v > 0,
   },
 };
 export function phoneChoices(kind, p) {

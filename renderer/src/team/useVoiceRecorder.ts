@@ -4,15 +4,21 @@
 // ./voice-recording.ts; this hands them the real microphone and this Mac's
 // store, and puts back into the box whatever was kept for it.
 import { useEffect, useRef, useState } from 'react';
-import { aNoteIsRecording, voiceRecording, type Arrival, type Recorded, type RecordingEnv, type StreamLike, type VoicePhase } from './voice-recording';
+import { aNoteIsRecording, voiceRecording, type Arrival, type Recorded, type RecordingEnv, type RecordingLimits, type StreamLike, type VoicePhase } from './voice-recording';
 import { indexedVoiceStore, listedVoiceStore, memoryVoiceStore, type VoiceDraftStore } from './voice-drafts';
 
 export type { Arrival, Recorded, VoicePhase };
 
-const TYPES = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4'];
-const pickType = () => (typeof MediaRecorder === 'undefined' ? '' : TYPES.find((t) => MediaRecorder.isTypeSupported?.(t)) ?? '');
+/** What the microphone records and how: a voice note's unless said otherwise. */
+export type Capture = { types: string[]; bits?: number; audio: MediaTrackConstraints };
 
-async function toBase64(blob: Blob): Promise<string> {
+const VOICE_NOTE: Capture = {
+  types: ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4'],
+  audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+};
+const pickType = (types: string[]) => (typeof MediaRecorder === 'undefined' ? '' : types.find((t) => MediaRecorder.isTypeSupported?.(t)) ?? '');
+
+export async function toBase64(blob: Blob): Promise<string> {
   const bytes = new Uint8Array(await blob.arrayBuffer());
   let bin = '';
   for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
@@ -24,12 +30,13 @@ const theStore = () => (store ??= listedVoiceStore(typeof indexedDB === 'undefin
 const busy: RecordingEnv['busy'] = { id: null };
 export const aVoiceNoteIsRecording = () => aNoteIsRecording(busy);
 
-const browser = (): RecordingEnv => ({
+const browser = (capture: Capture): RecordingEnv => ({
   ask: async () => (await window.zero?.micAccess?.()) ?? 'granted',
-  open: () => navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }),
+  open: () => navigator.mediaDevices.getUserMedia({ audio: capture.audio }),
   makeRecorder: (stream) => {
-    const type = pickType();
-    return new MediaRecorder(stream as MediaStream, type ? { mimeType: type } : undefined) as unknown as ReturnType<RecordingEnv['makeRecorder']>;
+    const type = pickType(capture.types);
+    const options = { ...(type ? { mimeType: type } : {}), ...(capture.bits ? { audioBitsPerSecond: capture.bits } : {}) };
+    return new MediaRecorder(stream as MediaStream, options) as unknown as ReturnType<RecordingEnv['makeRecorder']>;
   },
   makeMeter: (stream: StreamLike) => {
     const ctx = new AudioContext();
@@ -94,12 +101,14 @@ export type VoiceControl = {
   restore: () => Promise<void>;
 };
 
-export function useVoiceRecorder({ key, onSay, onDone }: {
+export function useVoiceRecorder({ key, onSay, onDone, capture = VOICE_NOTE, limits }: {
   /** The conversation and box the notes belong to. */
   key: string;
   onSay: (text: string) => void;
   /** A note for the box: just recorded, kept from before, or recovered. */
   onDone: (note: Recorded, how: Arrival) => void;
+  capture?: Capture;
+  limits?: RecordingLimits;
 }) {
   const [phase, setPhase] = useState<VoicePhase>('idle');
   const [elapsed, setElapsed] = useState(0);
@@ -111,12 +120,12 @@ export function useVoiceRecorder({ key, onSay, onDone }: {
   // than the one the first unmount set aside.
   const rec = useRef<ReturnType<typeof voiceRecording> | null>(null);
   useEffect(() => {
-    const r = voiceRecording(browser(), key, {
+    const r = voiceRecording(browser(capture), key, {
       phase: setPhase,
       tick: (ms, l) => { setElapsed(ms); setLevels(l); },
       done: (note, how) => said.current.onDone(note, how),
       say: (text) => said.current.onSay(text),
-    });
+    }, limits);
     rec.current = r;
     void r.restore();
     return () => {

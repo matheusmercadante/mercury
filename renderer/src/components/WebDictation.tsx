@@ -81,7 +81,7 @@ export function MicButton({ talk }: { talk: Talk }) {
 }
 
 /** Four bars that follow the voice. */
-function Level({ level }: { level: number }) {
+export function Level({ level }: { level: number }) {
   return (
     <span className="dictate-level" aria-hidden="true">
       {[0.55, 1, 0.75, 0.4].map((k, i) => <i key={i} style={{ height: Math.max(3, Math.round(14 * Math.min(1, 0.2 + level * k))) }} />)}

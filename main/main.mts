@@ -71,7 +71,8 @@ import { writeHeldThenReload } from './write-before-reload.mts';
 import { IS_SHE_TYPING_IN_THE_PAGE, theAppKeepsThisInput, theAppKeepsThisLetterInAPage } from '../shared/artifact-keys.mts';
 import { NAME, Name, WAS } from '../shared/product-name.mjs';
 import { JOIN_SCHEME, ourLink, tokenFromLink } from '../shared/room-links.mjs';
-import { findHex, hexCli } from './hex-meetings.mts';
+import { findHex, hexCli, hexService } from './hex-meetings.mts';
+import { transcribeRecording } from './meeting-audio.mts';
 import { createMeetings, saveTranscriptIn } from './meetings.mts';
 import { getMic } from './mic.mts';
 import type { IpcConfig } from './ipc.mts';
@@ -914,6 +915,13 @@ async function createWindow() {
     store,
     saveTranscript: saveTranscriptIn((slug) => store.productDir(slug)),
     wake: () => supervisor.wake(),
+    transcribe: (files) => transcribeRecording(files, {
+      service: () => {
+        const bin = findHex();
+        if (!bin) throw new Error('Recordings are transcribed by Hex, which is not installed on this computer.');
+        return hexService(bin);
+      },
+    }),
     stateFile: path.join(userDir, 'meetings.json'),
     languages: [...new Set(app.getPreferredSystemLanguages().map((l) => l.split('-')[0]))],
     onChange: () => { try { pushUpdate(); } catch { /* no window yet */ } },

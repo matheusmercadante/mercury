@@ -3,7 +3,7 @@
 // asks for the call's audio in Hex's name. Its command line is a contract it
 // publishes for scripts (docs/cli.md and docs/transcript-cli.md in its
 // repository); a different recorder would be a change to this file alone.
-import { execFile } from 'node:child_process';
+import { execFile, spawn as spawnChild } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -14,6 +14,14 @@ const ANSWER_MS = 20_000;
 const START_MS = 30_000;
 const LONGEST_REPLY = 32 * 1024 * 1024;
 const READ_VERSION = 1;
+// Finds the language by itself, so a recording needs no setting to go with it.
+const SERVICE_MODEL = 'parakeet_v3';
+const SERVICE_READY_MS = 60_000;
+// Long enough to download the model the first time.
+const SERVICE_PREPARE_MS = 15 * 60_000;
+const SERVICE_CLIP_MS = 120_000;
+// The service's own grace after its stdin ends is five seconds.
+const SERVICE_QUIT_MS = 6_000;
 
 export const HEX_SITE = 'https://anoma.ly/hex/';
 
@@ -79,3 +87,68 @@ export function hexCli(bin: string, { run = execFile as unknown as Run }: { run?
 }
 
 export type HexCli = ReturnType<typeof hexCli>;
+
+export interface HexService {
+  transcribe(wav: Buffer): Promise<string>;
+  close(): void;
+}
+
+type ServiceChild = {
+  stdout: NodeJS.ReadableStream;
+  stdin: NodeJS.WritableStream;
+  once(event: 'exit' | 'error', fn: (...args: unknown[]) => void): unknown;
+  kill(signal?: NodeJS.Signals): unknown;
+};
+type Spawn = (bin: string, args: string[], options: { stdio: ['pipe', 'pipe', 'ignore'] }) => ServiceChild;
+
+function readyLine(child: ServiceChild): Promise<{ url: string; token: string }> {
+  return new Promise((resolve, reject) => {
+    let buffer = '';
+    const fail = (why: string) => { clearTimeout(timer); reject(new Error(`Hex's transcription service did not start: ${why}`)); };
+    const timer = setTimeout(() => fail('it never said it was ready'), SERVICE_READY_MS);
+    child.once('exit', () => fail('it stopped'));
+    child.once('error', (err) => fail(String((err as Error)?.message ?? err)));
+    child.stdout.on('data', (bit: Buffer) => {
+      buffer += bit;
+      const end = buffer.indexOf('\n');
+      if (end < 0) return;
+      clearTimeout(timer);
+      try { resolve(JSON.parse(buffer.slice(0, end))); } catch { reject(new Error("Hex's transcription service did not start: its first line was not readable")); }
+    });
+  });
+}
+
+/**
+ * Hex without its window, as a child of this app: it reads audio and writes
+ * words, and needs no permission, because it never touches the microphone
+ * (docs/specs/local-transcription-service.md in its repository).
+ */
+export async function hexService(bin: string, { spawn = spawnChild as unknown as Spawn, fetchImpl = fetch }: { spawn?: Spawn; fetchImpl?: typeof fetch } = {}): Promise<HexService> {
+  const child = spawn(bin, ['service', '--embedded'], { stdio: ['pipe', 'pipe', 'ignore'] });
+  let ended = false;
+  const close = () => {
+    if (ended) return;
+    ended = true;
+    child.stdin.end();
+    setTimeout(() => child.kill('SIGKILL'), SERVICE_QUIT_MS).unref?.();
+  };
+  let ready: { url: string; token: string };
+  try { ready = await readyLine(child); } catch (err) { ended = true; child.kill('SIGKILL'); throw err; }
+  const headers = { Authorization: `Bearer ${ready.token}` };
+  try {
+    const prepared = await fetchImpl(`${ready.url}/models/${SERVICE_MODEL}/prepare`, { method: 'POST', headers, signal: AbortSignal.timeout(SERVICE_PREPARE_MS) });
+    const last = JSON.parse((await prepared.text()).trim().split('\n').filter((l) => l.startsWith('data:')).at(-1)?.slice(5) || '{}');
+    if (!prepared.ok || last.type !== 'ok') throw new Error(last.message || last.error || `Hex could not get its speech model ready (${prepared.status})`);
+  } catch (err) { close(); throw err; }
+  return {
+    close,
+    async transcribe(wav) {
+      const res = await fetchImpl(`${ready.url}/transcriptions?model=${SERVICE_MODEL}`, {
+        method: 'POST', headers: { ...headers, 'Content-Type': 'audio/wav' }, body: new Uint8Array(wav), signal: AbortSignal.timeout(SERVICE_CLIP_MS),
+      });
+      const body = await res.json().catch(() => null) as { message?: string; error?: string; transcript?: string } | null;
+      if (!res.ok) throw new Error(body?.message || body?.error || `Hex could not transcribe a piece of the recording (${res.status})`);
+      return String(body?.transcript ?? '');
+    },
+  };
+}

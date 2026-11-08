@@ -544,6 +544,8 @@
   :root:root:root .tc-card .tc-chip { border: 0; background: none; box-shadow: none; padding: 0; height: auto; font-size: 15px; color: var(--text); }
   :root:root:root .tc-card > .tc-text { order: 2; flex: 1; min-height: 0; height: auto; max-height: none; padding: 16px; font-size: 16px; resize: none; }
   :root:root:root .tc-card > .tc-connection-status { order: 2; padding: 12px 16px 0; }
+  /* What is attached sits under the words, above the rows that attach it. */
+  :root:root:root .tc-card > .attach-row { order: 2; flex: none; padding: 0 16px 12px; }
   /* Attaching is one row of words at the foot, not a paperclip to decode. Its
      52px is its own, with the home bar's room added under it: with the
      iPhone's 34px inset counted inside the 52 its words had 18px, hard under
@@ -554,6 +556,13 @@
     display: flex; align-items: center; gap: 10px; color: var(--text-dim); font-size: 15px;
   }
   :root:root:root .tc-card > .tc-bar > .tc-icon::after { content: 'Attach a file or picture'; }
+  /* Recording a meeting is the row above it, and never the last one, so it has
+     no home bar to make room for. */
+  :root:root:root .tc-card > .tc-bar > .tc-icon.tc-record { height: 52px; padding-bottom: 0; }
+  :root:root:root .tc-card > .tc-bar > .tc-icon.tc-record svg { width: 16px; height: 16px; flex: none; }
+  :root:root:root .tc-card > .tc-bar > .tc-icon.tc-record::after { content: 'Record meeting'; }
+  :root:root:root .tc-card > .tc-bar > .dictate-row.tc-recording { height: 52px; padding-bottom: 0; }
+  :root:root:root .tc-card > .tc-bar > .dictate-row.tc-recording .dictate-word { font-variant-numeric: tabular-nums; }
   /* The microphone at the end of that row, and the Listening row in its place
      while it listens, as in the phone app. */
   :root:root:root .tc-card > .tc-bar > .dictate-mic {

@@ -13,7 +13,26 @@
 import { VOICE_MAX_MS, voiceClock, voiceNoteName } from './voice-note';
 import type { VoiceDraftStore } from './voice-drafts';
 
-export type Recorded = { name: string; ms: number; dataBase64: string; blob: Blob; draftId: string };
+export type Recorded = { name: string; ms: number; dataBase64: string; blob: Blob; draftId: string; startedAt: number };
+
+/** How long a recording may run and how it is named and spoken of. A voice note unless said otherwise. */
+export type RecordingLimits = {
+  maxMs: number;
+  name: (ms: number, ext: string) => string;
+  atLimit: (maxMs: number) => string;
+  lost: (ms: number) => string;
+  recovered: (count: number) => string;
+};
+
+const VOICE_NOTE: RecordingLimits = {
+  maxMs: VOICE_MAX_MS,
+  name: voiceNoteName,
+  atLimit: (maxMs) => `Voice notes stop at ${voiceClock(maxMs)}. This one is in the box.`,
+  lost: (ms) => `The microphone stopped, so the note ends at ${voiceClock(ms)}. It is in the box.`,
+  recovered: (count) => (count === 1
+    ? 'A voice note you were recording when the app closed was kept. It is in the box.'
+    : `${count} voice notes you were recording when the app closed were kept. They are in the box.`),
+};
 export type VoicePhase = 'idle' | 'asking' | 'recording';
 /** How a note reached the box: just recorded, kept from before, or recovered after the app closed mid-note. */
 export type Arrival = 'recorded' | 'kept' | 'recovered';
@@ -83,7 +102,7 @@ export function voiceRecording(env: RecordingEnv, key: string, on: {
   tick: (elapsed: number, levels: number[]) => void;
   done: (note: Recorded, how: Arrival) => void;
   say: (text: string) => void;
-}) {
+}, limits: RecordingLimits = VOICE_NOTE) {
   type Live = {
     id: string; recorder: RecorderLike; stream: StreamLike; meter: { close: () => void } | null; timer: number;
     why: Why | null; writes: Promise<void>; startedAt: number; finished: Promise<Recorded | null>; deliver: boolean;
@@ -183,7 +202,7 @@ export function voiceRecording(env: RecordingEnv, key: string, on: {
         release(mine);
         if (!gone) { setPhase('idle'); on.tick(0, []); }
         const why = mine.why ?? 'lost';
-        const ms = Math.min(VOICE_MAX_MS, env.now() - mine.startedAt);
+        const ms = Math.min(limits.maxMs, env.now() - mine.startedAt);
         // Another box restoring this conversation waits for this to be
         // written down, and leaves it alone if it is going to this box.
         let landed: () => void = () => {};
@@ -198,14 +217,14 @@ export function voiceRecording(env: RecordingEnv, key: string, on: {
           return;
         }
         if (why !== 'gone') stopping = mine;
-        const name = voiceNoteName(ms, extOf(mime));
+        const name = limits.name(ms, extOf(mime));
         keep(() => env.store.finish(id, { ms, name }));
         await settled();
         // The box went away: the note waits in the store for the next one.
         if (why === 'gone') { out(null); return; }
         const blob = new Blob(pieces, { type: mime });
         let note: Recorded | null = null;
-        try { note = { name, ms, blob, dataBase64: await env.pack(blob), draftId: id }; } catch { note = null; }
+        try { note = { name, ms, blob, dataBase64: await env.pack(blob), draftId: id, startedAt: mine.startedAt }; } catch { note = null; }
         if (!note) {
           if (!gone) on.say('The voice note was kept but could not be read back. Open this conversation again to find it.');
           out(null);
@@ -217,14 +236,14 @@ export function voiceRecording(env: RecordingEnv, key: string, on: {
         out(note);
         if (!toBox) return;
         on.done(note, 'recorded');
-        if (why === 'limit') on.say(`Voice notes stop at ${voiceClock(VOICE_MAX_MS)}. This one is in the box.`);
-        if (why === 'lost') on.say(`The microphone stopped, so the note ends at ${voiceClock(ms)}. It is in the box.`);
+        if (why === 'limit') on.say(limits.atLimit(limits.maxMs));
+        if (why === 'lost') on.say(limits.lost(ms));
       };
       mine.timer = env.every(() => {
         const ms = env.now() - mine.startedAt;
         levels = [...levels, Math.min(1, meter.level())].slice(-METER);
         on.tick(ms, levels);
-        if (ms >= VOICE_MAX_MS) end('limit');
+        if (ms >= limits.maxMs) end('limit');
       }, TICK_MS);
       env.busy.id = id;
       live = mine;
@@ -308,19 +327,17 @@ export function voiceRecording(env: RecordingEnv, key: string, on: {
       let ms = d.ms ?? 0;
       let name = d.name ?? '';
       if (!d.done || !name) {
-        ms = Math.max(1, Math.min(VOICE_MAX_MS, kept.lastAt - d.startedAt));
-        name = voiceNoteName(ms, extOf(d.mime));
+        ms = Math.max(1, Math.min(limits.maxMs, kept.lastAt - d.startedAt));
+        name = limits.name(ms, extOf(d.mime));
         await env.store.finish(d.id, { ms, name }).catch(() => {});
       }
       let dataBase64: string;
       try { dataBase64 = await env.pack(kept.blob); } catch { continue; }
       if (gone) return;
-      on.done({ name, ms, blob: kept.blob, dataBase64, draftId: d.id }, d.done ? 'kept' : 'recovered');
+      on.done({ name, ms, blob: kept.blob, dataBase64, draftId: d.id, startedAt: d.startedAt }, d.done ? 'kept' : 'recovered');
       if (!d.done) recovered += 1;
     }
-    if (recovered && !gone) on.say(recovered === 1
-      ? 'A voice note you were recording when the app closed was kept. It is in the box.'
-      : `${recovered} voice notes you were recording when the app closed were kept. They are in the box.`);
+    if (recovered && !gone) on.say(limits.recovered(recovered));
   }
 
   /** A note taken out of the box, or that has certainly gone out, leaves the store. */

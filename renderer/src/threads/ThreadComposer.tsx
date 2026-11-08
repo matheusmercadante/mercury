@@ -47,6 +47,10 @@ import { conversationWith } from './page-rules';
 import { attachProblem, fromPaste, persistAttachments, useAttaching, type PendingAttachment } from '../attachments';
 import { AttachRow } from '../components/AttachRow';
 import { Listening, MicButton, useWebDictation } from '../components/WebDictation';
+import { onPhone } from '../phone-screen';
+import { forgetVoiceDraft } from '../team/useVoiceRecorder';
+import { MeetingRecorder } from './MeetingRecorder';
+import { meetingTitle } from './meeting-recording';
 import { PRIORITIES, priorityLabelOf, priorityValueOf, startingPriority, type PriorityId } from '../priority';
 import { clearComposeDraft, composeDraftIsEmpty, dropComposeDraft, markComposeDraftSending, openingComposeDraft, readComposeDraft, restoreComposeDraft, saveComposeDraft, type ComposeDraft } from '../drafts';
 import { codeProjectFor, LAST_PRODUCT_KEY, rememberedProject } from '../compose-project';
@@ -275,6 +279,9 @@ export function ThreadComposer({
   const [text, setText] = useState(() => (initial?.handFrom || initial?.continueFrom ? opened.current.text || initial.body : initial?.body || opened.current.text) || '');
   const [attachments, setAttachments] = useState<PendingAttachment[]>(() => (seeded && opened.current.attachments.length ? opened.current.attachments : initial?.attachments ?? opened.current.attachments));
   const [dropped, setDropped] = useState(0);
+  // When the meeting attached here began. Its audio is kept by the recorder, not the draft.
+  const [meetingAt, setMeetingAt] = useState<number | null>(null);
+  const recording = attachments.filter((a) => a.draftId);
   const { attaching, collect } = useAttaching();
   const onThisWork = initial?.handFrom ? agentOnThisWork(items, initial.handFrom) : null;
 
@@ -484,11 +491,11 @@ export function ThreadComposer({
   /* ------------------------------ draft --------------------------------- */
   // On every keystroke, every paste, every pick, the same draft the old card
   // kept, so an Escape or a reload never takes her words or her pictures.
-  const whatTheCardHolds = () => ({ text, attachments, priority: prio, when: whenOnDraft(when), dropped: 0 });
+  const whatTheCardHolds = () => ({ text, attachments: attachments.filter((a) => !a.draftId), priority: prio, when: whenOnDraft(when), dropped: 0 });
   useEffect(() => {
     const kept = cardDraftToKeep(text, initial);
     const unchanged = seeded && !kept && attachments.length === (initial?.attachments?.length ?? 0);
-    const draft = { ...whatTheCardHolds(), text: kept, attachments: unchanged ? [] : attachments };
+    const draft = { ...whatTheCardHolds(), text: kept, ...(unchanged ? { attachments: [] } : {}) };
     // A card opened while the last send is in flight starts empty, and must not
     // wipe the copy that send keeps until it lands (`openingComposeDraft`).
     if (composeDraftIsEmpty(draft) && readComposeDraft(undefined, place).sendingAt) return;
@@ -590,7 +597,9 @@ export function ThreadComposer({
   // off and she was stuck for fifteen minutes. If the practice text did not
   // arrive, Send sends it anyway.
   const typed = !text.trim() && scripted && !person ? `${PRACTICE_TASK.title}\n\n${PRACTICE_TASK.body}` : text;
-  const message = threadMessage(typed, person ? [] : attachments, named);
+  const worded = threadMessage(typed, person ? [] : attachments, named);
+  const meeting = meetingAt != null && recording.length ? meetingAt : null;
+  const message = worded && meeting != null && !typed.trim() ? { ...worded, title: meetingTitle(meeting) } : worded;
   const refusal = person ? null : practiceRefusal(product, { scripted: !!scripted });
   // The other reason Send can be off: there is no project to send to at all
   // (w-f8d123be62). It gets a line in the bar rather than a tooltip, because
@@ -670,7 +679,9 @@ export function ThreadComposer({
           ] } : {}),
           // The tutorial's own task, and only ever that one. See `scripted`.
           ...(scripted ? { labels: scripted.labels } : {}),
+          ...(meeting != null ? { meeting } : {}),
         });
+        recording.forEach((a) => forgetVoiceDraft(a.draftId));
         dropComposeDraft(taken, undefined, place);
         if (initial?.continueFrom) void api.teamContinued(initial.continueFrom);
         onSent(made, { kind: 'task', product: product.slug, title: message.title, draft: taken, ...(when.runAt ? { runAt: when.runAt } : {}), ...(when.start ? { start: when.start } : {}) });
@@ -1415,7 +1426,7 @@ export function ThreadComposer({
             })}
           </div>
         )}
-        <AttachRow attachments={attachments} attaching={attaching} onRemove={(i) => setAttachments((x) => x.filter((_, j) => j !== i))} />
+        <AttachRow attachments={attachments} attaching={attaching} onRemove={(i) => { forgetVoiceDraft(attachments[i]?.draftId); setAttachments((x) => x.filter((_, j) => j !== i)); }} />
         {ideaRule && (
           <div className="tc-note tc-repeat-note">
             <RepeatIcon />{repeatsLine(ideaRule)}. <button type="button" onClick={() => setIdea(null)}>Send it once instead</button>
@@ -1520,6 +1531,12 @@ export function ThreadComposer({
                 </button>
                 {open === 'visibility' && visibilityMenu}
               </span>
+            )}
+            {onPhone() && !person && !mate && !talk.on && (
+              <MeetingRecorder onSay={setError} onRecorded={(files, startedAt) => {
+                setAttachments((x) => [...x.filter((a) => !a.draftId), ...files]);
+                setMeetingAt(startedAt);
+              }} />
             )}
             {talk.on ? <Listening talk={talk} /> : (
             <button type="button" className="tc-icon" title="Attach files" aria-label="Attach files" onClick={() => fileRef.current?.click()}>

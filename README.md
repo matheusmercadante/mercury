@@ -100,7 +100,9 @@ worktree and on its own branch, so no two agents touch the same files.
 Or record a meeting. With [Hex](https://anoma.ly/hex/) installed, Record meeting
 captures your microphone and the call on your own machine, with no bot joining.
 When it ends, the transcript is saved in the project, and a private thread
-writes the notes and proposes the tasks for you to approve.
+writes the notes and proposes the tasks for you to approve. Away from your
+computer, Record meeting on the phone's new thread page records the room, and
+your computer transcribes it the same way.
 
 <img src="docs/readme/file.webp" alt="Twelve issues from a project board go over in one message and appear as twelve agents working" width="100%">
 

@@ -1286,7 +1286,16 @@ export function registerIpc({ store, supervisor, config, window, analytics = NO_
     return { ...(await branchesIn(repoPath)), preset: (product ? config.projectBaseBranch?.[product] : undefined) ?? null };
   });
 
-  ipcMain.handle('zero:compose', async (_e, { product, title, body, kind, priority, runAt, start, labels, engine, model, effort, baseBranch, assignee, due, visibility, visibleTo, fromPhone, onMac }: ComposeInput & { product: string; onMac?: unknown }) => {
+  ipcMain.handle('zero:compose', async (_e, { product, title, body, kind, priority, runAt, start, labels, engine, model, effort, baseBranch, assignee, due, visibility, visibleTo, fromPhone, onMac, meeting }: ComposeInput & { product: string; onMac?: unknown; meeting?: unknown }) => {
+    // A recording from the phone: the words come first and the thread after them.
+    if (meeting) {
+      if (!meetings) throw new Error('This computer cannot transcribe recordings.');
+      return meetings.takeRecording({
+        product, title: String(title ?? ''), body: String(body ?? ''), recordedAt: Number(meeting),
+        choices: { effort, engine: supervisor.engineOffered(engine), model: supervisor.modelOffered(engine, model) },
+        ...(fromPhone ? { fromPhone: String(fromPhone) } : {}),
+      });
+    }
     const branch = await branchOffered(product, baseBranch);
     const out = store.composeItem(product, {
       baseBranch: branch,

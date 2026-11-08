@@ -13,6 +13,7 @@ import path from 'node:path';
 import { SCHEMA_VERSION } from '../shared/contracts.mjs';
 import { recoveryProduct } from './connections/start.mjs';
 import type { HexCli, HexReply } from './hex-meetings.mts';
+import type { Heard } from './meeting-audio.mts';
 import { atomicWriteJson, readIndex, readJson, saveCreation } from './store/project.mjs';
 import { runForProject } from './store/queues.mjs';
 
@@ -60,7 +61,8 @@ interface Kept {
 
 interface MeetingStore {
   listProducts(): { slug: string; team?: { direct?: unknown } | null }[];
-  composeItem(slug: string, input: { title: string; body: string; visibility: string }): unknown;
+  productDir(slug: string): string;
+  composeItem(slug: string, input: { title: string; body: string; visibility: string; fromPhone?: string }): unknown;
   fileItem(slug: string, row: { title: string; body: string; problem?: string }): unknown;
 }
 
@@ -78,14 +80,43 @@ function transcriptPath(m: Listed): string {
   return `transcripts/${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())}-${two(d.getHours())}${two(d.getMinutes())}-${slugOf(m.title)}.md`;
 }
 
+const WRITE_THE_NOTES = 'Read all of it, then write the notes: what it was about, what was decided, who will do what, and what is still open. Keep names, numbers and dates as they were said.';
+const FILE_THE_TASKS = 'File each task that came out of it for me as its own proposal under this thread, written so it can start cold, so I can approve the ones I want. Leave out what other people said they would do.';
+const ITS_LANGUAGE = 'Answer in the language of the meeting.';
+
 function threadBody(m: Listed, doc: TranscriptDoc): string {
   const minutes = Math.max(1, Math.round(m.duration_ms / 60_000));
   const facts = [`${minutes} min`, m.application].filter(Boolean).join(', ');
   return [
     `I recorded a meeting: [${doc.title}](${doc.path}) (${facts}).`,
-    'Read all of it, then write the notes: what it was about, what was decided, who will do what, and what is still open. Keep names, numbers and dates as they were said. The transcript comes from speech recognition, so say where it is unclear instead of guessing. "You" is me; "Them" is everyone else on the call, and it does not tell them apart.',
-    'File each task that came out of it for me as its own proposal under this thread, written so it can start cold, so I can approve the ones I want. Leave out what other people said they would do.',
-    'Answer in the language of the meeting.',
+    `${WRITE_THE_NOTES} The transcript comes from speech recognition, so say where it is unclear instead of guessing. "You" is me; "Them" is everyone else on the call, and it does not tell them apart.`,
+    FILE_THE_TASKS,
+    ITS_LANGUAGE,
+  ].join('\n\n');
+}
+
+const AUDIO_LINK = /\[[^\]\n]*\]\((attachments\/[^)\s]+\.(?:m4a|mp4|aac|caf|wav|mp3))\)/gi;
+
+const clockOf = (ms: number) => `${two(Math.floor(ms / 60_000))}:${two(Math.floor(ms / 1000) % 60)}`;
+
+function phoneTranscript(title: string, recordedAt: number, heard: Heard): string {
+  const d = new Date(recordedAt);
+  return [
+    `# ${title}`,
+    `- Recorded: ${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())} ${two(d.getHours())}:${two(d.getMinutes())}\n- Duration: ${clockOf(heard.durationMs)}\n- Source: phone microphone`,
+    '## Transcript',
+    ...heard.pieces.map((p) => `**${clockOf(p.atMs)}**\n${p.text}`),
+  ].join('\n\n');
+}
+
+function phoneThreadBody(doc: TranscriptDoc, heard: Heard, note: string, audio: string[]): string {
+  const minutes = Math.max(1, Math.round(heard.durationMs / 60_000));
+  return [
+    `I recorded a meeting on my phone: [${doc.title}](${doc.path}) (${minutes} min). The audio is ${audio.join(', ')}.`,
+    ...(note ? [`My note: ${note}`] : []),
+    `${WRITE_THE_NOTES} It comes from one phone's microphone in the room through speech recognition and does not tell people apart, so say where it is unclear instead of guessing.`,
+    FILE_THE_TASKS,
+    ITS_LANGUAGE,
   ].join('\n\n');
 }
 
@@ -103,11 +134,13 @@ export function saveTranscriptIn(productDir: (slug: string) => string) {
   });
 }
 
-export function createMeetings({ locate, store, saveTranscript, wake, stateFile, languages, now = Date.now, onChange = () => {} }: {
+export function createMeetings({ locate, store, saveTranscript, wake, stateFile, languages, now = Date.now, onChange = () => {}, transcribe }: {
   locate: () => HexCli | null;
   store: MeetingStore;
   saveTranscript: (slug: string, doc: TranscriptDoc) => Promise<unknown>;
   wake: () => void;
+  /** Words from a recording the phone made (main/meeting-audio.mts). */
+  transcribe?: (files: string[]) => Promise<Heard>;
   stateFile: string;
   /** The languages this Mac reads, as Hex names them: `en`, `pt`. */
   languages: readonly string[];
@@ -356,6 +389,37 @@ export function createMeetings({ locate, store, saveTranscript, wake, stateFile,
     dismiss() {
       offered = null;
       set({ problem: null, model: null });
+    },
+
+    /**
+     * A recording the phone sent, already in the project's attachments. It ends
+     * as a Hex meeting does. What fails is said to the phone by the throw and
+     * kept in Needs you with the audio, so an hour of talk is never only a refusal.
+     */
+    async takeRecording({ product, title, body, fromPhone, recordedAt, choices }: { product: string; title: string; body: string; fromPhone?: string; recordedAt: number; choices?: Record<string, unknown> }) {
+      const links = [...String(body ?? '').matchAll(AUDIO_LINK)];
+      if (!links.length) throw new Error('The recording did not arrive with its message.');
+      const audio = links.map((l) => l[0]);
+      const note = String(body).replace(AUDIO_LINK, '').trim();
+      const keepIt = (why: string): never => {
+        store.fileItem(product, { title: `${title} could not be transcribed`, body: `${why}\n\nThe recording is kept: ${audio.join(', ')}` });
+        throw new Error(why);
+      };
+
+      let heard: Heard | undefined;
+      try {
+        if (!transcribe) throw new Error('This computer cannot transcribe recordings.');
+        heard = await transcribe(links.map((l) => path.join(store.productDir(product), l[1])));
+      } catch (err) {
+        keepIt(String((err as Error)?.message ?? err));
+      }
+      if (!heard?.pieces.length) return keepIt('No words were heard in this recording.');
+
+      const doc = { title, path: transcriptPath({ timestamp_ms: recordedAt, title } as Listed), content: phoneTranscript(title, recordedAt, heard) };
+      await saveTranscript(product, doc);
+      const made = store.composeItem(product, { ...choices, title, body: phoneThreadBody(doc, heard, note, audio), visibility: 'private', ...(fromPhone ? { fromPhone } : {}) });
+      wake();
+      return made;
     },
   };
   return me;
