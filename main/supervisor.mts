@@ -70,6 +70,7 @@ import { execFileSync } from 'node:child_process';
 import { holdUntilHome } from './cloud/codex-cloud.mts';
 import { hostSocketPath, perlRunsTheShim, HOST_ALREADY_THERE } from './cloud/host.mts';
 import { runHostSocket, spoolFiles, HOST_ALREADY_THERE as RUN_HOST_ALREADY_THERE } from './run-host.mjs';
+import { toolHostDir, readToolHost, shareToolServers, TOOL_HOST_ALREADY_THERE } from './tool-host.mjs';
 import { HostedRun, HOST_LOST } from './hosted-run.mjs';
 import { readCloudUsage, summarizeCloudUsage } from './cloud/usage.mts';
 import { buildSessionArgs, CLAUDE_MODES, parseSessionArgs, permissionMode } from './settings.mts';
@@ -667,7 +668,9 @@ export interface SavedState {
   rowSessions?: Record<string, RowSessionRecord>;
   stoppedSessions?: Record<string, StoppedSessionRecord>;
   compactions?: Record<string, CompactionRecord>;
-  nativeCommands?: Record<string, string[]>;
+  /** Per thread, its session's slash commands: an index into `nativeCommandLists`, or the list itself in files saved before those lists. */
+  nativeCommands?: Record<string, string[] | number>;
+  nativeCommandLists?: string[][];
   lastDigestTry?: Record<string, number>;
   deliveryAttempts?: Record<string, number>;
   fruitless?: Record<string, FruitlessRecord>;
@@ -684,6 +687,32 @@ export interface SavedState {
   threadOnMac?: Record<string, boolean>;
   movedToMac?: Record<string, number>;
   movedWhy?: Record<string, MovedWhy>;
+}
+
+// Nearly every session offers the same commands, so each distinct list is saved
+// once and threads point at it (tests/the-supervisors-saved-state-stays-small...).
+export function packCommands(byThread: Record<string, string[]>): { nativeCommandLists: string[][]; nativeCommands: Record<string, number> } {
+  const lists: string[][] = [];
+  const at = new Map<string, number>();
+  const nativeCommands: Record<string, number> = {};
+  for (const [id, names] of Object.entries(byThread ?? {})) {
+    if (!Array.isArray(names)) continue;
+    const key = JSON.stringify(names);
+    let i = at.get(key);
+    if (i === undefined) { i = lists.length; lists.push(names); at.set(key, i); }
+    nativeCommands[id] = i;
+  }
+  return { nativeCommandLists: lists, nativeCommands };
+}
+
+export function unpackCommands(state: Pick<SavedState, 'nativeCommands' | 'nativeCommandLists'>): Record<string, string[]> {
+  const lists = state.nativeCommandLists ?? [];
+  const out: Record<string, string[]> = {};
+  for (const [id, v] of Object.entries(state.nativeCommands ?? {})) {
+    if (Array.isArray(v)) out[id] = v;
+    else if (Array.isArray(lists[v])) out[id] = lists[v];
+  }
+  return out;
 }
 
 /** The store, as far as the supervisor uses it (main/store.mts). */
@@ -1245,6 +1274,7 @@ export class Supervisor {
   declare idleMs: (() => number | null | undefined) | undefined;
   declare stalls: { take(): Record<string, unknown> | undefined; longestNow?(): number } | undefined;
   declare hostRuns: boolean | undefined;
+  declare shareTools: boolean | undefined;
   declare terminalOpen: ((id: string) => boolean) | undefined;
   declare runLedger: string | undefined;
   declare _remoteControls: Map<string, RemoteControlState> | undefined;
@@ -1261,6 +1291,9 @@ export class Supervisor {
   declare _runHostBroken: number | undefined;
   declare _runHostSock: string | undefined;
   declare _runHostProc: ChildProcess | undefined;
+  declare _toolHostDir: string | undefined;
+  declare _toolHostProc: ChildProcess | undefined;
+  declare _toolHostDeaths: number | undefined;
   declare _stateFile: string;
   declare _handledAnswers: Set<string>;
   declare _resumedWaits: Set<string>;
@@ -1271,6 +1304,8 @@ export class Supervisor {
   declare _stoppedSessions: Record<string, StoppedSessionRecord>;
   declare _compactions: Record<string, CompactionRecord>;
   declare _nativeCommands: Record<string, string[]>;
+  /** What `_saveState` last wrote, so an unchanged save writes nothing. */
+  _savedText?: string;
   declare _deliveryAttempts: Record<string, number>;
   declare _fruitless: Record<string, FruitlessRecord>;
   declare _heldStarts: Record<string, HeldStart>;
@@ -1521,7 +1556,7 @@ export class Supervisor {
       // (`_noteStoppedByAccount`).
       this._stoppedSessions = state.stoppedSessions ?? {};
       this._compactions = state.compactions ?? {};
-      this._nativeCommands = state.nativeCommands ?? {};
+      this._nativeCommands = unpackCommands(state);
       for (const value of Object.values(this._compactions)) if (value.state === 'running') value.state = 'failed';
       // When a digest was last ATTEMPTED, per product. The digest row itself is
       // the real watermark (it lives in the store and survives everything);
@@ -1738,6 +1773,7 @@ export class Supervisor {
     // meet the memory hold too rather than all arriving before the first
     // reading does (main/start-hold.mts). One sysctl, a few milliseconds.
     if (this.config.memoryGate) this._memReading = readMacPressureNow();
+    if (this.shareTools) this._toolHost();
     try { this.recoverInterrupted('startup'); } catch (e) { console.warn('zero: startup recovery:', (e as Error).message); }
     if (this.config.memoryGate) this.setMemoryGate(true).catch((e) => console.warn('zero: memory gate:', e.message));
     this.setLeftoverCleanup(!!this.config.cleanupLeftovers).catch((e) => console.warn('zero: leftovers:', e.message));
@@ -1893,7 +1929,7 @@ export class Supervisor {
   }
 
   /**
-   * WAIT FOR THAT COMMIT'S TESTS ON GITHUB, BESIDE EVERYTHING ELSE.
+   * WAIT FOR THAT COMMIT'S TESTS AND SECURITY RUNS ON GITHUB, BESIDE EVERYTHING ELSE.
    *
    * Nothing waits on this: no ship, no agent, no tick. It is started and
    * dropped, every failure inside it is quiet, and the app quitting ends it
@@ -1905,6 +1941,9 @@ export class Supervisor {
     try {
       this.mainTests.watch(shipped as ShippedNote & { sha: string }).catch(() => {});
     } catch { /* a watch that cannot start is not a ship that failed */ }
+    try {
+      this.mainTests.watchSecurity(shipped as ShippedNote & { sha: string }).catch(() => {});
+    } catch { /* nor is this one */ }
   }
 
   stop() {
@@ -7143,6 +7182,50 @@ export class Supervisor {
     }
   }
 
+  // The one process serving the store tools to every local run
+  // (main/tool-host.mjs), started with the app. Its folder, or null when there
+  // is none to use and runs start their own servers as before. After three
+  // deaths it is left alone for this launch.
+  _toolHost() {
+    if (!this.shareTools) return null;
+    this._toolHostDir ??= toolHostDir();
+    if (readToolHost(this._toolHostDir)) return this._toolHostDir;
+    const had = this._toolHostProc;
+    if (had && had.exitCode === null && had.signalCode === null) return null;
+    if ((this._toolHostDeaths ?? 0) >= 3) return null;
+    try {
+      fs.mkdirSync(this._toolHostDir, { recursive: true, mode: 0o700 });
+      const log = fs.openSync(path.join(this.userDir, 'tool-host.log'), 'a');
+      const proc = spawn(process.execPath, [...stripTypesFlags(), fileURLToPath(new URL('./tool-host.mjs', import.meta.url)), this._toolHostDir, String(process.pid)], {
+        env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
+        detached: true,
+        stdio: ['ignore', log, log],
+      });
+      fs.closeSync(log);
+      proc.on('error', () => {});
+      proc.on('exit', (code) => {
+        if (code === TOOL_HOST_ALREADY_THERE || code === 0) return;
+        this._toolHostDeaths = (this._toolHostDeaths ?? 0) + 1;
+        console.warn(`${nameSlug}: the tool host stopped (${code}); runs start their own tool servers until it is back`);
+      });
+      proc.unref();
+      this._toolHostProc = proc;
+    } catch (error) {
+      this._toolHostDeaths = (this._toolHostDeaths ?? 0) + 1;
+      console.warn(`${nameSlug}: the tool host could not start, so runs start their own tool servers:`, (error as Error).message);
+    }
+    return null;
+  }
+
+  /** A local Claude Code run reaches the shared tool host instead of starting a store server of its own. */
+  _shareToolServers(plan: Pick<SpawnPlan, 'args'>, item: WorkItem, spawnFiles: SpawnFile[]) {
+    const at = plan.args.indexOf('--mcp-config');
+    const dir = at >= 0 ? this._toolHost() : null;
+    if (!dir) return;
+    const pass = shareToolServers(plan.args[at + 1], { dir, item: item.id, product: item.product, storeServer: STORE_SERVER });
+    if (pass) spawnFiles.push(pass);
+  }
+
   // A LOCAL RUN THE RUN HOST HOLDS IS LET GO, NOT STOPPED, on a quit or a
   // restart, and picked back up at the next start (`_adoptHostedRun`). One
   // whose session id has not arrived has nothing to be found again by, so it
@@ -7641,7 +7724,7 @@ export class Supervisor {
       // short ones does not open the door (main/start-hold.mts).
       const at = Date.now();
       if (this._memReading) this._memRecent = [...(this._memRecent ?? []), this._memReading].filter((x) => at - x.at <= SETTLE_MS);
-      this._memReading = { level: r?.level ?? null, freePct: r?.freePct ?? null, at };
+      this._memReading = { level: r?.level ?? null, freePct: r?.freePct ?? null, swapInMbps: r?.swapInMbps ?? null, at };
     }, () => {}).finally(() => {
       if (this._memReadingSince === asked) this._memReadingSince = null;
     });
@@ -7910,7 +7993,7 @@ export class Supervisor {
 
   _saveState() {
     try {
-      fs.writeFileSync(this._stateFile, JSON.stringify({
+      const text = JSON.stringify({
         handledAnswers: [...this._handledAnswers].slice(-500),
         resumedWaits: [...this._resumedWaits].slice(-500),
         waitsSince: this._waitsSince,
@@ -7937,7 +8020,7 @@ export class Supervisor {
         rowSessions: this._rowSessions,
         stoppedSessions: this._stoppedSessions,
         compactions: this._compactions,
-        nativeCommands: this._nativeCommands,
+        ...packCommands(this._nativeCommands),
         lastDigestTry: this.lastDigestTry,
         deliveryAttempts: this._deliveryAttempts,
         fruitless: this._fruitless,
@@ -7953,7 +8036,11 @@ export class Supervisor {
         profileTrouble: this._profileTrouble,
         profileCooldown: this._profileCooldown,
         carried: this._carried,
-      }));
+      });
+      // Saves come in clusters, most with nothing new; each used to rewrite the whole file.
+      if (text === this._savedText) return;
+      fs.writeFileSync(this._stateFile, text);
+      this._savedText = text;
     } catch {}
   }
 
@@ -11486,6 +11573,7 @@ export class Supervisor {
     // A LOCAL RUN IS HELD BY THE RUN HOST, so a quit or a restart leaves it
     // and its helpers going (main/run-host.mjs).
     const hosted = !!this.hostRuns && where !== 'cloud' && !remoteOnly && !plan.command;
+    if (hosted && !adopted && engineOf(engine) === 'claude') this._shareToolServers(plan, item, spawnFiles);
     const child: WorkerChild = adopted?.child ?? harness.spawn(this, plan, { cwd, item, profile, env, cloud: where === 'cloud', host: hosted ? this._runHost() : null }) as WorkerChild;
     if (child instanceof HostedRun && !adopted) child.once('exit', (code) => { if (code === HOST_LOST && !Number.isInteger(child.pid)) this._runHostBroken = Date.now(); });
 
