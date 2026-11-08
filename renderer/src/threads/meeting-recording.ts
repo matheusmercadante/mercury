@@ -3,6 +3,7 @@
 // writes, and how the file goes up. The other end is main/meetings.mts.
 import type { PendingAttachment } from '../attachments';
 import { clock } from '../meeting-card';
+import { phoneMicRefusal } from '../phone-mic';
 import type { Recorded, RecordingLimits } from '../team/voice-recording';
 
 export const MEETING_KEY = 'phone:meeting';
@@ -22,6 +23,7 @@ export const MEETING_CAPTURE = {
 export const MEETING_LIMITS: RecordingLimits = {
   maxMs: MEETING_MAX_MS,
   name: (_ms, ext) => `meeting.${ext}`,
+  refused: phoneMicRefusal,
   atLimit: () => 'Recordings stop at 4 hours. This one is ready to send.',
   lost: (ms) => `The microphone stopped, so the recording ends at ${clock(ms)}. It is ready to send.`,
   recovered: (n) => (n === 1 ? 'A meeting you were recording when the app closed was kept. It is ready to send.' : `${n} meetings you were recording when the app closed were kept.`),

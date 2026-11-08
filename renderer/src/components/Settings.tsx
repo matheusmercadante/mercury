@@ -35,6 +35,7 @@ import { changesOn, readingOf, type Reading, type SettingsRow } from '../phone-s
 import { lastAccountAsk, webProjectRow, webSettingsGroups, webSettingsPages } from '../web-settings';
 import { whatTakesEscape } from '../settings-escape';
 import { WebAlertsGroup } from './WebAlerts';
+import { WebMicGroup } from './WebMicrophone';
 import { api, RESTART_NOTE, type PublicLink } from '../api';
 import { shareWords } from './ShareLink';
 import { updateLook } from '../update-row';
@@ -926,7 +927,8 @@ function WebAccountPage({ web, feedback, onPhoneProjects }: { web: PhoneWeb; fee
         <Row label={computer.label} desc={computer.desc} />
       </Group>
       <WebAlertsGroup />
-      {onPhoneProjects && <Group id="phone-mac-shut" label="On your phone">{onPhoneProjects}</Group>}
+      <WebMicGroup />
+      {onPhoneProjects &&<Group id="phone-mac-shut" label="On your phone">{onPhoneProjects}</Group>}
       {feedback}
       {web.build && (
         <Group id="updates" label="Updates">

@@ -16,6 +16,16 @@ export interface CloudSession { access_token: string; refresh_token: string; exp
 type Store = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 type Fetch = (input: string, init?: RequestInit) => Promise<Response>;
 
+const CALL_MS = 15_000;
+// The slowest connection a file is given time for: 32 KB a second, in bytes a millisecond.
+const SLOW_BYTES_PER_MS = 32;
+
+/** How long a file has to go up. An hour's meeting is about 22 MB, which no phone sends in a call's 15 seconds. */
+export const putDeadlineMs = (bytes: number) => Math.max(CALL_MS, Math.ceil(bytes / SLOW_BYTES_PER_MS));
+
+/** The web app's calls: each ends within 15 seconds unless it brought a deadline of its own. */
+export const doorFetch = (send: Fetch = (u, i) => fetch(u, i)): Fetch => (u, i) => send(u, { ...i, signal: i?.signal ?? AbortSignal.timeout(CALL_MS) });
+
 const SESSION_KEY = 'agentbox-cloud-session';
 const VERIFIER_KEY = 'agentbox-cloud-verifier';
 const RESET_KEY = 'agentbox-cloud-reset';
@@ -257,7 +267,7 @@ export function cloudClient(cfg: CloudConfig, { storage, fetchImpl, now = () => 
     /** A file into her own folder of a private bucket; one already there by that name is the same file. */
     async putFile(bucket: string, path: string, bytes: Uint8Array, type: string) {
       try {
-        await call(`/storage/v1/object/${bucket}/${path.split('/').map(encodeURIComponent).join('/')}`, { method: 'POST', headers: { 'content-type': type, 'x-upsert': 'false' }, body: bytes as BodyInit });
+        await call(`/storage/v1/object/${bucket}/${path.split('/').map(encodeURIComponent).join('/')}`, { method: 'POST', signal: AbortSignal.timeout(putDeadlineMs(bytes.length)), headers: { 'content-type': type, 'x-upsert': 'false' }, body: bytes as BodyInit });
       } catch (err) {
         if ((err as { status?: number }).status === 409 || /exists|duplicate/i.test(String((err as Error).message))) return;
         throw err;

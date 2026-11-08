@@ -6,6 +6,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { aNoteIsRecording, voiceRecording, type Arrival, type Recorded, type RecordingEnv, type RecordingLimits, type StreamLike, type VoicePhase } from './voice-recording';
 import { indexedVoiceStore, listedVoiceStore, memoryVoiceStore, type VoiceDraftStore } from './voice-drafts';
+import { onPhone } from '../phone-screen';
 
 export type { Arrival, Recorded, VoicePhase };
 
@@ -30,8 +31,10 @@ const theStore = () => (store ??= listedVoiceStore(typeof indexedDB === 'undefin
 const busy: RecordingEnv['busy'] = { id: null };
 export const aVoiceNoteIsRecording = () => aNoteIsRecording(busy);
 
-const browser = (capture: Capture): RecordingEnv => ({
-  ask: async () => (await window.zero?.micAccess?.()) ?? 'granted',
+export const browser = (capture: Capture): RecordingEnv => ({
+  // Whether the computer lets the app near its microphone. A phone's page has
+  // nothing to ask the computer: its browser asks when the microphone opens.
+  ask: async () => (onPhone() ? 'granted' : (await window.zero?.micAccess?.()) ?? 'granted'),
   open: () => navigator.mediaDevices.getUserMedia({ audio: capture.audio }),
   makeRecorder: (stream) => {
     const type = pickType(capture.types);

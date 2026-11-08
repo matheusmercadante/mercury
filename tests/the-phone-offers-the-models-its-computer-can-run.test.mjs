@@ -15,7 +15,10 @@ const copy = (device, engines = ['codex']) => ({ device, updated_at: '2026-10-27
 describe('the computer model catalog reaches the phone', () => {
   it('puts a deadline on the requests the catalog waits for', () => {
     const bridge = fs.readFileSync(new URL('../renderer/src/cloud-bridge.ts', import.meta.url), 'utf8');
-    expect(bridge).toContain('fetch(u, { ...i, signal: AbortSignal.timeout(15_000) })');
+    const rest = fs.readFileSync(new URL('../renderer/src/cloud-rest.ts', import.meta.url), 'utf8');
+    expect(bridge).toContain('fetchImpl: doorFetch()');
+    expect(rest).toContain('const CALL_MS = 15_000;');
+    expect(rest).toContain('signal: i?.signal ?? AbortSignal.timeout(CALL_MS)');
   });
   it('carries only the model fields the picker reads', () => {
     const w = copy('a').settings.workspace;

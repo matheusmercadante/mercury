@@ -22,6 +22,8 @@ export type RecordingLimits = {
   atLimit: (maxMs: number) => string;
   lost: (ms: number) => string;
   recovered: (count: number) => string;
+  /** What a microphone that will not open says. A computer's words unless said otherwise. */
+  refused?: (err: unknown) => string;
 };
 
 const VOICE_NOTE: RecordingLimits = {
@@ -144,10 +146,11 @@ export function voiceRecording(env: RecordingEnv, key: string, on: {
     setPhase('asking');
     const access = await env.ask().catch(() => 'settings' as const);
     if (!still()) return;
-    if (access !== 'granted') { setPhase('idle'); on.say(micRefusal({ name: 'NotAllowedError' })); return; }
+    const refused = limits.refused ?? micRefusal;
+    if (access !== 'granted') { setPhase('idle'); on.say(refused({ name: 'NotAllowedError' })); return; }
     let stream: StreamLike;
     try { stream = await env.open(); } catch (err) {
-      if (still()) { setPhase('idle'); on.say(micRefusal(err)); }
+      if (still()) { setPhase('idle'); on.say(refused(err)); }
       return;
     }
     if (!still() || env.busy.id) {

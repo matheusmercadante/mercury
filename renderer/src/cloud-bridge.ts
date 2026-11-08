@@ -18,7 +18,7 @@
 import { REQUEST_CHANNELS, PUSH_CHANNELS, DESKTOP_ONLY } from '../../shared/bridge-map.mts';
 import { schemaOf } from '../../shared/db-schema.mjs';
 import { feedbackAddressOn, sendPhoneFeedback, type FeedbackFiles } from './phone-feedback';
-import { cloudClient, type CloudClient, type CloudConfig } from './cloud-rest';
+import { cloudClient, doorFetch, type CloudClient, type CloudConfig } from './cloud-rest';
 import { installPhoneScreen } from './phone-screen';
 import { atMostEvery } from './phone-polls';
 import { pictureLinksChanged, setPictureLinks } from './picture';
@@ -101,7 +101,7 @@ const EMPTY_ROWS: PhoneRows = { projects: [], threads: [], commands: [] };
 
 export function installCloudBridge(cfg: CloudConfig | null = typeof document === 'undefined' ? null : readCloudConfig()): boolean {
   if (!cfg || typeof window === 'undefined' || (window as any).zero) return false;
-  const client: CloudClient = cloudClient(cfg, { storage: localStorage, fetchImpl: (u, i) => fetch(u, { ...i, signal: AbortSignal.timeout(15_000) }) });
+  const client: CloudClient = cloudClient(cfg, { storage: localStorage, fetchImpl: doorFetch() });
   const build = readBuildStamp();
   document.documentElement.dataset.door = 'phone';
   document.documentElement.dataset.via = 'cloud';
