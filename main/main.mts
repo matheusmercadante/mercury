@@ -476,7 +476,8 @@ async function createWindow() {
   const freezeHourly = setInterval(checkFreezes, 60 * 60_000);
   freezeFirst.unref?.();
   freezeHourly.unref?.();
-  quitStep(app, 'before-quit', 'freezeWatch.stop', () => { clearTimeout(freezeFirst); clearInterval(freezeHourly); });
+  // No quit step for these two either: unref'd, and close-while-working's
+  // listener already takes the last place under Node's warning.
   quitStep(app, 'before-quit', 'supervisor.killAll', () => supervisor.killAll());
   // THE TEAM. Off entirely on a build with no team cloud (the single-person
   // app). Otherwise it restores whoever was signed in, and from then on every
