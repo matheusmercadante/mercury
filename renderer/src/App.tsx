@@ -55,7 +55,7 @@ import { Rail } from './components/Rail';
 import { ThreadComposer, type ComposeStart } from './threads/ThreadComposer';
 import { continueStart } from './threads/continue-thread';
 import { OpenTeammateThread } from './threads/ContinuedFrom';
-import { handOffStart, joinNames, laterHint, replyWaitsUntil, taskHandOff, tabAfterSending, writingMovesToTheDialog, projectsOffered, teammates } from './threads/composer-rules';
+import { handOffStart, joinNames, laterHint, replyWaitsUntil, taskHandOff, tabAfterSending, writingMovesToTheDialog, projectsOffered, projectOnScreen, teammates } from './threads/composer-rules';
 import { keyOnAnOpenThread, keyOnTheList, rowKey as actsOnARow, replyingTo, screenJustChanged, HELD_AFTER_A_CHANGE, NOWHERE_TO_TYPE, STILL_TYPING_MS } from './reply-keys';
 import { chosenNames, whoSees } from './threads/summary-rules';
 import { shownToPeople } from '../../shared/thread-cards.mjs';
@@ -4051,6 +4051,7 @@ export default function App() {
     items, view: snap?.teammates, asking: (snap?.approvals ?? []).map((a) => a.item), running: snap?.supervisor?.running ?? NO_RUNNING, queued: snap?.supervisor?.queued, products: snap?.products ?? [], engines: snap?.engines?.choices ?? [],
     models: teammateModels,
     onOpenFile: openTeammateFile,
+    onNewProject: () => setNewProject(true),
     me: team?.byId.get(team.me ?? '')?.name ?? '',
     mePic: team?.byId.get(team.me ?? '')?.avatarUrl ?? null,
     onEnter: () => { roomsUi.leave(); setChatsPlace(null); setTeamOpen(false); setSettingsOpen(false); setSettingsPane(null); closeSearch(); setFocused(null); setFocusedRepeat(null); },
@@ -7373,6 +7374,8 @@ export default function App() {
   // toast covered Allow and Deny. Read off the same stage the card is drawn
   // from below, so the class and the card cannot disagree about what is asked.
   const stage = approvalStage(snap?.approvals, answered, frontApproval.current, signInGate || phoneSignInSettling);
+  // Only approvals stand here. A key or a sign-in is not a quick yes or no, so
+  // it is asked inside its thread (NeedCard).
   const cardOnScreen = !!stage.card;
   cardOnStage.current = stage.card && !stage.verdict ? stage.card.id : null;
   const mover = {
@@ -7821,6 +7824,7 @@ export default function App() {
                     // time lands a second time (OpenDoc, DocPane.tsx).
                     ...(at ? { atFrom: Date.now() } : {}),
                   })}
+                  onCloseDoc={putDocDown}
                   parent={focused.parent ? items.find((i) => i.id === focused.parent && i.product === focused.product) ?? null : null}
                   blockedBy={items.find((i) => i.parent === focused.id && i.product === focused.product && i.status !== 'done') ?? null}
                   filed={threadsMade(items, focused).map((i) => ({ id: i.id, title: rowTitle(i), state: stateOfMine(i), approve: approvableFiled(i, stateOfMine(i)), item: i }))}
@@ -7930,6 +7934,7 @@ export default function App() {
                   onReopen={() => sendBack(focused)}
                   onReopenDone={() => reopenDone(focused)}
                   onMove={() => { setPaletteTyped('Move to '); setModal('palette'); }}
+                  onPriority={(value) => { void retag([focused], value); }}
                   session={snap.supervisor.running.find((r) => r.itemId === focused.id) ?? null}
                   // WHAT THE FLEET IS DOING ABOUT THIS ROW, through `factsFor`,
                   // which is the builder every row already reads. Written out
@@ -8175,7 +8180,7 @@ export default function App() {
           codexModelDefault={codexModelDefault}
           // THE TUTORIAL SENDS ITS TASK INTO THE PRACTICE PROJECT, so the card
           // opens on that project rather than on whatever was last used.
-          defaultProduct={walkCard ? (run!.practice ?? run!.product) : productFilter}
+          defaultProduct={walkCard ? (run!.practice ?? run!.product) : projectOnScreen({ filter: productFilter, open: focused })}
           /* THE WALK'S OWN TASK, ALREADY WRITTEN. The beat is about pressing
              send, not about thinking of something to ask, so the words are in
              the box when the card opens. `scripted` is what lets this one task
@@ -8789,6 +8794,7 @@ export default function App() {
                 walking: runRef.current !== null,
                 offered: !neverOffered(localStorage),
                 touring: tourRef.current !== null,
+                writing: modalNow.current === 'compose' || clearWriting,
               })) setOffer({ product: slug });
             } catch (err) {
               // Nothing is held open any more, because nothing was typed: the

@@ -10,7 +10,8 @@ const count = (file, pattern) => (fs.readFileSync(file, 'utf8').match(pattern) ?
 describe('the app quitting', () => {
   it('has no more before-quit listeners than Node allows without a warning', () => {
     const steps = count('main/main.mts', /quitStep\(app, 'before-quit'/g);
-    const bare = count('main/main.mts', /app\.on\('before-quit'/g) + count('main/ipc.mts', /app\.on\('before-quit'/g);
+    const bare = ['main/main.mts', 'main/ipc.mts', 'main/close-while-working.mts']
+      .reduce((sum, file) => sum + count(file, /app\.on\('before-quit'/g), 0);
     expect(steps + bare).toBeLessThanOrEqual(10);
   });
 });

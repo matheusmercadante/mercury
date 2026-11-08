@@ -2,6 +2,7 @@
 // (app/signed-in.tsx), signed in, on the last step: the new password.
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
+import { router } from '../lib/router';
 import { KeyboardAvoidingView, Platform, View } from 'react-native';
 import { googleReturn } from '../lib/google-return';
 import { router } from '../lib/router';
