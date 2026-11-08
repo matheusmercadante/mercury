@@ -9,7 +9,8 @@ import { clock } from '../meeting-card';
 import { toBase64, useVoiceRecorder } from '../team/useVoiceRecorder';
 import { awayWords, meetingAttachments, MEETING_CAPTURE, MEETING_KEY, MEETING_LIMITS } from './meeting-recording';
 
-// A phone stops hearing a page it has put away, and says nothing about it.
+// An installed web app loses the microphone when it is put away, a Safari tab
+// reportedly keeps it, and neither tells the page which happened.
 const AWAY_MATTERS_MS = 3000;
 
 function useScreenStaysOn(on: boolean, say: (text: string) => void) {
@@ -21,7 +22,7 @@ function useScreenStaysOn(on: boolean, say: (text: string) => void) {
     const seen = () => {
       if (document.visibilityState === 'hidden') { hiddenAt = Date.now(); return; }
       take();
-      if (hiddenAt && Date.now() - hiddenAt > AWAY_MATTERS_MS) say(`The phone could not hear for ${awayWords(Date.now() - hiddenAt)} while this screen was away.`);
+      if (hiddenAt && Date.now() - hiddenAt > AWAY_MATTERS_MS) say(`The phone may not have heard ${awayWords(Date.now() - hiddenAt)} while this screen was away.`);
       hiddenAt = 0;
     };
     take();
