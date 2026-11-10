@@ -207,6 +207,10 @@ export function supabaseSession({ cloudConfig, sessionFile, encrypt = null, decr
   return {
     configured,
 
+    async anyone() {
+      return configured ? supabaseBackend(await getClient()) : null;
+    },
+
     async restore() {
       if (!configured) return null;
       const c = await getClient();
@@ -347,5 +351,6 @@ export function memorySession(backendFor: () => TeamBackend): TeamSession {
     async adoptSession() { signedIn = backendFor(); return signedIn; },
     async signUp() { return { confirm: true }; },
     async signOut() { signedIn = null; },
+    async anyone() { return signedIn ?? backendFor(); },
   };
 }
