@@ -68,6 +68,7 @@ import { insideGitFolder } from '../shared/project-folder-check.mts';
 import { carryLocalFiles, copyTree, onlyTrackedContent, trackedTopLevel } from './worktree-include.mts';
 import type { ExecFailure } from './worktree-include.mts';
 import { startKey } from './task-start.mts';
+import { commonGitDirOf, gitDirOf } from './cloud/marker.mts';
 
 /** The answer of a git call that does not throw. */
 export interface GitResult {
@@ -337,6 +338,15 @@ export function repoRoot(dir: string | null | undefined): string | null {
  * a repository already, `repoRoot` answers first and this never runs. A folder
  * too big to commit by itself (`FIRST_COMMIT_LIMIT`) is left exactly as it was,
  * the repository just started here removed again, and the refusal says why.
+ *
+ * AND A FIRST COMMIT THAT DID NOT HAPPEN TAKES ITS REPOSITORY WITH IT
+ * (2026-11-10, w-d6a8a84bc0). `firstCommitIfNone` used to return quietly when
+ * git would not add the files, so the `.git` started here stayed, with no
+ * commit in it, and every later task asked git for a branch off nothing:
+ * "fatal: invalid reference: HEAD", which names neither the folder nor the
+ * cause. It throws now, with git's words, and the catch below removes what
+ * this started. A folder that holds repositories of its own is never started
+ * at all (`heldRepositories`).
  */
 function startRepository(dir: string): string | null {
   if (!dir || !fs.existsSync(dir)) return null;
@@ -347,6 +357,110 @@ function startRepository(dir: string): string | null {
   try { firstCommitIfNone(root!); }
   catch (error) { fs.rmSync(path.join(root!, '.git'), { recursive: true, force: true }); throw error; }
   return root;
+}
+
+/** Directories `heldRepositories` may look at before it answers with what it has. */
+const SEARCH_BUDGET = 2000;
+
+/**
+ * THE REPOSITORIES A PROJECT FOLDER HOLDS WHEN IT IS NOT ONE ITSELF
+ * (2026-11-10, w-d6a8a84bc0).
+ *
+ * A folder somebody keeps a client's repositories in, side by side, is one
+ * project to them and no repository to git, and `startRepository` made every
+ * such folder one. That is right for a plain folder of files and wrong for a
+ * folder of repositories, three ways, all seen on the folder that reported it:
+ *
+ *   The task folder is hollow. git records a repository inside another one as
+ *   a bare pointer, so in a worktree made from it every one of them is an
+ *   empty directory, and the agent gets a copy of the project with none of its
+ *   code in it. (The folder this app is worked on from shows it: wrapped this
+ *   way on 2026-11-01, its two inner repositories are empty in every one of
+ *   its task folders.)
+ *
+ *   One repository with no commit yet stops it outright: `git add -A` dies on
+ *   it ("does not have a commit checked out"), and that was the failure
+ *   reported, as "fatal: invalid reference: HEAD" two steps later.
+ *
+ *   And the first commit takes in whatever lies loose at the top, into a
+ *   repository nobody asked for.
+ *
+ * So such a folder is left as it is and its tasks run in it, the way a project
+ * with no repository always has (main/supervisor.mts `_folderRow`). The change
+ * card does not lie there: a folder that is not a checkout gives git nothing
+ * to read, so each session's card is drawn from its own conversation, as it is
+ * for every project with no code.
+ *
+ * WHAT COUNTS is a directory below this one holding a `.git`, a folder or the
+ * file a linked worktree has, found breadth first and not looked inside.
+ * Hidden directories and `node_modules` are not searched: a repository there
+ * is tooling (a package an installer cloned, the app's own task folders under
+ * `.claude/worktrees`), not a project of theirs, and a first commit leaves
+ * those out by itself (`firstCommitIfNone`). The search stops after `budget`
+ * directories, so a folder of media cannot hold the window up.
+ *
+ * Empty for a folder inside a repository that has a commit, whatever it holds:
+ * that is a repository, and the ordinary road. `first` stops at the first one,
+ * for the callers that only ask whether there is any.
+ *
+ * NO GIT IS RUN FOR ANY OF IT. The supervisor asks this on the window's thread
+ * at every spawn, resume check and session end, and a busy Mac takes half a
+ * second to start git (tests/the-window-waits-on-no-new-subprocess, whose
+ * warning is exactly this: an old blocking call reached from a new caller).
+ */
+export function heldRepositories(dir: string | null | undefined, { first = false, budget = SEARCH_BUDGET }: { first?: boolean; budget?: number } = {}): string[] {
+  if (!dir || !fs.existsSync(dir)) return [];
+  if (inACommittedRepository(dir)) return [];
+  const found: string[] = [];
+  const queue: string[] = [''];
+  let spent = 0;
+  for (let next = 0; next < queue.length && spent < budget; next += 1) {
+    const rel = queue[next];
+    spent += 1;
+    let entries: fs.Dirent[];
+    try { entries = fs.readdirSync(path.join(dir, rel), { withFileTypes: true }); } catch { continue; }
+    for (const entry of entries) {
+      // A link is not followed: it can point anywhere, including back up here.
+      if (!entry.isDirectory() || entry.name.startsWith('.') || entry.name === 'node_modules') continue;
+      const child = rel ? `${rel}/${entry.name}` : entry.name;
+      spent += 1;
+      if (fs.existsSync(path.join(dir, child, '.git'))) {
+        found.push(child);
+        if (first) return found;
+      } else queue.push(child);
+    }
+  }
+  return found.sort();
+}
+
+/**
+ * Whether this folder is in a repository that has a commit, read off the disk
+ * the way main/cloud/marker.mts finds a folder's git directory. HEAD names a
+ * branch, and the branch has a commit when its ref is a file or a line of
+ * `packed-refs`; a repository nobody has committed to has neither. Whatever
+ * this cannot read for certain it answers yes, which keeps the ordinary road.
+ */
+function inACommittedRepository(dir: string): boolean {
+  const gitDir = gitDirOf(dir);
+  if (!gitDir) return false;
+  let head: string;
+  try { head = fs.readFileSync(path.join(gitDir, 'HEAD'), 'utf8').trim(); } catch { return true; }
+  // Anything but a branch name is a commit named outright (a detached HEAD),
+  // or a HEAD this does not read.
+  const ref = /^ref:\s*(refs\/\S+)$/.exec(head)?.[1];
+  if (!ref) return true;
+  const common = commonGitDirOf(dir) ?? gitDir;
+  // A repository that keeps its refs in a reftable has none of them as files.
+  if (fs.existsSync(path.join(common, 'reftable'))) return true;
+  if (fs.existsSync(path.join(common, ref))) return true;
+  try { return fs.readFileSync(path.join(common, 'packed-refs'), 'utf8').split('\n').some((line) => line.endsWith(` ${ref}`)); }
+  catch { return false; }
+}
+
+/** A list of names as a sentence reads it: all of them up to `most`, then how many more. */
+export function nameSome(names: string[], most = 3): string {
+  if (names.length <= most) return names.join(', ');
+  return `${names.slice(0, most).join(', ')} and ${names.length - most} more`;
 }
 
 /**
@@ -390,20 +504,26 @@ const sizeSaid = (bytes: number) => (bytes >= 1024 ** 3
   ? `${(bytes / 1024 ** 3).toFixed(1)} GB`
   : `${Math.round(bytes / 1024 ** 2)} MB`);
 
-/** What a first commit would take, in bytes, stopping once past the limit. */
-function sizeOfFirstCommit(root: string): number {
+/**
+ * What a first commit would take: its size in bytes, stopping once past the
+ * limit, and the repositories inside the folder, which git lists by their
+ * directory with the slash on and does not look into.
+ */
+function whatAFirstCommitTakes(root: string): { size: number; repositories: string[] } {
   // Its own call rather than `tryGit`, for the buffer: a folder of media lists
   // far past the default megabyte of output.
   const listed = execFileSync('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard'], {
     cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 256 * 1024 * 1024,
   });
-  let total = 0;
+  let size = 0;
+  const repositories: string[] = [];
   for (const file of listed.split('\0')) {
     if (!file) continue;
-    try { total += fs.lstatSync(path.join(root, file)).size; } catch { /* gone since the listing */ }
-    if (total > FIRST_COMMIT_LIMIT) break;
+    if (file.endsWith('/')) { repositories.push(file.slice(0, -1)); continue; }
+    try { size += fs.lstatSync(path.join(root, file)).size; } catch { /* gone since the listing */ }
+    if (size > FIRST_COMMIT_LIMIT) break;
   }
-  return total;
+  return { size, repositories };
 }
 
 /**
@@ -411,16 +531,32 @@ function sizeOfFirstCommit(root: string): number {
  * at all is never committed to here, so work somebody has not committed stays
  * theirs. `--allow-empty` because an empty folder is a real first project.
  * Made `asTheApp`, like every commit in this file.
+ *
+ * A REPOSITORY INSIDE THE FOLDER IS LEFT OUT OF IT (2026-11-10, w-d6a8a84bc0).
+ * It is somebody's own repository, not a file of this project, and git would
+ * only record it as a pointer, an empty directory in every task folder. One
+ * with no commit yet was worse: `git add -A` refused the whole folder over it.
+ * Only the ones `heldRepositories` does not look for reach this, the tooling
+ * kind in a hidden folder, since a folder holding repositories within its
+ * reach is never made a repository at all.
+ *
+ * AND A COMMIT GIT WILL NOT MAKE IS SAID, NOT SWALLOWED. Both steps used to be
+ * asked and their answers dropped, so a folder git would not add was left a
+ * repository with no commit, and the task failed later on "fatal: invalid
+ * reference: HEAD". The throw carries git's own words to the row.
  */
 function firstCommitIfNone(root: string): void {
   if (tryGit(root, ['rev-parse', '--verify', '-q', 'HEAD']).ok) return;
   hideFromTheCheckout(root);
-  const size = sizeOfFirstCommit(root);
+  const { size, repositories } = whatAFirstCommitTakes(root);
   if (size > FIRST_COMMIT_LIMIT) {
     throw Error(`this project's folder is not a git repository yet, and at more than ${sizeSaid(size)} it is too big for ${Name} to make one by itself. In a terminal in that folder run git init, add a .gitignore for the big folders, and make a first commit`);
   }
-  if (!tryGit(root, ['add', '-A']).ok) return;
-  tryGit(root, [...asTheApp(root), 'commit', '-q', '--no-verify', '--allow-empty', '-m', `First commit, made by ${Name} so each task can have a folder of its own`]);
+  const leftOut = repositories.map((repo) => `:(exclude,literal)${repo}`);
+  const added = tryGit(root, ['add', '-A', '--', '.', ...leftOut]);
+  if (!added.ok) throw Error(`${Name} could not make the first commit every task folder in this project starts from, because git would not add its files: ${added.out}`);
+  const committed = tryGit(root, [...asTheApp(root), 'commit', '-q', '--no-verify', '--allow-empty', '-m', `First commit, made by ${Name} so each task can have a folder of its own`]);
+  if (!committed.ok) throw Error(`${Name} could not make the first commit every task folder in this project starts from: ${committed.out}`);
 }
 
 /**
@@ -637,6 +773,15 @@ export function ensureTaskFolder(dir: string, id: unknown, { pid = process.pid, 
   // below would `git init` inside somebody's repository internals (F-157).
   if (insideGitFolder(path.resolve(dir))) {
     throw Error(`this project's folder, ${dir}, is inside a repository's .git folder, so no task can run in it. Make a new project from the repository's own folder and send the task there`);
+  }
+  // A FOLDER OF REPOSITORIES GIVES NO TASK A FOLDER, and is never made a
+  // repository to try (`heldRepositories` says why). Its tasks run in it, which
+  // the supervisor decides before it ever asks here (`_folderRow`), so reaching
+  // this means the folder changed under a question asked a moment ago: the
+  // next ask runs the task there.
+  const theirs = heldRepositories(dir);
+  if (theirs.length) {
+    throw Error(`this project's folder, ${dir}, is not a git repository, and it holds repositories of its own (${nameSome(theirs)}), so its tasks run in the folder itself rather than in a folder of their own. Reply here and it will start there`);
   }
   const root = repoRoot(dir) ?? startRepository(dir);
   if (!root) return null;

@@ -6,7 +6,7 @@ import { NO_METERED_KEY } from './harnesses/claude.mts';
 export { streamingText, countHelpers, saidNothingSheCanUse } from './harnesses/claude-stream.mts';
 import { taskRemoteControl } from './task-remote-control.mts';
 import type { BridgeStateEvent } from './task-remote-control.mts';
-import { taskFolderPath, real, restoreTaskFolder } from './task-folders.mts';
+import { taskFolderPath, real, restoreTaskFolder, heldRepositories, nameSome } from './task-folders.mts';
 import { SHIP_LABEL, ShipQueue, readShipSettings, shipScriptFor, shipSlot } from './ship-queue.mts';
 import { MainTests } from './main-went-red.mts';
 import { CloudServerWatch, serverError } from './cloud-server-down.mts';
@@ -967,6 +967,8 @@ const SAID_WHY_NOT_STARTED = new Set(['setup', 'asleep', 'cloud-carried', 'engin
 const NEVER_CLEARS = new Set(['model', 'project', 'practice', 'folder']);
 // Making a thread's folder takes seconds; past this it is said to be slow.
 const SLOW_FOLDER_MS = 2 * 60_000;
+// How long whether a project folder holds repositories is taken as read (Supervisor#_holdsRepositories).
+const HELD_REPOSITORIES_MS = 30_000;
 // A project's kit for a new thread from the phone: left again at most this
 // often, and once main has moved, looked for at most this often
 // (Supervisor#_leaveNewThreadKit).
@@ -1400,6 +1402,7 @@ export class Supervisor {
   declare _crossModelSaid: Set<string> | undefined;
   declare _oldChoiceSaid: Set<string> | undefined;
   declare _folderRefused: Set<string> | undefined;
+  declare _heldRepositories: Map<string, { at: number; holds: boolean }> | undefined;
   declare _countedNotStarting: Set<string> | undefined;
   declare _notStarting: Map<string, { why: string; engine: string | null; at: number }> | undefined;  declare _handedBack: Set<string> | undefined;
   declare _mergingHome: Map<string, Promise<void>> | undefined;
@@ -3093,6 +3096,10 @@ export class Supervisor {
   // folder fails. Nothing here may ever stop a spawn: a session that runs in
   // the shared checkout is what happened yesterday, and a session that does not
   // run is a row she never hears back on.
+  //
+  // AND FOR A PROJECT FOLDER OF REPOSITORIES (2026-11-10, w-d6a8a84bc0), one
+  // that holds repositories and is not one itself: its rows run in it, as a
+  // project with no repository's do (`_holdsRepositories`).
 
   /**
    * THE CONVERSATION A FORKED ROW STARTS FROM, or null for every ordinary row.
@@ -3210,7 +3217,51 @@ export class Supervisor {
   /** Does this row get a folder of its own at all? */
   _folderRow(item: WorkItem, product: Product) {
     return Boolean(item?.id && product?.repoPath
-      && this.productFolder(product) === product.repoPath);
+      && this.productFolder(product) === product.repoPath
+      && !this._holdsRepositories(product.repoPath));
+  }
+
+  /**
+   * A PROJECT FOLDER OF REPOSITORIES IS A PROJECT WITH NO REPOSITORY, as far as
+   * task folders go (2026-11-10, w-d6a8a84bc0). It is not a repository itself
+   * and it holds some, and main/task-folders.mts `heldRepositories` says why a
+   * worktree made around them would hold none of their code. So its rows run
+   * in the folder, as a project with no repository's always have, and the
+   * brief tells the agent what is there (`_codeFolderBrief`).
+   *
+   * Asked of the disk at most every half minute per folder: this sits on every
+   * spawn, resume check and session end, and the answer only changes when
+   * somebody clones a repository in or makes the folder one.
+   */
+  _holdsRepositories(dir: string): boolean {
+    const now = Date.now();
+    const known = (this._heldRepositories ??= new Map()).get(dir);
+    if (known && now - known.at < HELD_REPOSITORIES_MS) return known.holds;
+    let holds = false;
+    try { holds = heldRepositories(dir, { first: true }).length > 0; } catch { holds = false; }
+    this._heldRepositories.set(dir, { at: now, holds });
+    return holds;
+  }
+
+  /**
+   * WHERE THE CODE IS, as the brief's header says it. For a project folder of
+   * repositories it says so, names them, and says how to change one without
+   * moving the checkout the person left under them: the task has no folder of
+   * its own there, and other tasks of the project may be in the same folder.
+   */
+  _codeFolderBrief(item: WorkItem, product: Product): string {
+    if (!product.repoPath) return 'No code repo is registered for this product.';
+    const plain = `Product code repo (your cwd): ${product.repoPath}`;
+    if (this._folderRow(item, product) || this.productFolder(product) !== product.repoPath) return plain;
+    let held: string[] = [];
+    try { held = heldRepositories(product.repoPath); } catch { held = []; }
+    if (!held.length) return plain;
+    return [
+      `Product code folder (your cwd): ${product.repoPath}`,
+      `It has no git history of its own. It holds these repositories: ${nameSome(held, 20)}.`,
+      'So this task has no folder of its own: you are in the project\'s own folder, where other tasks of this project may be working too, and where this brief says your cwd is already your own folder, that does not hold here.',
+      `Before you change code in one of those repositories, give yourself a worktree of it and work there, so the checkout and branch the person left stay as they are: git -C <repository> worktree add .claude/worktrees/${item.id} -b <branch>, with the branch named the way that repository names its branches.`,
+    ].join('\n');
   }
 
   /**
@@ -3232,7 +3283,9 @@ export class Supervisor {
     const base = this.productFolder(product);
     // A PROJECT WITH NO REPOSITORY NEVER PROMISED ISOLATION, and has run in the
     // product folder since before folders existed. That is the absence of a
-    // promise, not a broken one, and it stays exactly as it was.
+    // promise, not a broken one, and it stays exactly as it was. A project
+    // folder of repositories is one of those too: no worktree of it would hold
+    // their code (main/task-folders.mts `heldRepositories`).
     if (!this._folderRow(item, product)) return base;
     // Already made, off this thread, by the spawn that is asking (`_folderFirst`).
     const made = this._madeFolders?.get(item.id);
@@ -12528,7 +12581,7 @@ export class Supervisor {
       ``,
       `Product: ${product.name} (slug: ${item.product})`,
       `Product docs live in: ${product.dir}`,
-      product.repoPath ? `Product code repo (your cwd): ${product.repoPath}` : `No code repo is registered for this product.`,
+      this._codeFolderBrief(item, product),
       this.shipsThroughTheApp(product) ? this.shipBrief() : '',
       `Work item id: ${item.id}`,
       `Title: ${item.title}`,
