@@ -3,7 +3,7 @@
 // lookups and the schema grants. `public` the role (`from public`), the
 // pg_publication catalog and storage.buckets' `public` column are not names
 // in the schema, and are left alone.
-import { schemaOf } from '../../shared/db-schema.mjs';
+import { schemaOf } from '../../shared/db-schema.mts';
 
 export function inSchema(sql, schema) {
   const s = schemaOf({ schema });

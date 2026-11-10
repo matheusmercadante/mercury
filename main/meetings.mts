@@ -10,12 +10,13 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { SCHEMA_VERSION } from '../shared/contracts.mjs';
-import { recoveryProduct } from './connections/start.mjs';
-import type { HexCli, HexReply } from './hex-meetings.mts';
+import { SCHEMA_VERSION } from '../shared/contracts.mts';
+import { recoveryProduct } from './connections/start.mts';
+import type { HexBody, HexCli, HexReply } from './hex-meetings.mts';
 import type { Heard } from './meeting-audio.mts';
-import { atomicWriteJson, readIndex, readJson, saveCreation } from './store/project.mjs';
-import { runForProject } from './store/queues.mjs';
+import { atomicWriteJson, readIndex, readJson, saveCreation } from './store/project.mts';
+import { runForProject } from './store/queues.mts';
+import type { SupervisorStore } from './supervisor.mts';
 
 // Parakeet first: it finds the language by itself, so a meeting can change
 // language halfway, and it is the faster of the two for Hex's dictation as well.
@@ -59,8 +60,7 @@ interface Kept {
   tries?: Record<string, number>;
 }
 
-interface MeetingStore {
-  listProducts(): { slug: string; team?: { direct?: unknown } | null }[];
+interface MeetingStore extends Pick<SupervisorStore, 'listProducts'> {
   productDir(slug: string): string;
   composeItem(slug: string, input: { title: string; body: string; visibility: string; fromPhone?: string }): unknown;
   fileItem(slug: string, row: { title: string; body: string; problem?: string }): unknown;
@@ -180,18 +180,18 @@ export function createMeetings({ locate, store, saveTranscript, wake, stateFile,
 
   const say = (reply: HexReply) => set({ problem: reply.message ?? 'Hex did not answer.' });
 
-  function readStatus(body: any) {
+  function readStatus(body: HexBody) {
     const elapsed = body.meeting?.elapsed_seconds;
     const state = body.meeting?.state;
     const active = state === 'starting' || state === 'recording' || state === 'transcribing';
     const preparing = body.model?.preparing ? Math.round(Number(body.model.downloaded_bytes ?? 0) / 1_000_000) : null;
-    const began = active && Number.isFinite(elapsed) ? now() - elapsed * 1000 : null;
+    const began = active && typeof elapsed === 'number' && Number.isFinite(elapsed) ? now() - elapsed * 1000 : null;
     // Hex counts whole seconds, so each look lands a little off, and a moved
     // start would refetch the whole snapshot for a clock the screen ticks itself.
     const same = began != null && view.startedAt != null && Math.abs(began - view.startedAt) < CLOCK_SLACK_MS;
     set({
       phase: active ? state : 'idle',
-      title: active ? body.meeting.title ?? null : null,
+      title: active ? body.meeting?.title ?? null : null,
       startedAt: same ? view.startedAt : began,
       preparing,
     });
@@ -248,7 +248,7 @@ export function createMeetings({ locate, store, saveTranscript, wake, stateFile,
     const listed = await hex.list(since);
     if (!listed.ok) {
       refusals += 1;
-      const slug = refusals === LIST_REFUSALS ? recoveryProduct(store, kept.product) : null;
+      const slug = refusals === LIST_REFUSALS ? recoveryProduct(store, kept.product ?? null) : null;
       if (slug) store.fileItem(slug, { title: 'Meetings have stopped arriving from Hex', body: `Hex will not list its meetings: ${listed.message} New recordings stay in Hex's Meetings until this is fixed.` });
       return;
     }

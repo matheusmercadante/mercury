@@ -25,12 +25,26 @@ const SERVICE_QUIT_MS = 6_000;
 
 export const HEX_SITE = 'https://anoma.ly/hex/';
 
-export interface HexReply {
-  ok: boolean;
-  code: string | null;
-  message: string | null;
-  body: any;
+// WHAT HEX PRINTS WITH --json, as far as this app reads it: each command fills
+// its own fields and leaves the rest out.
+export interface HexModel { id: string; name: string; size: string; selected?: boolean; languages?: string[] }
+export interface HexBody {
+  status?: string;
+  code?: string;
+  message?: string;
+  version?: number;
+  meeting?: { state?: string; elapsed_seconds?: number; title?: string | null } | null;
+  model?: { id?: string; preparing?: boolean; downloaded_bytes?: number; error?: string } | null;
+  models?: HexModel[];
+  entries?: unknown[];
+  meetings?: unknown[];
+  features?: { meetings?: boolean };
 }
+
+type HexFailed = { ok: false; code: string; message: string; body: HexBody | null };
+export type HexReply = { ok: true; code: null; message: null; body: HexBody } | HexFailed;
+/** The transcript as Markdown, which is text and not JSON. */
+export type HexText = { ok: true; code: null; message: null; body: string } | HexFailed;
 
 type Run = (bin: string, args: string[], options: { timeout: number; maxBuffer: number }, done: (err: (Error & { code?: unknown; killed?: boolean }) | null, stdout: string, stderr: string) => void) => unknown;
 
@@ -38,8 +52,8 @@ export function findHex({ home = os.homedir(), exists = fs.existsSync }: { home?
   return [path.join('/Applications', BINARY), path.join(home, 'Applications', BINARY)].find((file) => exists(file)) ?? null;
 }
 
-function parsed(text: string): any {
-  try { return JSON.parse(text); } catch { return null; }
+function parsed(text: string): HexBody | null {
+  try { return JSON.parse(text) as HexBody | null; } catch { return null; }
 }
 
 export function hexCli(bin: string, { run = execFile as unknown as Run }: { run?: Run } = {}) {
@@ -47,7 +61,7 @@ export function hexCli(bin: string, { run = execFile as unknown as Run }: { run?
     run(bin, args, { timeout, maxBuffer: LONGEST_REPLY }, (err, out, said) => resolve({ err, out: String(out ?? ''), said: String(said ?? '') }));
   });
 
-  const refused = (err: { killed?: boolean } | null, said: string, body: any): HexReply => {
+  const refused = (err: { killed?: boolean } | null, said: string, body: HexBody | null): HexFailed => {
     if (err?.killed) return { ok: false, code: 'timeout', message: 'Hex did not answer in time.', body: null };
     return { ok: false, code: body?.code ?? 'failed', message: body?.message ?? (said.trim() || 'Hex did not answer.'), body };
   };
@@ -79,7 +93,7 @@ export function hexCli(bin: string, { run = execFile as unknown as Run }: { run?
     open: () => answer(['window', 'show', 'meetings']),
     list: (since: number) => reading(['meetings', 'list', '--since', String(since), '--limit', '200']),
     show: (id: string) => reading(['meetings', 'show', id]),
-    markdown: async (id: string): Promise<HexReply> => {
+    markdown: async (id: string): Promise<HexText> => {
       const { err, out, said } = await raw(['meetings', 'show', id, '--md']);
       return err ? refused(err, said, null) : { ok: true, code: null, message: null, body: out };
     },

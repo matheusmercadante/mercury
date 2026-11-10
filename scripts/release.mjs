@@ -64,8 +64,8 @@ import { fileURLToPath } from 'node:url';
 import { envName, readEnv } from '../shared/product-name.mjs';
 import { liveDownload, RELEASE_REPO, DOWNLOAD_ASSET } from './lib/live-download.mjs';
 import { whyNotToRelease } from './lib/ship-rules.mjs';
-import { cloudAccountConfig } from '../main/cloud/config.mjs';
-import { loadCloudConfig } from '../main/team/session.mjs';
+import { cloudAccountConfig } from '../main/cloud/config.mts';
+import { loadCloudConfig } from '../main/team/session.mts';
 
 const repo = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const noSign = process.argv.includes('--no-sign');
@@ -168,12 +168,12 @@ function feedbackAddress() {
 
 const feedbackUrl = feedbackAddress();
 
-// WHERE AGENTBOX CLOUD IS (main/cloud/config.mjs): the server's address and
+// WHERE AGENTBOX CLOUD IS (main/cloud/config.mts): the server's address and
 // the database's public address and key, all public. A cloud.public.json in
 // cloud/ or ~/.agentbox points this build at another cloud; without one it is
-// the cloud every copy ships with (shared/cloud-address.mjs).
+// the cloud every copy ships with (shared/cloud-address.mts).
 const cloud = cloudAccountConfig(repo);
-// AND THE CLOUD SETTINGS › PHONE SIGNS IN TO (main/team/session.mjs
+// AND THE CLOUD SETTINGS › PHONE SIGNS IN TO (main/team/session.mts
 // loadCloudConfig): its address, public key and phone site, also public.
 const teamCloud = loadCloudConfig(repo, { packaged: false, env: {} });
 
@@ -280,12 +280,12 @@ if (analyticsKey) {
 }
 // Not a stop like the analytics key: a build without it sends to the address
 // that ships in the code (FEEDBACK_ADDRESS in main/feedback.mts), or has no
-// Feedback row while that switch in shared/hosted-services.mjs is off.
+// Feedback row while that switch in shared/hosted-services.mts is off.
 if (feedbackUrl) {
   args.push(`-c.extraMetadata.bakedFeedbackUrl=${feedbackUrl}`);
   console.log('→ baking the feedback address into the build');
 } else {
-  console.log(`→ no feedback address (${envName('FEEDBACK_URL')} or "feedbackUrl" in zero.config.json), so the Feedback card sends to the one in main/feedback.mts if shared/hosted-services.mjs allows it`);
+  console.log(`→ no feedback address (${envName('FEEDBACK_URL')} or "feedbackUrl" in zero.config.json), so the Feedback card sends to the one in main/feedback.mts if shared/hosted-services.mts allows it`);
 }
 if (cloud) {
   for (const k of ['gateway', 'supabaseUrl', 'anonKey']) args.push(`-c.extraMetadata.bakedCloud.${k}=${cloud[k]}`);

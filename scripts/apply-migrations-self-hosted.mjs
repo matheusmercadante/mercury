@@ -15,8 +15,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { loadCloudConfig } from '../main/team/session.mjs';
-import { schemaOf } from '../shared/db-schema.mjs';
+import { loadCloudConfig } from '../main/team/session.mts';
+import { schemaOf } from '../shared/db-schema.mts';
 import { inSchema } from './lib/migrations-in-schema.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');

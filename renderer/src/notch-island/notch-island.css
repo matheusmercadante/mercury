@@ -32,7 +32,7 @@
 /* Pointing at it firms the glass up, as on the tag; open, it is the list's glass. */
 .ni-island:hover, .ni-island.is-open { background: var(--ct-tint-hover); }
 
-/* Where the Mac draws the glass (main/notch-island.mjs) the page draws none,
+/* Where the Mac draws the glass (main/notch-island.mts) the page draws none,
    and wears the tag's rim instead, run up past the top so only its sides and
    bottom show. */
 .ct-native .ni-island, .ct-native .ni-island:hover, .ct-native .ni-island.is-open {

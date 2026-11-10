@@ -16,12 +16,12 @@
 // It is not behind the diagnostics switch. That switch is about what Agentbox
 // sends on its own; this is something a person typed and pressed Send on.
 // FEEDBACK_ADDRESS is used only while its switch in
-// shared/hosted-services.mjs is on.
+// shared/hosted-services.mts is on.
 import { createRequire } from 'node:module';
 import { readEnv } from '../shared/product-name.mjs';
-import { HOSTED_SERVICES } from '../shared/hosted-services.mjs';
+import { HOSTED_SERVICES } from '../shared/hosted-services.mts';
 
-export { sendFeedback } from '../shared/feedback.mjs';
+export { sendFeedback } from '../shared/feedback.mts';
 
 export const FEEDBACK_ADDRESS = 'https://lywvthwkhkfzhqivvond.supabase.co/functions/v1/feedback';
 

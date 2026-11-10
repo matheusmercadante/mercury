@@ -19,7 +19,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { teamConfigFile, pagesProjectOf } from './phone-site-config.mjs';
 import { Name } from '../shared/product-name.mjs';
-import { schemaOf } from '../shared/db-schema.mjs';
+import { schemaOf } from '../shared/db-schema.mts';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -51,7 +51,7 @@ function publishLegal(legal, out, given, log) {
 }
 
 // THE PAGES ADDRESS SENDS A VISIT ON TO `phoneSite` when that is another address
-// (tests/the-web-apps-old-address-forwards-to-its-new-one.test.mjs). `_redirects`
+// (tests/the-web-apps-old-address-forwards-to-its-new-one.test.mts). `_redirects`
 // cannot match a host and the CSP refuses inline scripts, hence a file loaded first.
 function forwarderFor(given) {
   if (given.phoneSite == null) return null;

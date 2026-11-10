@@ -158,7 +158,7 @@ export function ComputerWait({ email, signOut }: { email: string | null; signOut
       <Bars at="computer" />
       <Devices state="waiting" />
       <Head style={{ marginTop: 28 }}>{'Waiting for\nyour computer'}</Head>
-      <Lede>{`It connects once ${NAME} there is open and signed in to the same account.`}</Lede>
+      <Lede>{`It connects once ${NAME} is open on your computer and signed in to the same account.`}</Lede>
       <View style={{ marginTop: 22 }}>
         <Steps items={[`Open ${NAME} on your computer`, email
           ? <>In Settings › Phone, check it is signed in as <T style={{ fontFamily: font.medium }}>{email}</T></>

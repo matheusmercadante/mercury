@@ -1,5 +1,5 @@
 // THE ISLAND'S PAGE (w-2a3136a92a). One island hanging from the top of the
-// window (main/notch-island.mjs), in one of two sizes the main process picks:
+// window (main/notch-island.mts), in one of two sizes the main process picks:
 // shut, the tray's mark on one side of the camera and its count on the other,
 // and open, the tray's list. It is drawn in the tray's own glass and words
 // (renderer/src/corner-tag), so the only new thing about it is where it is and

@@ -52,7 +52,7 @@ const titleOf = (file) => {
 const pictureType = (t) => (/^image\/[a-z0-9.+-]{1,60}$/i.test(t ?? '') ? t : 'application/octet-stream');
 
 // `schema` and `appName` are Mercury's: its database keeps this app's
-// functions in a schema of its own (shared/db-schema.mjs), and its site names
+// functions in a schema of its own (shared/db-schema.mts), and its site names
 // the app it was built for. scripts/build-phone-site.mjs bakes both.
 export function sharedFileWorker({ cloud, anonKey, headers = {}, schema = 'public', appName = 'Agentbox' }, { fetchImpl = (u, i) => fetch(u, i) } = {}) {
   const base = String(cloud).replace(/\/+$/, '');

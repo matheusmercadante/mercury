@@ -16,7 +16,7 @@
 // The desktop window and the Mac's own phone page never have that.
 
 import { REQUEST_CHANNELS, PUSH_CHANNELS, DESKTOP_ONLY } from '../../shared/bridge-map.mts';
-import { schemaOf } from '../../shared/db-schema.mjs';
+import { schemaOf } from '../../shared/db-schema.mts';
 import { feedbackAddressOn, sendPhoneFeedback, type FeedbackFiles } from './phone-feedback';
 import { cloudClient, doorFetch, type CloudClient, type CloudConfig } from './cloud-rest';
 import { installPhoneScreen } from './phone-screen';
@@ -37,6 +37,7 @@ import { cloudAlertsVia } from './cloud-alerts';
 import { computerOf, type Change, type SettingsRow } from './phone-settings-view';
 import { computerAgents, webSettingChange, webSettingsModel, phoneEngines, phoneModelRefusal } from './web-settings';
 import { groupsOn, groupsSnapshot, phoneGroups } from './phone-groups';
+import type { AppBridge } from './types';
 
 export {
   NOT_HERE, UNDONE, approvalCommand, closeToTakeBack, commandFor, macSeenOf, phoneHistory, phoneSlug, phoneStatusLine,
@@ -100,7 +101,7 @@ const SUPERVISOR = { paused: false, pausedProducts: [], running: [], stalled: []
 const EMPTY_ROWS: PhoneRows = { projects: [], threads: [], commands: [] };
 
 export function installCloudBridge(cfg: CloudConfig | null = typeof document === 'undefined' ? null : readCloudConfig()): boolean {
-  if (!cfg || typeof window === 'undefined' || (window as any).zero) return false;
+  if (!cfg || typeof window === 'undefined' || window.zero) return false;
   const client: CloudClient = cloudClient(cfg, { storage: localStorage, fetchImpl: doorFetch() });
   const build = readBuildStamp();
   document.documentElement.dataset.door = 'phone';
@@ -187,7 +188,7 @@ export function installCloudBridge(cfg: CloudConfig | null = typeof document ===
     const asked = client.generation();
     try {
       const [projects, threads, cmds] = await Promise.all([
-        client.select('phone_projects', PROJECTS_SELECT),
+        client.select('phone_projects', PROJECTS_SELECT) as Promise<PhoneRows['projects']>,
         readThreads((table, query) => client.select(table, query), threadCache),
         commands(),
         // Its own failures are said on its own page (RoomsState.error), not over the inbox.
@@ -298,7 +299,7 @@ export function installCloudBridge(cfg: CloudConfig | null = typeof document ===
     const row = { id: crypto.randomUUID(), ...out.row };
     try {
       const made = await client.insertCommand(row);
-      sentSettings.push({ created_at: new Date().toISOString(), claimed_at: null, taken_at: null, outcome: null, ...row, ...made });
+      sentSettings.push({ created_at: new Date().toISOString(), claimed_at: null, taken_at: null, outcome: null, ...row, ...(made as Partial<PhoneRows['commands'][number]>) });
     } catch (err) { return failedSettings(String((err as Error)?.message ?? err)); }
     return readWebSettings();
   }
@@ -343,11 +344,11 @@ export function installCloudBridge(cfg: CloudConfig | null = typeof document ===
     },
     itemHistory: async ({ product, id, before }: { product: string; id: string; before?: number }) => {
       const read = phoneHistory(rows, product, id, aliases);
-      return Number.isFinite(before) ? { ...read, lines: read.lines.filter((l: any) => l.ts <= (before as number)) } : read;
+      return Number.isFinite(before) ? { ...read, lines: read.lines.filter((l) => l.ts <= (before as number)) } : read;
     },
     // Whether Claude Code or Codex has an update is the computer's to say;
     // starting one is the computer's to do.
-    agentUpdate: async (p: any) => { if (p?.action === 'start') throw new Error(NOT_HERE); return null; },
+    agentUpdate: async (p: { action?: string }) => { if (p?.action === 'start') throw new Error(NOT_HERE); return null; },
     sessionTrace: async () => ({ sessions: [] }),
     settingsRead: () => readWebSettings(),
     setWorkspaceSetting: (p: { key: string; value: unknown }) => changeSetting({ scope: 'workspace', key: p?.key, value: p?.value }),
@@ -456,7 +457,7 @@ export function installCloudBridge(cfg: CloudConfig | null = typeof document ===
     },
   });
 
-  (window as any).zero = bridge;
+  window.zero = bridge as AppBridge;
   // A tapped alert opens its thread, as on the desktop.
   startPhoneAlerts(alertsVia, (id) => {
     const set = listeners.get(PUSH_CHANNELS.onOpenItem);

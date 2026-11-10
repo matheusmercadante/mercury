@@ -1,4 +1,4 @@
-// The island's page talks to main/notch-island.mjs through this and nothing
+// The island's page talks to main/notch-island.mts through this and nothing
 // else: like the corner tag's (corner-tag-preload.cjs), a much smaller door
 // than preload.cjs, because a window over every other app has no business
 // holding the whole bridge.

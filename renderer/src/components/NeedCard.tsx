@@ -1,12 +1,12 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
-import { keysOf, needId, type Need } from '../../../shared/cloud-needs.mjs';
+import { keysOf, needId, type Need } from '../../../shared/cloud-needs.mts';
 import { Name } from '../../../shared/product-name.mjs';
-import { keyLabel, keyWords } from '../../../shared/cloud-keys.mjs';
+import { keyLabel, keyWords } from '../../../shared/cloud-keys.mts';
 import { codeLooksWrong, keyLooksWrong } from '../key-asks';
 import { DARK_INK, logoOf } from '../connections/logos';
 import './need-card.css';
 
-// What a message that asks for things knows (shared/cloud-needs.mjs): the keys
+// What a message that asks for things knows (shared/cloud-needs.mts): the keys
 // saved for cloud runs (null when this computer has no cloud), whether it is
 // the thread's newest answer (only that one takes anything), and how to give
 // each kind. Each `give` answers with what went wrong, or null.
@@ -61,8 +61,9 @@ function Mark({ id, fallback }: { id?: string | null; fallback: ReactNode }) {
 
 const LINK = /(https?:\/\/[^\s)]+|\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:com|io|dev|app|net|org|co|ai)\/[^\s),]*)/gi;
 function withLinks(text: string, open: (href: string) => void): ReactNode[] {
-  return text.split(LINK).map((part, i) => (i % 2 === 0 ? part
-    : <a key={i} href={part} onClick={(e) => { e.preventDefault(); open(/^https?:/i.test(part) ? part : `https://${part}`); }}>{part}</a>));
+  return text.split(/`([^`]+)`/).flatMap((run, j) => (j % 2 === 1 ? [<code key={`c${j}`}>{run}</code>]
+    : run.split(LINK).map((part, i) => (i % 2 === 0 ? part
+      : <a key={`${j}-${i}`} href={part} onClick={(e) => { e.preventDefault(); open(/^https?:/i.test(part) ? part : `https://${part}`); }}>{part}</a>))));
 }
 const lower = (s: string) => (/^[A-Z][a-z]/.test(s) ? s[0].toLowerCase() + s.slice(1) : s);
 const sentence = (s: string) => (s ? `${s[0].toUpperCase()}${s.slice(1)}${/[.!?]$/.test(s) ? '' : '.'}` : '');
@@ -195,7 +196,7 @@ export function NeedCard({ source, fallback }: { source: string; fallback: React
     return <div className="need" data-need={svc ? svc.id : key!.name} ref={box} onKeyDown={keepKeys}>
       <div className="need-body">{mark}<div className="need-col">
         <div className="need-title">{title}</div>
-        {why ? <div className="need-why">{why}</div> : key?.what && <div className="need-why">{withLinks(sentence(key.what), open)}</div>}
+        {why ? <div className="need-why">{withLinks(why, open)}</div> : key?.what && <div className="need-why">{withLinks(sentence(key.what), open)}</div>}
         {showFacts ? <div className="need-facts">
           {getIt && <div>{I.arrow}<span>{getIt}</span></div>}
           <div>{I.lock}<span>Kept encrypted in your {Name} Cloud</span></div>
