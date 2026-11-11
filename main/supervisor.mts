@@ -72,6 +72,7 @@ import { holdUntilHome } from './cloud/codex-cloud.mts';
 import { hostSocketPath, perlRunsTheShim, HOST_ALREADY_THERE } from './cloud/host.mts';
 import { runHostSocket, spoolFiles, HOST_ALREADY_THERE as RUN_HOST_ALREADY_THERE } from './run-host.mts';
 import { toolHostDir, readToolHost, shareToolServers, TOOL_HOST_ALREADY_THERE } from './tool-host.mts';
+import { giveProjectBrowser, projectBrowserBrief } from './project-browser/app.mts';
 import { HostedRun, HOST_LOST } from './hosted-run.mts';
 import { HELPERS_LOST, helpersLostAnswer } from './claude-input.mts';
 import type { BackgroundTask } from './claude-input.mts';
@@ -296,6 +297,8 @@ export interface SupervisorConfig {
   projectCodexMode?: Record<string, string | null | undefined> | null;
   // The local branch each project's new threads start from, when not main.
   projectBaseBranch?: Record<string, string | null | undefined> | null;
+  // The sites each project's own browser opens. A project with none has no browser.
+  projectBrowserSites?: Record<string, string[]> | null;
   autonomousProducts?: string[] | null;
   personalProducts?: string[] | null;
   storeMcpCommand?: string[] | string | null;
@@ -9848,7 +9851,7 @@ export class Supervisor {
     const ranked = [standing, project, teammate, messages, adhd, teammate && howYourRunEnds()];
     // With the app's own rules, which every real run carries, and above them.
     if (messages) ranked.splice(ranked.indexOf(messages), 0, this.howAThreadChangesModel());
-    const system = fillName([this._connectionsBrief(), this._whatThisRunIsOn(engine, claudeModel, engine === 'claude' ? claudeEffort : effort), ...ranked].filter(Boolean).join('\n\n'));
+    const system = fillName([this._connectionsBrief(), projectBrowserBrief(this.config, item.product), this._whatThisRunIsOn(engine, claudeModel, engine === 'claude' ? claudeEffort : effort), ...ranked].filter(Boolean).join('\n\n'));
     // `fork` IS THE FLAG THAT MAKES IT A FORK RATHER THAN A CONTINUATION: the
     // resumed conversation is written on under a NEW id, so the row it came
     // from keeps its own thread untouched (MP-08). The builder drops it when
@@ -11639,6 +11642,8 @@ export class Supervisor {
     const runId = crypto.randomUUID();
     const spawnFiles: SpawnFile[] = [];
     this._giveConnections(plan, item, runId, spawnFiles);
+    // Its sign-ins are on this computer, so a run in the cloud has no use for it.
+    if (where === 'local') this._giveProjectBrowser(plan, item);
     this.prepareClaudePermissions(plan, product, runId, spawnFiles);
 
     // Workers bill to the founder's Claude subscription (the CLI's own OAuth
@@ -13486,6 +13491,13 @@ export class Supervisor {
       plan.connectionServers = run.servers;
       spawnFiles.push(run.close);
     } catch (err) { console.warn('zero: could not hand this run its connections:', (err as Error | null)?.message ?? err); }
+  }
+
+  /** The project's own browser, when its owner listed a site for it. Trouble here costs the run its browser, not the run. */
+  _giveProjectBrowser(plan: SpawnPlan, item: WorkItem) {
+    try {
+      giveProjectBrowser(plan, { config: this.config, userDir: this.userDir, appDir: this.appDir }, { slug: item.product, thread: item.id });
+    } catch (err) { console.warn('zero: could not hand this run its project\'s browser:', (err as Error | null)?.message ?? err); }
   }
 
   /**

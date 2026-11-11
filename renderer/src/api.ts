@@ -5,7 +5,7 @@ import {updateFixture} from './agent-update-fixture';
 // developed, reviewed, and screenshotted without a live store or any agents.
 
 import type { Person, TeamBillingDetails } from './types';
-import type { AccountUsageReading, AgentConversation, AgentUpdate, AgentUpdateAction, ArtifactMark, BranchList, ConnectAnswer, ConnectAsk, ConnectionsList, ConnectionTile, CopyAct, CloudPlan, AnswerMode, CodexModeId, DemoOpened, FileFolderAct, FolderListing,FreshUser, PermissionMode, PhoneLink, PhoneRoute, ProductDashboard, ProjectSettings, RepeatRule, RepeatShape, RoomsResult, Settings, Snapshot, TeammatesResult, TeamCallResult, TeammateThreadWork, TerminalAction, TerminalAnswer, TerminalAsk, FoundInThreads, FileElsewhere, FileLine, FilesPlaceList, FilesPlaceView, FilesUploaded, TeamMessageFile, ThreadEditPatch, LiveRoomTicket, UpdateState, Usage, UsageLimit, WorkItem, WorkspaceSettings } from './types';
+import type { AccountUsageReading, AgentConversation, AgentUpdate, AgentUpdateAction, ArtifactMark, BranchList, ConnectAnswer, ConnectAsk, ConnectionsList, ConnectionTile, CopyAct, CloudPlan, AnswerMode, CodexModeId, DemoOpened, FileFolderAct, FolderListing,FreshUser, PermissionMode, PhoneLink, PhoneRoute, ProductDashboard, ProjectBrowser, ProjectSettings, RepeatRule, RepeatShape, RoomsResult, Settings, Snapshot, TeammatesResult, TeamCallResult, TeammateThreadWork, TerminalAction, TerminalAnswer, TerminalAsk, FoundInThreads, FileElsewhere, FileLine, FilesPlaceList, FilesPlaceView, FilesUploaded, TeamMessageFile, ThreadEditPatch, LiveRoomTicket, UpdateState, Usage, UsageLimit, WorkItem, WorkspaceSettings } from './types';
 import type { LedgerLine } from './thread-history';
 import type { MeetingState } from './meeting-card';
 import type { AgentFile as AgentFileRow } from './onboarding';
@@ -306,6 +306,14 @@ function fixtureCodexAccountUsage(): AccountUsageReading[] {
   ];
 }
 
+/** A preview has no browser: pressing Sign in shows the window as open until Done is pressed. */
+const fixtureBrowsers = new Map<string, ProjectBrowser['state']>();
+function fixtureBrowserState(p: { product: string; action?: 'sign-in' | 'done' }): ProjectBrowser['state'] {
+  if (p.action === 'sign-in') fixtureBrowsers.set(p.product, 'signing-in');
+  if (p.action === 'done') fixtureBrowsers.delete(p.product);
+  return fixtureBrowsers.get(p.product) ?? 'closed';
+}
+
 type AccountPick = { engine?: string; profile?: string };
 function fixtureWrite(scope: 'project' | 'workspace', p: { product?: string; key: string; value: unknown }): Settings {
   const w = fixtureSettingsState.workspace;
@@ -328,7 +336,9 @@ function fixtureWrite(scope: 'project' | 'workspace', p: { product?: string; key
     } else (w as WorkspaceSettings & Record<string, unknown>)[p.key] = p.value;
   } else {
     const project = fixtureSettingsState.projects.find((x) => x.slug === p.product);
-    if (project) (project as ProjectSettings & Record<string, unknown>)[p.key] = p.value;
+    // Main keeps the sites as a list of hosts, whatever was typed.
+    const value = p.key === 'browserSites' ? String(p.value ?? '').split(/[\s,;]+/).filter(Boolean) : p.value;
+    if (project) (project as ProjectSettings & Record<string, unknown>)[p.key] = value;
   }
   fixtureSettingsState.workspace.projectsWithInstructions =
     fixtureSettingsState.projects.filter((x) => x.instructions.trim()).length;
@@ -1566,6 +1576,14 @@ export const api = {
     if (useFixtures) return fixtureSnapshot.products.find((x) => x.slug === p.product)?.repoPath ? fixtureBranches : none;
     if (!window.zero?.projectBranches) return none;
     try { return await window.zero.projectBranches(p); } catch { return none; }
+  },
+
+  /** A project's own browser: how it is now, or (with an action) its owner's sign-in window opened or closed. */
+  async projectBrowser(p: { product: string; action?: 'sign-in' | 'done' }): Promise<ProjectBrowser> {
+    const closed: ProjectBrowser = { ok: true, state: 'closed', canRun: true, threads: 0 };
+    if (useFixtures) return { ...closed, state: fixtureBrowserState(p) };
+    if (!window.zero?.projectBrowser) return { ...closed, ok: false, error: RESTART_NOTE };
+    try { return await window.zero.projectBrowser(p); } catch (e) { return { ...closed, ok: false, error: String((e as Error)?.message ?? e) }; }
   },
 
   /* ---------------- what a project is called, and its mark ---------------- */

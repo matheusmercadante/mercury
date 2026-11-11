@@ -57,6 +57,7 @@ import { teamForWindow } from './team/index.mts';
 import { liveRoomFor } from './team/live-room.mts';
 import { addClaudeAccount, addCodexAccount, alphaFeatures, cornerTagTurnedOff, countsTurnedOff, lookAgainFor, outsideAgentsMode, permissionMode, pointAtEngineBin, readSettings, searchForEngineBin, setProjectBaseBranch, setProjectSetting, setWorkspaceSetting } from './settings.mts';
 import { branchesIn, hasBranch } from './project-branches.mts';
+import { finishProjectBrowserSignIn, projectBrowserStatus, signInToProjectBrowser } from './project-browser/app.mts';
 import { ICON_KINDS, clearProjectIcon, setProjectIcon, setProjectName } from './project-identity.mts';
 import { ClaudeUsage } from './claude-usage.mts';
 import { AccountUsage } from './account-usage.mts';
@@ -1330,6 +1331,22 @@ export function registerIpc<W extends IpcWindow>({ store, supervisor, config, wi
   ipcMain.handle('zero:project-branches', async (_e, { product }: { product?: string } = {}) => {
     const repoPath = store.listProducts().find((p) => p.slug === product)?.repoPath ?? null;
     return { ...(await branchesIn(repoPath)), preset: (product ? config.projectBaseBranch?.[product] : undefined) ?? null };
+  });
+
+  // A project's own browser: how it is now, the window its owner signs in
+  // through (`sign-in`), and closing that window (`done`).
+  ipcMain.handle('zero:project-browser', async (_e, { product, action }: { product?: string; action?: string } = {}) => {
+    try {
+      if (!product) throw new Error('no project');
+      const deps = { config: supervisor.config, userDir: supervisor.userDir };
+      if (action === 'sign-in') {
+        const opened = await signInToProjectBrowser(deps, product);
+        if (!opened.ok) return { ...(await projectBrowserStatus(deps, product)), ok: false, error: opened.error };
+      } else if (action === 'done') await finishProjectBrowserSignIn(deps, product);
+      return { ...(await projectBrowserStatus(deps, product)), ok: true };
+    } catch (err) {
+      return { ok: false, error: String((err as Error).message), state: 'closed', canRun: false, threads: 0 };
+    }
   });
 
   ipcMain.handle('zero:compose', async (_e, { product, title, body, kind, priority, runAt, start, labels, engine, model, effort, baseBranch, assignee, due, visibility, visibleTo, fromPhone, onMac, meeting }: ComposeInput & { product: string; onMac?: unknown; meeting?: unknown }) => {

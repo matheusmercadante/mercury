@@ -164,6 +164,8 @@ export const REQUEST_CHANNELS: Readonly<Record<string, string>> = {
   claudeAddAccount: 'zero:claude-add-account',
   setProjectSetting: 'zero:settings-set-project',
   projectBranches: 'zero:project-branches',
+  // A project's own browser: its state, and its owner's sign-in window.
+  projectBrowser: 'zero:project-browser',
   setWorkspaceSetting: 'zero:settings-set-workspace',
   // The cloud setup's sign-in for one account, made in the cloud (main/cloud/logins.mts).
   cloudSignIn: 'zero:cloud-signin',

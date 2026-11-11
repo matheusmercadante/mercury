@@ -64,6 +64,7 @@ import { NAME, Name } from '../../../shared/product-name.mjs';
 import { SETTINGS_TERMINAL } from '../../../shared/settings-terminal.mts';
 import { TaskTerminal } from './TaskTerminal';
 import { ProjectsPage } from './ProjectsPage';
+import { ProjectBrowserRows } from './ProjectBrowser';
 import { searchSettings, SETTINGS_PAGES, type SettingsHit, type SettingsPageId } from '../settings-search';
 import type { Product } from '../types';
 import { CloudMark, MacMark } from '../threads/ThreadMenu';
@@ -2731,6 +2732,10 @@ export function Settings({ look, onSetLook, onSkyTheme, tune, onSetTune, onReset
               <Row label="Instructions for this project" desc={current.instructions.trim() ? sizeLabel(current.instructions.length) : 'None yet.'}>
                 <button type="button" className="set-ghost" onClick={() => openInstructions(current.slug)}>Open</button>
               </Row>
+            </Group>
+
+            <Group label="Browser">
+              <ProjectBrowserRows project={current} onSaved={(s) => { setModel(s); setError(null); }} />
             </Group>
 
             <Group label="Where this project is kept on this computer">

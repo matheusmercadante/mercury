@@ -42,6 +42,8 @@ import { CLOUD_SAME, CLOUD_CLAUDE_DEFAULT, CLOUD_CODEX_DEFAULT } from './cloud-p
 import { isPackagedElectron } from './team/session.mts';
 import { claudeModels } from './claude-models.mts';
 import { forgetCodexBin, INSTALL_URL as CODEX_INSTALL_URL } from './codex-bin.mts';
+import { cleanSites, siteOf, sitesOfProject } from '../shared/project-browser.mts';
+import { projectSitesChanged } from './project-browser/app.mts';
 
 export interface SettingsConfig {
   home?: string;
@@ -66,6 +68,9 @@ export interface SettingsConfig {
   projectAccounts?: Record<string, string | null | undefined> | null;
   // The local branch each project's new threads start from, when not main.
   projectBaseBranch?: Record<string, string | null | undefined> | null;
+  // The sites each project's own browser opens. A project with none has no browser.
+  projectBrowserSites?: Record<string, string[]> | null;
+  storeRoot?: string;
   projectAgents?: Record<string, string[]>;
   authProfiles?: string[] | null;
   codexProfiles?: (string | null)[] | null;
@@ -126,6 +131,7 @@ export type AccountTroubleRow = Pick<ProfileTrouble, 'cause' | 'since' | 'at' | 
 export interface SettingsSupervisor {
   sessions: Map<unknown, SettingsSession>;
   paused: boolean;
+  userDir?: string;
   cloudPlan?: unknown;
   _profileCooldown?: Record<string, number>;
   status(): { capacity?: number; accountTrouble?: Record<string, AccountTroubleRow | undefined>; [fact: string]: unknown };
@@ -758,6 +764,7 @@ export function readSettings({ config, supervisor, store }: SettingsDeps, { sear
       permissionArgs: override ?? null,
       codexMode: config.projectCodexMode?.[product.slug] ?? 'workspace',
       baseBranch: config.projectBaseBranch?.[product.slug] ?? null,
+      browserSites: sitesOfProject(config, product.slug),
       // THE SUPERVISOR IS ASKED RATHER THAN THE CONFIG FILE, so the page shows
       // what will actually happen: a tie naming a login that has been signed out
       // is ignored when work is handed out, and reads 'any' here too.
@@ -1070,6 +1077,23 @@ export function setProjectSetting({ config, supervisor, store }: SettingsDeps, {
       if (value === 'any') delete map[product];
       else map[product] = value as string;
       saveConfig(config, { projectAccounts: Object.keys(map).length ? map : undefined });
+      break;
+    }
+    // THE SITES THIS PROJECT'S OWN BROWSER OPENS. What was typed is kept as
+    // hosts, and what names no site is refused here, where the message can say
+    // which entry it was. An empty list takes the browser away.
+    case 'browserSites': {
+      const typed = typeof value === 'string' ? value.split(/[\s,;]+/).filter(Boolean) : Array.isArray(value) ? value : [];
+      const wrong = typed.find((one) => !siteOf(one));
+      if (wrong !== undefined) throw new Error(`${String(wrong).slice(0, 80)} is not a site. Type its address, like acme.atlassian.net.`);
+      const sites = cleanSites(typed);
+      const map = { ...(config.projectBrowserSites ?? {}) };
+      if (sites.length) map[product] = sites;
+      else delete map[product];
+      saveConfig(config, { projectBrowserSites: Object.keys(map).length ? map : undefined });
+      if (supervisor?.userDir && config.storeRoot) {
+        projectSitesChanged({ config: { storeRoot: config.storeRoot, projectBrowserSites: config.projectBrowserSites }, userDir: supervisor.userDir }, product);
+      }
       break;
     }
     default:

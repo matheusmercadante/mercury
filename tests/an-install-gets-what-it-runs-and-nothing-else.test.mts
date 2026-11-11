@@ -124,7 +124,9 @@ describe('the dependency list', () => {
     // one is not a test edit, but doubling it is. Raised from 10 to 12 for the
     // three AWS packages cloud runs talk to the sandbox and its storage with
     // (main/cloud/aws.mts), which run on every Mac that sends a thread there.
-    expect(Object.keys(pkg.dependencies).length).toBeLessThan(12);
+    // From 12 to 14 for the two a project's own browser is driven with
+    // (main/project-browser/host.mts): Playwright MCP and the Playwright it pins.
+    expect(Object.keys(pkg.dependencies).length).toBeLessThan(14);
   });
 
   it('keeps the packages the screen is built from, so this repo can still build', () => {

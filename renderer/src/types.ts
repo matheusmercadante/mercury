@@ -1419,6 +1419,17 @@ export interface AccountSetting {
   plan?: { label: string | null; max: boolean } | null;
 }
 
+/** A project's own browser as its page draws it (main/project-browser/app.mts). */
+export interface ProjectBrowser {
+  ok: boolean;
+  error?: string;
+  /** `signing-in` while its owner's sign-in window is open, `open` while agents have it running. */
+  state: 'closed' | 'open' | 'signing-in';
+  /** Whether this computer has the browser it runs on. Without it, signing in downloads it first. */
+  canRun: boolean;
+  threads: number;
+}
+
 /** A project's local branches, newest first (main/project-branches.mts). */
 export interface BranchList {
   branches: string[];
@@ -1444,6 +1455,8 @@ export interface ProjectSettings {
   codexMode: CodexModeId | 'workspace';
   /** The branch its new threads start from, or null for main. */
   baseBranch?: string | null;
+  /** The sites its own browser opens. None means its agents have no browser. */
+  browserSites?: string[];
   /**
    * The one Claude account this project's agents run on, or 'any' when it has
    * no tie of its own and runs on the account in use. Never a login that has
@@ -1851,6 +1864,7 @@ declare global {
       settingsRead?(): Promise<Settings>;
       setProjectSetting?(p: { product: string; key: string; value: unknown }): Promise<Settings>;
       projectBranches?(p: { product: string }): Promise<BranchList>;
+      projectBrowser?(p: { product: string; action?: 'sign-in' | 'done' }): Promise<ProjectBrowser>;
       setWorkspaceSetting?(p: { key: string; value: unknown }): Promise<Settings>;
       projectInstructionsRead?(p: { product: string }): Promise<{ ok: boolean; text: string; error?: string }>;
       projectInstructionsWrite?(p: { product: string; text: string }): Promise<{ ok: boolean; error?: string }>;

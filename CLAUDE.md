@@ -170,9 +170,19 @@ Claude Code can attach a session to the browser a person is signed into with
 `--chrome`. That flag must never appear in anything this app spawns, because
 that browser is signed into every account its owner holds.
 `tests/no-worker-drives-her-own-browser.test.mts` fails if it ever does. A
-browser an agent may drive has to carry nothing; the app's own pane on the
-`persist:junk` partition is the only candidate. `--ide` is the user's to switch
-on, never ours.
+browser an agent may drive carries nothing of the person's own browser. `--ide`
+is the user's to switch on, never ours.
+
+A PROJECT MAY HAVE A BROWSER OF ITS OWN (2026-11-10, `main/project-browser/`).
+Mercury's owner approved one step past "carries nothing": Chrome for Testing on
+a profile kept per project in the app's folder, holding only the
+sign-ins its owner made in it by hand for that project, opening only the sites
+they listed for it, and handed only to that project's runs on this computer.
+Agents get Playwright MCP's tools for pages and none that run code. Anything
+wider (the person's profile or browser, a site nobody listed, another project's
+runs, a tool that runs code, the cloud) needs their yes first.
+`tests/a-projects-browser-is-its-own-and-never-the-persons.test.mts` holds the
+edges.
 
 Nor does an agent start the person's Google Chrome headless: the Mac files that
 copy as their Chrome, and their own Chrome then opens no window. Every hidden
