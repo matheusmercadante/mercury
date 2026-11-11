@@ -139,6 +139,7 @@ import { useKeepInWindow } from '../keep-in-window';
 import { escapeClosesMenu } from '../menu-escape';
 import { isUpdateRow } from '../update-row';
 import { TeamRouteStrip, TeamSaid, teamHeld } from '../team/TeamFocus';
+import { HandedLine } from '../team/HandedBy';
 import {
   PriorityPicker, priorityIdOf, priorityValueOf, type PriorityId,
 } from './Priority';
@@ -1352,10 +1353,14 @@ export function Focus({ artifactView, previewSample, onOpenArtifact, artifactSlo
   const opensBig = (path?: string | null) => bigView && whereAFileOpens(path) === 'full';
   const opensBeside = (path?: string | null) => bigView && !!onOpenDoc && whereAFileOpens(path) === 'beside';
   // A picture clicked in the thread steps through its own turn's pictures, as the small view does.
-  const turnOf = (path: string, from?: HTMLElement) => (from && opensAsPicture(path) ? { steps: picturesFor(paneRef.current, path, from).pictures.map((p) => p.path) } : {});
+  const turnOf = (path: string, from?: HTMLElement): { steps?: string[]; drawn?: string[] } => {
+    if (!from || !opensAsPicture(path)) return {};
+    const turn = picturesFor(paneRef.current, path, from);
+    return { steps: turn.pictures.map((p) => p.path), drawn: turn.drawn };
+  };
   const openBig = (path: string, from?: HTMLElement) => setArtifact({ path, at: Date.now(), ...turnOf(path, from) });
   // Kept for when the file beside goes full screen.
-  const besideTurn = useRef<{ path: string; steps?: string[] } | null>(null);
+  const besideTurn = useRef<{ path: string; steps?: string[]; drawn?: string[] } | null>(null);
   const openBeside = (path: string, from?: HTMLElement) => {
     besideTurn.current = { path, ...turnOf(path, from) };
     onOpenDoc?.(path);
@@ -1384,8 +1389,8 @@ export function Focus({ artifactView, previewSample, onOpenArtifact, artifactSlo
   useEffect(() => {
     if (!openAt || onPhone()) return;
     const kept = besideTurn.current;
-    const turn = kept && kept.path === openAt.path ? kept.steps : undefined;
-    setArtifact({ ...(turn ? { steps: turn } : {}), ...openAt, at: Date.now() });
+    const turn = kept && kept.path === openAt.path ? kept : undefined;
+    setArtifact({ ...(turn?.steps ? { steps: turn.steps } : {}), ...(turn?.drawn ? { drawn: turn.drawn } : {}), ...openAt, at: Date.now() });
   }, [openAt]);
 
   // Everything the markdown renderer closes over, memoized as ONE stable
@@ -2134,10 +2139,10 @@ export function Focus({ artifactView, previewSample, onOpenArtifact, artifactSlo
       <ThreadArtifacts item={item} open={artifact} withAgent={!direct && !heldByPerson && !item.agent}
         onClose={() => setArtifact(null)} onNotice={onNotice}
         onBeside={onOpenArtifact ? (path) => {
-          const steps = artifact.steps?.includes(path) ? artifact.steps : undefined;
+          const same = artifact.steps?.includes(path);
           setArtifact(null);
           onOpenArtifact(path, 'beside');
-          besideTurn.current = { path, ...(steps ? { steps } : {}) };
+          besideTurn.current = { path, ...(same ? { steps: artifact.steps, drawn: artifact.drawn } : {}) };
         } : undefined} />
     )}
     {picture && (
@@ -2299,6 +2304,7 @@ export function Focus({ artifactView, previewSample, onOpenArtifact, artifactSlo
             thread head. For one it is which tasks are stopped and what each is
             waiting on (w-cf0e8821b3); for the other it is what restarting costs
             and which two versions this is between (w-86452550e5). */}
+        <HandedLine item={item} />
         <ContinuedFrom labels={item.labels} />
         {givenTask && <div className="focus-meta by-lead"><TeamSaid item={item} /></div>}
         {made
@@ -3810,7 +3816,8 @@ function DockComposer({ item, runningMode, runningEngine, codexModels = [], code
           <button type="button" className="tc-icon dock-clip" title="Attach files" aria-label="Attach files" onClick={pickFiles}><ClipGlyph /></button>
         )}
         {!talkTo?.length && talk.allowed && <MicButton talk={talk} />}
-        {stop && !hasDraft ? stop : (
+        {/* Stop gives way to Send, which would leave focus on the page and the next words typed nowhere. */}
+        {stop && !hasDraft ? <span style={{ display: 'contents' }} onClick={() => requestAnimationFrame(() => ref.current?.focus())}>{stop}</span> : (
         <span className={`dock-send-pair${canWait ? '' : ' solo'}`}>
         <button
           className="dock-send"
