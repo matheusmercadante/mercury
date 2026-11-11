@@ -1,7 +1,8 @@
 import { previewFocus } from './preview-focus';
 import { PhoneStatus } from './components/PhoneStatus';
 import { sidebarFolded, useSidebarShrinks } from './sidebar-shrinks';
-import { cloudChord, cloudToggleNote, cloudToggleTarget, threadPlace } from './cloud-menu';
+import { GlassBand } from './components/GlassBand';
+import { cloudChord, cloudOffAsks, cloudToggleNote, cloudToggleTarget, threadPlace } from './cloud-menu';
 import { usePhoneBack, onCloudPhone, onPhone } from './phone-screen';
 import { holdsReplies, writeHeldWhenHidden } from './phone-holds';
 import { pollEvery } from './phone-polls';
@@ -73,6 +74,7 @@ import { importedLine } from './agent-import-card';
 import { whenLabel } from './components/When';
 import { RepeatFocus } from './components/RepeatFocus';
 import { Palette } from './components/Palette';
+import { CloudOffAsk } from './components/CloudOffAsk';
 import { Standing, STANDING } from './components/Standing';
 import { Settings } from './components/Settings';
 import { Snooze } from './components/Snooze';
@@ -100,7 +102,7 @@ import { wearJustMade, type JustMade } from './just-made';
 import { agentOnOrComing, asideBesides, belongsInInbox, belongsInProgress, belongsOnTheRail, byRunningOrder, clipToSentence, heldRowStarts, hiddenUntil, inProgressTab, isProposal, notStarted, parkedByAgent, waitCameBack, replyClearsSchedule, replyKeyWorksIn, rowTitle, statusForReply, stillAsksYou, stoppable, threadsOwedAnAnswer, waitsInLater, waitsThatCanEnd, withdrawReply } from './list-rules';
 import { filedByThePerson, wordWaits } from '../../shared/answers.mts';
 import { agentKey, agentRow, asksSomething, byRecency, listed as agentIsListed, onTheRail, railLine, reachesInbox, progressAfterReply, replyReaches, whereItRuns } from '../../shared/agents.mts';
-import { focusTheReplyBox } from './focus-at-end';
+import { focusAtEnd, focusTheReplyBox } from './focus-at-end';
 import { strayLetters } from './stray-letters';
 import { keyWhileABoxIsOpen, opensATextField, takesTheListBack } from './keys';
 import { modelCommands } from './thread-model-commands';
@@ -263,10 +265,12 @@ import { HomePage, type NeedsRow, type ProgressRow, type TeamRow } from './home/
 import { SkyBackdrop } from './home/SkyBackdrop';
 import { InboxSky } from './home/InboxSky';
 import { SKY_THEME_KEY, setHomeSetting, useDarkWindow, useHomeSettings } from './home/home-settings';
-import { SKY_THEMES, skyTheme } from './home/sky';
-import { engineLetter, engineName, greeting, teamRowState, weekCounts } from './home/home-model';
+import { PLAIN, SKY_THEMES, skyTheme } from './home/sky';
+import { engineLetter, engineName, greeting, homeCoversTheList, teamRowState, weekCounts } from './home/home-model';
 import { sentFrom } from './team/company';
 import { reachAudienceOf } from '../../shared/teammate-reach.mts';
+import { useBackAndForward, type Stop as TrailStop } from './back-and-forward';
+import { BackForward } from './components/BackForward';
 
 const FIRST_IDEAS = ideasFor();
 
@@ -281,7 +285,7 @@ async function armNow(): Promise<Arm> {
   } catch { return 'tour'; }
 }
 
-type Modal = null | 'compose' | 'filter' | 'palette' | 'reply' | 'snooze' | 'standing';
+type Modal = null | 'cloud-off' | 'compose' | 'filter' | 'palette' | 'reply' | 'snooze' | 'standing';
 
 // WHAT AN UNDO HANDS BACK, and where it belongs on the screen. A withdrawn
 // reply belongs to a thread, so undoing it opens that thread with the user's
@@ -630,7 +634,7 @@ export default function App() {
   const startThread = () => {
     const box = clearSlot?.querySelector('textarea');
     // offsetParent is null where the page hides the box (a phone).
-    if (box?.offsetParent && modal !== 'compose') box.focus(); else setModal('compose');
+    if (box?.offsetParent && modal !== 'compose') focusAtEnd(box); else setModal('compose');
   };
   // Read by a send that lands after its card has closed, which must not close
   // or cover whatever has been opened since.
@@ -972,7 +976,7 @@ export default function App() {
     });
   }, []);
   // Light, Dark and Match system take any sky theme off; a sky theme brings its own look.
-  const chooseLook = useCallback((next: Look) => { setHomeSetting(SKY_THEME_KEY, null); setLook(next); }, [setLook]);
+  const chooseLook = useCallback((next: Look) => { setHomeSetting(SKY_THEME_KEY, next === 'match' ? null : PLAIN); setLook(next); }, [setLook]);
   const chooseSkyTheme = useCallback((id: string) => {
     const k = skyTheme(id);
     if (!k) return;
@@ -2928,6 +2932,14 @@ export default function App() {
     if (sky?.frame) { root.dataset.skyFrame = sky.id; root.style.setProperty('--sky-frame', sky.frame); }
     else { delete root.dataset.skyFrame; root.style.removeProperty('--sky-frame'); }
   }, [sky]);
+  // GLASS (Alpha features): only a window main/window-glass.mts can blur behind goes see-through.
+  const glassOn = !!snap?.alpha?.glass && !onPhone();
+  useEffect(() => {
+    const root = document.documentElement;
+    if (glassOn && 'glassAble' in root.dataset) root.dataset.glass = '';
+    else delete root.dataset.glass;
+    window.zero?.glassTone?.({ tone: glassOn && 'glassAble' in document.documentElement.dataset && theme !== 'match' ? theme : 'system' });
+  }, [glassOn, theme]);
   const [connectionsPage, setConnectionsPage] = useState<{ focus: string | null } | null>(null);
   const sharedFileNews = snap?.team?.sharedFileNews ?? [];
   const theirRows = useMemo(
@@ -3201,11 +3213,13 @@ export default function App() {
     ? run.item
     : walkBeat.length ? (hoveredId && walkBeat.includes(hoveredId) ? hoveredId : walkBeat[0]) : null;
   const walkOwn = walkAim ? list.find((i) => i.id === walkAim) : undefined;
+  const homeCovers = homeCoversTheList({ homeOn, homeOpen, threadOpen: !!focused || !!focusedRepeat, searching: search !== null, settingsOpen, teamShown });
   const pointed: WorkItem | undefined = walkOwn
-    ?? (hoveredId && !multiSel.size ? list.find((i) => i.id === hoveredId) : undefined) ?? (keyCard || keyLeadPicked ? undefined : current);
+    ?? (hoveredId && !multiSel.size ? list.find((i) => i.id === hoveredId) : undefined)
+    ?? (keyCard || keyLeadPicked || homeCovers ? undefined : current);
   const keyTab = stacked && pointed ? stacked.tabOf(pointed) : view;
   // No row, card or tick on the list, so a row's keys are words for its box.
-  const nothingToActOn = !focused && !pointed && !multiSel.size && !keyLead && !stops.length;
+  const nothingToActOn = !focused && !pointed && (homeCovers || (!multiSel.size && !keyLead && !stops.length));
 
   /* ------------------------- a panel with a panel in it -------------------- */
   // NO HAIRLINE WITHOUT A SIDEBAR BEHIND IT.
@@ -4490,14 +4504,20 @@ export default function App() {
 
   // C TURNS THE CLOUD ON OR OFF, from anywhere a key reaches (2026-10-16), and
   // a note says which. Through a ref so the key handlers read the cloud as it
-  // is now. Nothing without a cloud set up.
+  // is now. Nothing without a cloud set up. Off asks first (CloudOffAsk).
   const toggleCloudRef = useRef<(() => void) | null>(null);
   toggleCloudRef.current = () => {
     const cloud = snap?.cloud;
     if (!cloud?.setUp) return;
     const mode = cloudToggleTarget(cloud);
+    if (cloudOffAsks(mode)) { setModal('cloud-off'); return; }
     void api.setWorkspaceSetting({ key: 'cloudRuns', value: mode });
     showToast(cloudToggleNote(mode));
+  };
+  const turnCloudOff = () => {
+    setModal(null);
+    void api.setWorkspaceSetting({ key: 'cloudRuns', value: 'mac' });
+    showToast(cloudToggleNote('mac'));
   };
 
   // A CLOUD ACCOUNT THAT WAS NOT ADDED, SAID THE MOMENT IT FAILS (2026-10-15):
@@ -4675,10 +4695,11 @@ export default function App() {
 
   // Threads opened with O this session (openToastRow).
   const openedWithO = useRef(new Set<string>());
+  const openedFromHome = useRef(new Set<string>());
   // Whether a reply from inside this thread moves her on to the next (./advance).
   const movesOn = useCallback((item: WorkItem) => replyMovesOn({
     view, onBoard, index: shownInbox.findIndex((i) => i.id === item.id), searching: search !== null, phone: onPhone(),
-    cameBack: openedWithO.current.has(keyOf(item)),
+    cameBack: openedWithO.current.has(keyOf(item)), fromHome: openedFromHome.current.has(keyOf(item)),
   }), [view, onBoard, shownInbox, search]);
 
   // Every resolving action goes through here: the UI advances instantly, the
@@ -6569,7 +6590,7 @@ export default function App() {
           if (means === 'nowhere') {
             const box = clearSlot?.querySelector('textarea');
             // Not prevented: the character lands in the box it has just focused.
-            if (box?.offsetParent) { box.focus(); return; }
+            if (box?.offsetParent) { focusAtEnd(box); return; }
             // A second letter soon after is somebody typing; one is a slip.
             if (Date.now() - nowhereAt.current < 2000) showToast(NOWHERE_TO_TYPE);
             nowhereAt.current = Date.now();
@@ -6730,13 +6751,24 @@ export default function App() {
     }
     if (search !== null) place.search = search;
     if (current) place.row = current.id;
+    if (homeOn) place.home = homeOpen;
+    if (filesPage) place.files = { project: filesPage.project };
+    if (connectionsPage) place.connections = true;
+    if (teamOpen) place.team = true;
+    if (chatsPlace) place.chats = chatsPlace;
+    // 'groups' is what Groups says when it has no group to open, not a group.
+    if (roomsUi.openId && roomsUi.openId !== 'groups') place.room = roomsUi.openId;
+    if (teammatesUi.open) place.teammate = teammatesUi.open;
+    if (todayOn) place.today = true;
+    if (tasksOn) place.tasks = true;
     writePlace(window.localStorage, place);
     // The dependencies are ids and not the rows themselves. Every snapshot
     // poll hands back fresh objects for the same work, and depending on those
     // would rewrite this file every ten seconds to say what it already said.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reloaded, restored, view, focused?.id, focused?.product, focusedRepeat?.id,
-    openDoc?.src, openDoc?.product, settingsOpen, settingsAt, search, current?.id]);
+    openDoc?.src, openDoc?.product, settingsOpen, settingsAt, search, current?.id,
+    homeOpen, filesPage?.project, !!filesPage, !!connectionsPage, teamOpen, chatsPlace, roomsUi.openId, teammatesUi.open, todayOn, tasksOn]);
 
   // READING IT BACK, once, on a page that is coming back and never on a fresh
   // launch. Opening Agentbox in the morning still opens on the inbox: that is
@@ -6765,7 +6797,19 @@ export default function App() {
     // for it costs nothing on the ordinary reload, which has no rule open.
     if (place.repeat && repeats.length === 0) return;
     setRestored(true);
+    // First, because opening either clears the thread, Team and search that
+    // the lines below may put back.
+    if (place.teammate) teammatesUi.go(place.teammate);
+    if (place.room) roomsUi.open(place.room);
     setView(place.view);
+    // A note from before Home was kept: any tab but the inbox was off Home.
+    if (homeOn) setHomeOpen(place.home ?? place.view === 'inbox');
+    if (place.files) setFilesPage({ project: place.files.project });
+    if (place.connections) setConnectionsPage({ focus: null });
+    if (place.team) setTeamOpen(true);
+    if (place.chats) setChatsPlace(place.chats);
+    if (place.today) setTodayOn(true);
+    if (place.tasks) setTasksOn(true);
     if (place.settings) {
       setSettingsPane(place.settingsPage ?? null);
       setSettingsOpen(true);
@@ -7174,6 +7218,43 @@ export default function App() {
   // Leaving Chats forgets which conversation was open there, or the same row
   // opened from Needs you lands back on the Chats screen with another reply box.
   const openView = (next: View) => { roomsUi.leave(); setChatsDirect(null); teammatesUi.leave(); setFilesPage(null); setConnectionsPage(null); setTeamOpen(false); setSettingsOpen(false); setSettingsPane(null); closeSearch(); setView(next); setFocused(null); setFocusedRepeat(null); setSelected(0); setMultiSel(new Set()); setEvPick(null); setTodayOn(false); setTasksOn(false); setChatsPlace(null); setHomeOpen(false); };
+
+  // BACK AND FORWARD, on every computer. Above the early returns below, because
+  // it is a hook; `homeShown` is worked out again here for the same reason.
+  const backForwardOn = !onPhone();
+  const homeHere = homeOn && homeOpen && search === null && !settingsOpen && !teamShown && !focusedRepeat && !focused
+    && !teammatesShown && !roomShown && !filesShown && !connectionsShown && !chatsPlaceShown;
+  const stopHere: TrailStop | null = settingsOpen ? { at: 'settings', pane: settingsAt }
+    : focused ? { at: 'thread', product: focused.product, id: focused.id }
+    : homeHere ? { at: 'home' }
+    : filesShown ? { at: 'files', project: filesPage?.project ?? null }
+    : connectionsShown ? { at: 'connections' }
+    : search !== null || teamShown || roomShown || teammatesShown || chatsPlaceShown || focusedRepeat || todayOn || tasksOn ? null
+    : { at: 'list', view };
+  const trail = useBackAndForward({
+    on: backForwardOn,
+    here: stopHere,
+    exists: (s) => s.at !== 'thread' || selectable.some((i) => i.id === s.id && i.product === s.product),
+    go: (s) => {
+      if (s.at === 'home') { openView('inbox'); setHomeOpen(true); }
+      else if (s.at === 'list') openView(s.view);
+      else if (s.at === 'files') openFiles(s.project);
+      else if (s.at === 'connections') openConnectionsPage(null);
+      else if (s.at === 'settings') {
+        setTeamOpen(false); closeSearch(); setFocused(null);
+        setSettingsPane(s.pane); setSettingsVisit((n) => n + 1); setSettingsOpen(true);
+      } else {
+        const card = selectable.find((i) => i.id === s.id && i.product === s.product);
+        if (card) { openView(view); setFocused(card); }
+      }
+    },
+  });
+  const stopName = (s: TrailStop): string => s.at === 'home' ? 'Home'
+    : s.at === 'list' ? (INBOX_TABS.find((t) => t.view === s.view)?.label ?? 'Inbox')
+    : s.at === 'files' ? 'Files'
+    : s.at === 'connections' ? 'Connections'
+    : s.at === 'settings' ? 'Settings'
+    : selectable.find((i) => i.id === s.id && i.product === s.product)?.title ?? 'the thread';
   useEffect(() => {
     if (!onPhone()) return;
     if (signInGate) {
@@ -7246,7 +7327,8 @@ export default function App() {
   // `said` false for a pick in the thread's own Runs on panel, which shows it there.
   const placeThread = (item: WorkItem, keep: PlaceAct, said = true) => {
     if (keep === 'move') { void moveToCloud([item.id], item.product, said); return; }
-    void api.setThreadOnMac({ [item.id]: keep ? true : null });
+    if (keep === 'cloud-on') { if (snap?.cloud) void api.setWorkspaceSetting({ key: 'cloudRuns', value: cloudToggleTarget(snap.cloud) }); void api.setThreadOnMac({ [item.id]: false }); return; }
+    void api.setThreadOnMac({ [item.id]: keep });
     if (said) showToast(keep ? 'This thread now runs only on this Mac' : 'This thread can run on the cloud again');
   };
   // The write the summary panel's Visible to menu makes.
@@ -7455,6 +7537,12 @@ export default function App() {
   // A teammate's direct record is one of your groups, so Groups is the page it is on.
   const directOpen = !!focused && !isTaskRow(focused) && isDirect(snap?.products.find((p) => p.slug === focused.product));
   const inChats = !!focused && directOpen && !!chatsValue && focused.id === chatsDirect;
+  // The Inbox button is only on an inbox thread: anywhere else the sidebar's
+  // own Inbox is as close, and on the inbox it would lead to itself.
+  const onInboxThread = !!focused && !settingsOpen && !inChats;
+  const backForward = backForwardOn
+    ? <BackForward backTo={trail.backTo} forwardTo={trail.forwardTo} onBack={trail.back} onForward={trail.forward} onInbox={onInboxThread ? () => openView('inbox') : undefined} name={stopName} />
+    : null;
   // Everything else is the cards and the picked card's work; a chat is on the Chats page.
   const evKey = teamMode ? evPick ?? 'me' : null;
   const evOn = teamMode && search === null && !settingsOpen && !teamShown && !focusedRepeat && !focused && !teammatesShown && !roomShown && !filesShown && !connectionsShown
@@ -7523,6 +7611,9 @@ export default function App() {
   const homeShown = homeOn && homeOpen && !!snap && search === null && !settingsOpen && !teamShown && !focusedRepeat && !focused
     && !teammatesShown && !roomShown && !filesShown && !connectionsShown && !chatsPlaceShown;
   const goHome = () => { openView('inbox'); setHomeOpen(true); };
+  const inboxCount = inboxBadge({ rows: shownCount(inbox), leads: leadCount, fileNews: sharedFileNews.length, follows: followingNews.length });
+  const inboxHere = !homeShown && view === 'inbox' && search === null && !settingsOpen && !teamShown && !focused && !focusedRepeat
+    && !teammatesShown && !roomShown && !filesShown && !connectionsShown && !chatsPlaceShown;
   const homeNeeds: NeedsRow[] = homeShown ? inbox.slice(0, 80).map((i) => {
     const sent = team ? sentFrom(i, team.products.get(i.product), team.me) : null;
     const from = sent ? (team?.byId.get(sent.from)?.name?.split(/\s+/)[0] ?? 'Someone') : null;
@@ -7545,11 +7636,14 @@ export default function App() {
   const homeOpenRow = (key: string) => {
     const item = items.find((i) => `${i.product}/${i.id}` === key);
     if (!item) return;
+    openedFromHome.current.add(keyOf(item));
     setFocused(item); markSeen(item);
   };
   // Light themes keep the Inbox plain; only dark ones wear its sky.
   const skyOnInbox = !!sky && sky.dark && !homeShown && (['inbox', 'progress', 'snoozed', 'done'] as string[]).includes(view) && !onPhone() && search === null && !settingsOpen && !teamShown && !focusedRepeat && !focused
     && !teammatesShown && !roomShown && !filesShown && !connectionsShown && !chatsPlaceShown && !evPick;
+  // Team and Files wear the same sky over their header.
+  const skyOnPlace = !!sky && sky.dark && !onPhone() && (chatsPlaceShown || filesShown);
   const tasksShown = teamMode && tasksOn && !!snap && view === 'inbox' && search === null && !settingsOpen && !teamShown && !focusedRepeat && !focused && !teammatesShown && !roomShown && !filesShown && !connectionsShown;
   const firstNameOf = (id: string) => team?.byId.get(id)?.name?.split(/\s+/)[0] ?? 'Someone';
   const tasksPage = (title?: string) => snap ? <TasksPage title={title} keys={!modal} me={team?.me ?? null} nameOf={firstNameOf} picked={tasksPick} onPicked={setTasksPick}
@@ -7710,7 +7804,7 @@ export default function App() {
     <FreeAgentContext.Provider value={freeWaitIds}>
     <TryAgainContext.Provider value={tryAgain}>
     <CloudOfferContext.Provider value={cloudOfferNow ? { offer: cloudOfferNow, onGo: (go) => void onCloudGo(go) } : null}>
-    <div data-design-toolbar={toolbarExploration ? designToolbar : 'corner'} data-preview-treatment={previewTreatment} data-reading-width={readingWidth} data-artifact-layout={openDoc ? artifactView : undefined} data-chrome={fullScreenDoc ? (chromeUp ? 'up' : 'away') : undefined} className={`app workspace-layout${narrowSidebar ? ` gt-rail gt-inset gt-sumleft${sideFolded ? '' : ' gt-rail-open'}` : ''}${focused && !settingsOpen && !inChats ? ' workspace-task' : ''}${settingsOpen ? ' workspace-settings' : ''}${teamShown ? ' workspace-team' : ''}${sideFolded ? ' workspace-collapsed' : ''}${panelShown ? ' panel-up' : ''}${openDoc ? ' doc-open' : ''}${notesShown ? ' notes-open' : ''}${notesClosed ? ' notes-closed' : ''}${inPractice ? ' banded' : ''}${modal === 'reply' ? ' composing' : ''}${cardOnScreen ? ' asking' : ''}${(queueSpot || onePage) && focused ? ' one-at-a-time' : ''}${homeShown ? ' home-shown sky-shown' : skyOnInbox ? (onBoard ? ' sky-shown sky-board' : ' sky-shown') : ''}`}>
+    <div data-design-toolbar={toolbarExploration ? designToolbar : 'corner'} data-preview-treatment={previewTreatment} data-reading-width={readingWidth} data-artifact-layout={openDoc ? artifactView : undefined} data-chrome={fullScreenDoc ? (chromeUp ? 'up' : 'away') : undefined} className={`app workspace-layout${narrowSidebar ? ` gt-rail gt-inset gt-sumleft${sideFolded ? '' : ' gt-rail-open'}` : ''}${focused && !settingsOpen && !inChats ? ' workspace-task' : ''}${settingsOpen ? ' workspace-settings' : ''}${teamShown ? ' workspace-team' : ''}${backForward ? ' back-forward-on' : ''}${sideFolded ? ' workspace-collapsed' : ''}${panelShown ? ' panel-up' : ''}${openDoc ? ' doc-open' : ''}${notesShown ? ' notes-open' : ''}${notesClosed ? ' notes-closed' : ''}${inPractice ? ' banded' : ''}${modal === 'reply' ? ' composing' : ''}${cardOnScreen ? ' asking' : ''}${(queueSpot || onePage) && focused ? ' one-at-a-time' : ''}${homeShown ? ' home-shown sky-shown' : skyOnInbox ? (onBoard ? ' sky-shown sky-board' : ' sky-shown') : ''}${skyOnPlace ? ' sky-shown sky-place' : ''}`}>
 
       {/* At the end of <body>, so its drag rectangles are reported after the
           top bar's and this layout's ::after strip. Inside the app, those put
@@ -7773,7 +7867,7 @@ export default function App() {
         statuses={multiplayer}
         onAccount={() => { setTeamOpen(false); setOpenCard(null); closeSearch(); setFocused(null); setInviteFocus(false); setSettingsPane('team'); setSettingsVisit((n) => n + 1); setSettingsOpen(true); }}
         onSignOut={() => { void api.teamSignOut().then(() => refresh()); }}
-        onTeam={() => { setSettingsOpen(false); setSettingsPane(null); closeSearch(); setFocused(null); setOpenCard(null); setTeamOpen(true); }} onSettings={() => { setTeamOpen(false); setSettingsPane(null); setSettingsVisit((n) => n + 1); setSettingsOpen(true); }} inboxCount={inboxBadge({ rows: shownCount(inbox), leads: leadCount, fileNews: sharedFileNews.length, follows: followingNews.length })} scheduledCount={scheduledCount} view={view} collapsed={sideFolded} onSearch={openSearch} onCompose={() => setModal('compose')} onView={openView}
+        onTeam={() => { setSettingsOpen(false); setSettingsPane(null); closeSearch(); setFocused(null); setOpenCard(null); setTeamOpen(true); }} onSettings={() => { setTeamOpen(false); setSettingsPane(null); setSettingsVisit((n) => n + 1); setSettingsOpen(true); }} inboxCount={inboxCount} scheduledCount={scheduledCount} view={view} collapsed={sideFolded} onSearch={openSearch} onCompose={() => setModal('compose')} onView={openView}
         onHome={homeOn ? goHome : undefined} homePage={homeShown} onTeammatesPage={teammatesShown} onFiles={() => openFiles(null)} filesPage={filesShown} tasksPage={tasksShown} onConnections={() => openConnectionsPage(null)} connectionsPage={connectionsShown} rail={narrowSidebar} onHover={setRailOpen} onGroupsPage={roomShown || directOpen}
         /* Without Groups the one row under Threads is Chats, and only while there are teammates. */
         groups={roomsUi.live ? roomsUi.sidebarGroups(roomShown || directOpen || teammatesShown || chatsPlaceShown || cardFromPlace, teammatesUi.live || homeLayout === 'chats' ? openChats : undefined, homeLayout === 'chats' ? 'Team' : undefined) : teammatesUi.rail(teammatesShown)} />
@@ -7784,7 +7878,10 @@ export default function App() {
       {fullScreenDoc && (
         <div className="chrome-reach" style={{ width: CHROME_REACH.width, height: CHROME_REACH.height }} aria-hidden="true" />
       )}
+      {glassOn && <GlassBand homeHere={homeShown} inboxHere={inboxHere} inboxCount={inboxCount}
+        onHome={homeOn ? goHome : undefined} onInbox={() => openView('inbox')} onSearch={openSearch} onCompose={() => setModal('compose')} />}
       <header className="topbar">
+        {backForward}
         {/* THE TAB KEY IS THE ONE SHORTCUT THE APP NEVER TOLD ANYONE ABOUT
             (w-64c76bfdad). Tab rotates Inbox, Scheduled, In progress and Closed
             and shift-Tab goes back, and on 2026-08-20 that was measured to be
@@ -8024,6 +8121,7 @@ export default function App() {
               {planWords && !snap.supervisor.running?.length && !run && !focused && !focusedRepeat && !teammatesShown && <PlanBar words={planWords} onSetup={setSetupPlan} />}
               {homeShown && sky && <SkyBackdrop art={sky.art} from={sky.dark ? 40 : 150} span={sky.dark ? 300 : 240} />}
               {skyOnInbox && sky && <InboxSky art={sky.art} />}
+              {skyOnPlace && sky && <InboxSky art={sky.art} />}
               {homeShown ? (
                 <HomePage hello={greeting(new Date(now).getHours(), snap.team?.me?.name ?? null)} now={now}
                   needs={homeNeeds} needsCount={needsYouCount.inbox} progressCount={mineShown ? shownCount(progressTab) : 0}
@@ -8111,7 +8209,7 @@ export default function App() {
                   crumbFrom={teamOpen ? 'Team' : search !== null ? 'Search'
                     : onBoard ? 'Inbox'
                     : directOpen && roomsUi.openId ? 'Groups'
-                    : crumbTabNow === 'inbox' && team ? needsWord(picked, team.me)
+                    : crumbTabNow === 'inbox' ? 'Inbox'
                       : INBOX_TABS.find((t) => t.view === crumbTabNow)?.label}
                   inlineArtifacts
                   previewSample={api.isFixtures && (reviewLab || new URLSearchParams(location.search).has('artifactTweaks')) ? artifactPreviewSample : undefined}
@@ -8231,7 +8329,7 @@ export default function App() {
                   onStop={() => stopAgent(focused)}
                   onRunNow={() => runNow(focused)}
                   onPin={focused.agent ? undefined : (pin) => pinThread(focused.id, pin, true)}
-                  place={focused.agent ? null : threadPlace(focused, snap.supervisor.running.find((r) => r.itemId === focused.id) ?? null, snap.cloud ?? null)}
+                  place={focused.agent ? null : threadPlace(focused, snap.supervisor.running.find((r) => r.itemId === focused.id) ?? null, snap.cloud ?? null, runningEngine)}
                   onPlace={(keep) => placeThread(focused, keep, false)}
                   pageAsk={threadAsk?.key === keyOf(focused) ? threadAsk : null}
                   onAsked={() => setThreadAsk(null)}
@@ -8340,6 +8438,7 @@ export default function App() {
                   pointer={listPointer}
                   table={search === null}
                   unread={(item) => isUnread(item, seenAt, unreadSince, team?.me ?? null)}
+                  lastThread={backForwardOn ? trail.lastThread : null}
                   products={snap.products}
                   team={team}
                   mixed={search === null ? mixedRows : null}
@@ -8658,11 +8757,12 @@ export default function App() {
           a `scripted` prop for that now, so the tutorial opens the same card
           everybody else opens. Her words: "the tutorial is using the wrong
           component here, we no longer use this". */}
+      {modal === 'cloud-off' && <CloudOffAsk onOff={turnCloudOff} onKeep={() => setModal(null)} />}
       <Palette
         open={modal === 'palette'}
         phone={onPhone()}
         cloud={snap.cloud?.setUp ? snap.cloud : null}
-        onCloudMode={(mode) => { setModal(null); void api.setWorkspaceSetting({ key: 'cloudRuns', value: mode }); }}
+        onCloudMode={(mode) => { if (cloudOffAsks(mode)) { setModal('cloud-off'); return; } setModal(null); void api.setWorkspaceSetting({ key: 'cloudRuns', value: mode }); }}
         onFirstRun={walkAgain}
         onTutorial={() => startTutorial(comeBackTo(snap.products, productFilter, rememberedProject()))}
         recordInto={snap.products.find((p) => p.slug === recordInto)?.name ?? null}
@@ -8776,7 +8876,7 @@ export default function App() {
           const options = itemOptions(target);
           const recommended = options.find((o) => o.recommended) ?? options[0];
           const open = () => { setFocused(target); markSeen(target); };
-          const moveRefusal = whyItCannotMove(target as never, { live: runningIds.has(target.id) });
+          const moveRefusal = whyItCannotMove(target as never);
           return [
             ...(focused
               ? [{id:'remote-control',label:'Remote control',keywords:'phone mobile continue claude rc',run:()=>{setModal(null);window.dispatchEvent(new Event('task-remote-control-open'));}}, {id:'open-terminal',label:'Open terminal',keywords:'shell command console',run:()=>{setModal(null);window.dispatchEvent(new Event('task-terminal-open'));}}]
@@ -8846,7 +8946,7 @@ export default function App() {
                 chosen: team ? chosenNames(shownToPeople(target, project), team.byId) : undefined,
                 teammates: !!team && teammates(team.state.people ?? [], team.me).length > 0,
                 pinned: live ? !!target.pinned : null,
-                place: live ? threadPlace(target, snap.supervisor.running.find((r) => r.itemId === target.id) ?? null, snap.cloud ?? null) : null,
+                place: live ? threadPlace(target, snap.supervisor.running.find((r) => r.itemId === target.id) ?? null, snap.cloud ?? null, snap.engines?.byItem?.[target.id] ?? snap.engines?.workspace ?? null) : null,
                 open: focused && keyOf(focused) === key && openShows?.key === key ? openShows : null,
                 rename: page || isDirect(project ?? undefined),
                 repeats: !!ruleOf(target),
@@ -8875,10 +8975,9 @@ export default function App() {
             //
             // WHEN IT CANNOT MOVE, THE WORD STILL FINDS SOMETHING THAT SAYS SO,
             // and the reason is the row's own hint rather than a sentence you
-            // have to press for. Only a thread nothing has run on can go
-            // (shared/move-thread.mts), and a "move" that matched nothing is
-            // the complaint this answers. The press says it again because a
-            // narrow window cuts the hint and not the toast.
+            // have to press for (shared/move-thread.mts), and a "move" that
+            // matched nothing is the complaint this answers. The press says it
+            // again because a narrow window cuts the hint and not the toast.
             ...(moveRefusal
               ? [{ id: 'move-refused', label: 'Move to another project', keywords: MOVE_KEYWORDS, hint: moveRefusal, run: () => { setModal(null); showToast(moveRefusal); } }]
               // The same list the new thread card offers (projectsOffered): a

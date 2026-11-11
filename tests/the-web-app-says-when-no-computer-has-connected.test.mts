@@ -12,6 +12,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { phoneConnectState, phoneStatusLine } from '../renderer/src/phone-rows';
 import { noProjectYet } from '../renderer/src/compose-says';
+import { Name } from '../shared/product-name.mjs';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
@@ -65,7 +66,7 @@ describe('the new thread box with no computer', () => {
 
 describe('the line over the inbox', () => {
   it('says computer, not Mac', () => {
-    expect(phoneStatusLine({ error: null, fetchedAt: NOW, macSeen: NOW - 3 * 60 * MIN }, NOW)).toBe('Your computer was last online 3 hours ago. What you send waits for it.');
+    expect(phoneStatusLine({ error: null, fetchedAt: NOW, macSeen: NOW - 3 * 60 * MIN }, NOW)).toBe(`${Name} on your computer was last online 3 hours ago. Open it to run what you send.`);
     expect(phoneStatusLine({ error: null, fetchedAt: NOW, macSeen: NOW - 3 * 60 * MIN }, NOW)).not.toMatch(/Mac/);
   });
 });

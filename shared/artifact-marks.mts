@@ -427,10 +427,10 @@ const endsWithPath = (whole: string, part: string): boolean => whole === part ||
  * `numbers` maps a path to its number on the file's version line
  * (shared/version-line.mts). A family the line knows is numbered by it, in its
  * order, and a path the line does not know is no version of that family,
- * except `keep`: the path a person pressed, which Files may not have numbered yet.
+ * except `keep`: the paths a person pressed or saw drawn, which Files may not have numbered yet.
  */
-export function threadFiles(files: readonly ThreadFile[] | null | undefined, numbers: Readonly<Record<string, number>> | null = null, { keep = null }: { keep?: string | null } = {}): FileFamily[] {
-  const kept = keep ? cleanAsked(keep) : null;
+export function threadFiles(files: readonly ThreadFile[] | null | undefined, numbers: Readonly<Record<string, number>> | null = null, { keep = null }: { keep?: string | readonly string[] | null } = {}): FileFamily[] {
+  const kept = (typeof keep === 'string' ? [keep] : keep ?? []).map(cleanAsked).filter(Boolean);
   const families = new Map<string, { key: string; versions: Array<FileVersion & { line?: number }> }>();
   const seenPaths = new Set<string>();
   for (const f of files ?? []) {
@@ -468,7 +468,7 @@ export function threadFiles(files: readonly ThreadFile[] | null | undefined, num
     const unknown: Array<FileVersion & { line?: number }> = [];
     for (const v of family.versions) {
       if (v.line === undefined) {
-        if (kept && [v.path, ...(v.also ?? [])].some((p) => endsWithPath(p, kept) || endsWithPath(kept, p))) unknown.push(v);
+        if ([v.path, ...(v.also ?? [])].some((p) => kept.some((k) => endsWithPath(p, k) || endsWithPath(k, p)))) unknown.push(v);
         continue;
       }
       const was = byLine.get(v.line);
@@ -644,8 +644,10 @@ export const opensBigInAGroup = (name: string | null | undefined): boolean => !!
 const BARE_END = /\/[\w.-]+\.(?:html?|csv|tsv)(?![\w/-])/gi;
 const MAY_BE_BARE = new RegExp(BARE_END.source, 'i');
 const BARE_OTHER = /(?<![\w./:@~(\[-])((?:\.?\/)?[\w.-]+(?:\/[\w.-]+)+\.(?:html?|csv|tsv))$/i;
+// Alone on its line, a name is a claim even with no folder or for a script; inside a sentence it is not.
+const ALONE = /^[ \t]*((?:\.?\/)?[\w-][\w.-]*(?:\/[\w.-]+)*\.[A-Za-z0-9]+)[ \t]*$/gm;
 function bareOthers(text: string): Array<{ at: number; path: string }> {
-  const out: Array<{ at: number; path: string }> = [];
+  const out: Array<{ at: number; path: string }> = [...text.matchAll(ALONE)].map((m) => ({ at: m.index + m[0].indexOf(m[1]), path: m[1] }));
   for (const m of text.matchAll(BARE_END)) {
     const end = m.index + m[0].length;
     let start = m.index;
@@ -671,7 +673,7 @@ export function otherFilesInLines(lines: readonly ThreadLine[] | null | undefine
     for (const field of ['result', 'note', 'body', 'answer']) {
       if (typeof p[field] !== 'string') continue;
       const named = p[field].includes('](') || p[field].includes('`');
-      const bare = l.source !== 'founder' && MAY_BE_BARE.test(p[field]);
+      const bare = l.source !== 'founder' && (MAY_BE_BARE.test(p[field]) || new RegExp(ALONE.source, 'im').test(p[field]));
       if (!named && !bare) continue;
       const text = p[field].replace(FENCE, '');
       const hits = [
@@ -713,6 +715,16 @@ function* pathsSaidOn(l: ThreadLine | null | undefined): Generator<{ path: strin
       if (!shorthand(path)) yield { path, edited };
     }
   }
+}
+
+/** `said` with each path a person pressed or saw drawn that it does not hold yet, when the big view can show it. */
+export function withFilesAsked(said: readonly NamedFile[], asked: readonly (string | null | undefined)[]): NamedFile[] {
+  const out = [...said];
+  for (const raw of asked) {
+    const path = raw?.replace(/^\.\//, '');
+    if (path && viewKind(path) && !versionForPath(threadFiles(out), path)) out.push({ path, by: null, at: 0 });
+  }
+  return out;
 }
 
 /** Every reviewable file a thread's lines name, in the order they name them. */
