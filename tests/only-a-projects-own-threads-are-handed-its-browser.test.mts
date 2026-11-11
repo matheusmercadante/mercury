@@ -11,7 +11,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { Supervisor } from '../main/supervisor.mts';
+import { Supervisor, type SpawnFile } from '../main/supervisor.mts';
 import { giveProjectBrowser, hostFor, projectBrowserBrief, projectSitesChanged } from '../main/project-browser/app.mts';
 import { browserDir, pagesDir, profileDir, readProject, socketPath } from '../main/project-browser/place.mts';
 import { BROWSER_SERVER } from '../shared/project-browser.mts';
@@ -167,12 +167,15 @@ describe('what a run is told', () => {
   it('is granted the browser\'s tools on Claude Code without a question for each call', () => {
     const sup = supervisor({ oms: ['acme.atlassian.net'] });
     const plan = { args: [] as string[], connectionServers: { [BROWSER_SERVER]: { command: 'x', args: [], env: {} } } };
-    const files: string[] = [];
-    sup.prepareClaudePermissions(plan, { slug: 'oms', dir: os.tmpdir(), repoPath: null }, 'run-1', files);
-    made.push(...files);
-    const at = plan.args.indexOf(`mcp__${BROWSER_SERVER}`);
-    expect(plan.args[at - 1]).toBe('--allowedTools');
-    const config = JSON.parse(fs.readFileSync(plan.args[plan.args.indexOf('--mcp-config') + 1], 'utf8'));
-    expect(Object.keys(config.mcpServers)).toContain(BROWSER_SERVER);
+    const spawnFiles: SpawnFile[] = [];
+    sup.prepareClaudePermissions(plan, { slug: 'oms', dir: os.tmpdir(), repoPath: null }, 'run-1', spawnFiles);
+    try {
+      const at = plan.args.indexOf(`mcp__${BROWSER_SERVER}`);
+      expect(plan.args[at - 1]).toBe('--allowedTools');
+      const config = JSON.parse(fs.readFileSync(plan.args[plan.args.indexOf('--mcp-config') + 1], 'utf8'));
+      expect(Object.keys(config.mcpServers)).toContain(BROWSER_SERVER);
+    } finally {
+      sup.removeSpawnFiles({ spawnFiles });
+    }
   });
 });

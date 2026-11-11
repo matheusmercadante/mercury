@@ -13,6 +13,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterAll } from 'vitest';
 import { setAppHome } from './app-home.mts';
+import { browsersFolderForTests } from './playwrights-browsers.mts';
 import { FORKED_FROM } from '../shared/product-name.mjs';
 import { keepAnswerModesIn } from '../main/answer-modes.mts';
 
@@ -44,6 +45,13 @@ process.env.TZ = 'America/Los_Angeles';
 // built in a test would otherwise send its overflow to the developer's real
 // AWS account (docs/cloud/PLAN.md). A test that wants cloud runs names its own.
 process.env.AGENTBOX_CLOUD_CONFIG = path.join(home, 'no-cloud-runs-here.json');
+
+// A PAGE TEST RUNS ONLY WHERE PLAYWRIGHT HAS THE BROWSER IT STARTS. The tests
+// that draw a page skip themselves when `chromium.executablePath()` is missing,
+// but that names Chrome for Testing while `launch` starts the headless shell,
+// and a project's browser installs the first without the second.
+const browsers = browsersFolderForTests({ empty: path.join(home, 'no-playwright-browsers') });
+if (browsers) process.env.PLAYWRIGHT_BROWSERS_PATH = browsers;
 
 // NOBODY IS SIGNED IN. AGENTBOX_PERSON_ID names whoever is signed into the team
 // on this Mac; main sets it at sign-in (main/team/index.mts) so the store server
