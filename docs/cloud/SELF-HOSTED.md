@@ -29,7 +29,9 @@ docker build -t mercury-sandbox --build-arg CLAUDE_CODE_VERSION=<version> --buil
 The sessions run on a docker network of their own. A container runs as root
 inside, with the memory, CPU and process limits of the config, and its
 `/invocations` takes no key: keep that network unreachable from anywhere but
-this server.
+this server. The sandbox measures those limits, and the disk left, at each
+start, and the Mac tells the next run's agent the machine it has
+(`cloud/sandbox/machine.mjs`).
 
 ## One address for the server
 

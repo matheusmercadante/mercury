@@ -17,7 +17,7 @@ import type { Readable, Writable } from 'node:stream';
 import { NEW_THREAD, NEW_THREAD_CODEX } from '../../shared/cloud-kit.mts';
 import { cloudClients } from './clients.mts';
 import type { CloudConfig } from './clients.mts';
-import { readCloudConfig, readCloudKey, imageCapsToTry, noteImageCaps } from './config.mts';
+import { readCloudConfig, readCloudKey, imageCapsToTry, noteImageCaps, cloudMachine, noteCloudMachine } from './config.mts';
 import { pickCloudLogin, markCloudLogin, loginObjectKey, cloudAccountsFrom, cloudAccountFrom, cloudLoginInUse, noCloudAccountSentence } from './logins.mts';
 import { keysCarried } from './keys.mts';
 
@@ -123,6 +123,8 @@ export async function cloudRunFromArgs({ args, env, cwd, stdin, stdout, stderr, 
     onLimit: ({ until }) => { if (rec) markCloudLogin(engine, dir!, rec.id, { limitedUntil: until }); },
     imageCaps: imageCapsToTry(config),
     onCaps: (caps) => noteImageCaps(config, caps),
+    machine: cloudMachine(config),
+    onMachine: (m) => noteCloudMachine(config, m),
     remoteCommand: codex ? 'codex' : 'claude',
     argv: importOnly ? [] : args.slice((codex ? 1 : 0) + (kitOnly ? 1 : 0)),
     env, cwd, transport, storage,

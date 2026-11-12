@@ -53,6 +53,8 @@ export interface CloudReply {
   runId?: string;
   state?: string;
   caps?: string[];
+  // The machine a run has, in a start's answer (shared/cloud-machine.mts).
+  machine?: unknown;
   inSeq?: number;
   expect?: number;
   dup?: boolean;

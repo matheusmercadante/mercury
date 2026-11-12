@@ -41,6 +41,7 @@ import { spawn, execFile, execFileSync } from 'node:child_process';
 import { StringDecoder } from 'node:string_decoder';
 import { usageMeter } from './usage.mjs';
 import { memoryGuard } from './memory-guard.mjs';
+import { machineSize } from './machine.mjs';
 import { keyNameRefused, HIDE_FROM } from './key-names.mjs';
 
 // One stdout event at most this many bytes of output.
@@ -251,8 +252,12 @@ export function createSandbox({
   // Disk held back from the run, given up the first time the disk is full,
   // so the log and the results upload still have room.
   reserveBytes = 0,
+  // The machine a run has, said in a start's answer so the Mac tells the
+  // next run's agent (cloud/sandbox/machine.mjs); a test fixes it.
+  machine = () => machineSize({ dir: workRoot }),
 } = {}) {
   const machineUpAt = Date.now();
+  const measured = () => { try { return machine(); } catch { return undefined; } };
   const at = (p) => (pathRoot ? path.join(pathRoot, p) : p);
   const reserve = path.join(workRoot, '.reserve');
   if (reserveBytes > 0) {
@@ -1626,7 +1631,7 @@ export function createSandbox({
       return { ok: true, seq: r.log.index.length };
     }
     if (action === 'start') {
-      if (run && run.id === req.runId) return { ok: true, already: true, state: run.state, seq: run.log.index.length, caps: CAPS };
+      if (run && run.id === req.runId) return { ok: true, already: true, state: run.state, seq: run.log.index.length, caps: CAPS, machine: measured() };
       if (run && !DONE_STATES.has(run.state)) return { ok: false, error: 'busy', runId: run.id };
       const problem = invalidStart(req);
       if (problem) return { ok: false, error: 'bad-start', message: problem };
@@ -1658,7 +1663,7 @@ export function createSandbox({
       if (r.offline) watchWhileAway(r);
       setState('preparing', {}, r);
       preparing = prepareAndSpawn(r).catch(() => {});
-      return { ok: true, seq: r.log.index.length, caps: CAPS };
+      return { ok: true, seq: r.log.index.length, caps: CAPS, machine: measured() };
     }
     if (!run) return { ok: false, error: 'no-run' };
     if (req.runId && req.runId !== run.id) return { ok: false, error: 'no-run', runId: run.id };

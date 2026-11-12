@@ -72,6 +72,8 @@ import { HAND_BACK } from '../../shared/cloud-hand-back.mts';
 import { NEED, SERVICES } from '../../shared/cloud-needs.mts';
 import { filesSentFor, SENT_FILE_MAX } from '../../shared/cloud-sent-files.mts';
 import { sentLine } from '../../shared/cloud-start.mts';
+import { MANAGED_MACHINE, cloudMachineFrom } from '../../shared/cloud-machine.mts';
+import type { CloudMachine } from '../../shared/cloud-machine.mts';
 import { referencedFiles } from '../../shared/referenced-files.mts';
 import { serveApprovals } from '../approval-prompt-core.mts';
 import { helperWatch, HELPERS_LOST } from '../claude-input.mts';
@@ -301,6 +303,8 @@ export interface CloudRunOptions {
   pid?: number;
   imageCaps?: string[];
   onCaps?: (caps: string[]) => void;
+  machine?: CloudMachine | null;
+  onMachine?: (machine: CloudMachine) => void;
   kit?: CloudKit | null;
 }
 
@@ -349,12 +353,23 @@ const keysNote = (names: string[]) => [
   'The app draws each line as a card they answer on the thread. A sign-in or a key is kept in the cloud and given to every later cloud run of every thread, and their reply comes back to you once it is given. The card already offers doing it on their computer instead, so do not add that as an option. A key under a name Claude Code or Codex read for their own sign-in (ANTHROPIC_, CLAUDE_, CODEX_, OPENAI_API_KEY) cannot be saved.',
 ].join(' ');
 
+// THE MACHINE, IN THE NOTE'S WORDS: the one its cloud said at its last start,
+// or the managed cloud's when it has not said
+// (tests/a-cloud-run-is-told-the-machine-it-really-has).
+export function machineWords(machine: unknown = null) {
+  const m = cloudMachineFrom(machine) || MANAGED_MACHINE;
+  const cores = `${m.cores} ${m.cores === 1 ? 'core' : 'cores'}`;
+  const memory = `${m.memoryGB} GB of memory ${m.swapGB > 0 ? `and ${m.swapGB} GB of swap` : 'with no swap'}`;
+  return `Debian, ${cores}, ${memory}, and about ${m.diskGB} GB of free disk`;
+}
+
 /** The note a cloud run is given, for a project with a repository or without one. */
-export function cloudNote({ plain = false, limitMs = RUN_LIMIT_MS, keys = null }: { plain?: boolean; limitMs?: number; keys?: string[] | null } = {}) {
+export function cloudNote({ plain = false, limitMs = RUN_LIMIT_MS, keys = null, machine = null }: { plain?: boolean; limitMs?: number; keys?: string[] | null; machine?: CloudMachine | null } = {}) {
+  const size = machineWords(machine);
   if (plain) {
     return [
       HEADING,
-      'This turn runs in a Linux cloud sandbox (Debian, 2 cores, 8 GB of memory with no swap, and about 5 GB of free disk: delete large renders and downloads once you are done with them, because a full disk can stop the run\'s work coming back) that is yours for this run and thrown away after it. It has: the project\'s documents folder, which is the folder you work in, at the same path as on their computer, but only its small files (up to 256 KB each), plus this thread\'s own designs folder (its newest files, up to 50 MB), every file attached to this thread (up to 1 GB each, at its own path in attachments/), and any file or folder the request names under the account\'s documents (up to 25 MB a file, 100 MB a folder); what you write there goes back to their computer as you work. There is no git repository here. It also has the store tools (look_at_page excepted); git, node, npm, python3 and pip, make, g++, curl, wget, unzip; and Playwright with Chromium already installed (`require(\'playwright\')` works from any folder; its Chromium is Debian\'s patched build with the sandbox on, so when a project\'s own Playwright asks for a different browser, launch it with `executablePath: \'/opt/agentbox/chromium.sh\'` rather than downloading one).',
+      'This turn runs in a Linux cloud sandbox (' + size + ': delete large renders and downloads once you are done with them, because a full disk can stop the run\'s work coming back) that is yours for this run and thrown away after it. It has: the project\'s documents folder, which is the folder you work in, at the same path as on their computer, but only its small files (up to 256 KB each), plus this thread\'s own designs folder (its newest files, up to 50 MB), every file attached to this thread (up to 1 GB each, at its own path in attachments/), and any file or folder the request names under the account\'s documents (up to 25 MB a file, 100 MB a folder); what you write there goes back to their computer as you work. There is no git repository here. It also has the store tools (look_at_page excepted); git, node, npm, python3 and pip, make, g++, curl, wget, unzip; and Playwright with Chromium already installed (`require(\'playwright\')` works from any folder; its Chromium is Debian\'s patched build with the sandbox on, so when a project\'s own Playwright asks for a different browser, launch it with `executablePath: \'/opt/agentbox/chromium.sh\'` rather than downloading one).',
       'Install whatever else the work needs: you have sudo (`sudo apt-get update && sudo apt-get install -y <package>`, `pip install --user`, `npm install`).',
       'It does not have: any other file from their computer (documents over 256 KB, other threads\' design folders, large media, files under the home folder, /tmp from an earlier turn); API keys, key files or tokens kept on their computer; their computer\'s apps (Xcode, a simulator, their browser and its sign-ins).',
       howLongNote(limitMs),
@@ -363,7 +378,7 @@ export function cloudNote({ plain = false, limitMs = RUN_LIMIT_MS, keys = null }
   }
   return [
     HEADING,
-    'This turn runs in a Linux cloud sandbox (Debian, 2 cores, 8 GB of memory with no swap, and about 5 GB of free disk: delete large renders and downloads once you are done with them, because a full disk can stop the run\'s work coming back) that is yours for this run and thrown away after it. It has: this task folder (its git branch and main, at the same path as on their computer); the project\'s documents folder at its usual path, but only its small files (up to 256 KB each), plus this thread\'s own designs folder (its newest files, up to 50 MB), every file attached to this thread (up to 1 GB each, at its own path in attachments/), and any file or folder the request names under the account\'s documents (up to 25 MB a file, 100 MB a folder); the store tools (look_at_page excepted); git, node, npm, python3 and pip, make, g++, curl, wget, unzip; and Playwright with Chromium already installed (`require(\'playwright\')` works from any folder; its Chromium is Debian\'s patched build with the sandbox on, so when a project\'s own Playwright asks for a different browser, launch it with `executablePath: \'/opt/agentbox/chromium.sh\'` rather than downloading one).',
+    'This turn runs in a Linux cloud sandbox (' + size + ': delete large renders and downloads once you are done with them, because a full disk can stop the run\'s work coming back) that is yours for this run and thrown away after it. It has: this task folder (its git branch and main, at the same path as on their computer); the project\'s documents folder at its usual path, but only its small files (up to 256 KB each), plus this thread\'s own designs folder (its newest files, up to 50 MB), every file attached to this thread (up to 1 GB each, at its own path in attachments/), and any file or folder the request names under the account\'s documents (up to 25 MB a file, 100 MB a folder); the store tools (look_at_page excepted); git, node, npm, python3 and pip, make, g++, curl, wget, unzip; and Playwright with Chromium already installed (`require(\'playwright\')` works from any folder; its Chromium is Debian\'s patched build with the sandbox on, so when a project\'s own Playwright asks for a different browser, launch it with `executablePath: \'/opt/agentbox/chromium.sh\'` rather than downloading one).',
     'Install whatever else the work needs: you have sudo (`sudo apt-get update && sudo apt-get install -y <package>`, `pip install --user`, `npm install`). When you install a program the project will need again, add the same lines to `.agentbox/cloud-setup.sh` in the task folder and commit it: that script runs before every cloud run of this project, and its output from this run is in /tmp/agentbox-cloud-setup.log.',
     'It does not have: the project\'s other branches (only this task\'s branch and main came up); any other file from their computer (other threads\' design folders, large media, files under the home folder); files an earlier turn left outside git (node_modules, gitignored folders such as scripts/scratch, /tmp); API keys, key files or tokens kept on their computer; their computer\'s apps (Xcode, a simulator, their browser and its sign-ins). Run `npm ci --ignore-scripts` before anything that needs node_modules. Open files are capped at 1024 here (the cloud fixes that ceiling), so a test runner that watches the whole project (`vitest related`, `npm run test:changed`) fails with EMFILE: run the test files you changed and the ones that import them by name with `npx vitest run <files>`.',
     `Only this task's own branch comes back to their computer. A commit, merge or reset on main or any other branch stays in this sandbox and is thrown away with it, so a merge done here has not happened. To ship, when your brief has a section on How this task ships, do what it says from here: commit on this branch and add the label \`ship\`. The app ships the branch on their computer once it comes home, so a ship never needs the hand-back line. When your brief has no section on how this task ships and the request includes merging into main, or whenever it includes changing any branch but this task's, do the rest of the work and commit it on this branch, then end your turn with the one line \`${HAND_BACK} merging into main\` (as below): the app merges on their computer.`,
@@ -959,6 +974,10 @@ export async function cloudRun({
   // past a base the bucket already has (./reuse.mts).
   imageCaps = [],
   onCaps = () => {},
+  // The machine this cloud said its runs have at its last start, and who to
+  // tell what this one says (shared/cloud-machine.mts). Null: never said.
+  machine = null,
+  onMachine = () => {},
   // A KIT FOR THE PHONE, not a run (shared/cloud-kit.mts): { device, project,
   // item, frame, copy }. The pack goes up under the thread's kit and the kit
   // names it; nothing starts, and this folder's marker is left alone.
@@ -976,7 +995,9 @@ export async function cloudRun({
   // Keys go only to an image that places them, and the agent is told of them
   // only then, or it would ask for one, have it saved, and still not find it.
   const keysGo = imageCaps.includes('keys') && !kit ? keys : [];
-  const note = cloudNote({ plain, limitMs: runLimitMs, keys: imageCaps.includes('keys') && !kit ? keysGo.map((k) => k.name) : null });
+  const note = cloudNote({ plain, limitMs: runLimitMs, keys: imageCaps.includes('keys') && !kit ? keysGo.map((k) => k.name) : null, machine });
+  // A kit's note: what a run is told when it carries no keys of its own.
+  const kitNote = cloudNote({ plain, machine });
   const here = plain ? { folder: cwd, file: env.AGENTBOX_CLOUD_MARKER } : cwd;
   const configDir = env.CLAUDE_CONFIG_DIR || path.join(homeDir, '.claude');
   const codexHome = env.CODEX_HOME || path.join(homeDir, '.codex');
@@ -1288,7 +1309,7 @@ export async function cloudRun({
   }
   const system = argValue(argv, '--append-system-prompt') || '';
   for (const f of filesNamedIn(system, { cwd: plain ? null : cwd, roots, home: homeDir, docsFolder: env.AGENTBOX_DOCS })) sending.push(sendFile(f));
-  const codexOpen = kit?.codex && codex ? codexKitOpen(kit.codex, { stubPath, codexHome, keep: mcpConfig.mcpServers, note: plain ? PLAIN_CLOUD_NOTE : CLOUD_NOTE }) : null;
+  const codexOpen = kit?.codex && codex ? codexKitOpen(kit.codex, { stubPath, codexHome, keep: mcpConfig.mcpServers, note: kitNote }) : null;
   if (codexOpen) {
     for (const c of codexOpen.conversations) conversations.add(c);
     for (const f of codexOpen.files) sending.push(sendFile(f));
@@ -1341,14 +1362,14 @@ export async function cloudRun({
         cwd, engine, ...(plain ? { plain: true } : { branch }), startSha,
         bundleKey: pack.bundle ? key('in.bundle') : null,
         ...(pack.base ? { base: { key: pack.base.key, sha: pack.base.sha }, refs: pack.refs } : {}),
-        argv: [remoteCommand, ...(remoteCommand === 'claude' ? argvForTheCloud(argv, { plain }) : argv)], env: remoteEnv,
+        argv: [remoteCommand, ...(remoteCommand === 'claude' ? argvForTheCloud(argv, { note: kitNote }) : argv)], env: remoteEnv,
         ...(hasOutgoing ? { changesRef: outgoing } : {}),
         ...(remote ? { remote } : {}),
         ...(docsDir ? { docs: docsDir } : {}),
         login: { engine: login!.engine, id: login!.id, key: login!.key },
         bringDirs, kept: keptWhileAway,
         // A conversation begun on the Mac is told it is in the cloud at the top of its message.
-        note: untold ? (plain ? PLAIN_CLOUD_NOTE : CLOUD_NOTE) : null,
+        note: untold ? kitNote : null,
         // A run that asks permission has its cards held for her phone while the computer is shut.
         ...(!codex && asksPermission(argv) ? { hold: [APPROVALS_SERVER], handshakes: { [APPROVALS_SERVER]: await approvalsHandshakes() } } : {}),
         ...(codexOpen ? { codex: { open: codexOpen.lines, [kit.codex!.start ? 'startId' : 'resumeId']: CODEX_RESUME_ID, firstTurnId: CODEX_RESUME_ID + 1, turn: kit.codex!.turn } } : {}),
@@ -1418,6 +1439,8 @@ export async function cloudRun({
   }
   stderr.write(sentLine({ packMs: packedAt - begunAt, startMs: Date.now() - packedAt }));
   try { onCaps(started.caps || []); } catch { /* only a hint for the next run */ }
+  const heardMachine = cloudMachineFrom(started.machine);
+  if (heardMachine) { try { onMachine(heardMachine); } catch { /* only a hint for the next run */ } }
   offlineOn = (started.caps || []).includes('offline');
   resourceCapable = (started.caps || []).includes('resources');
   marker.resourceCapable = resourceCapable;

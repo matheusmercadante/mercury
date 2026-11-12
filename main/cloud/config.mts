@@ -12,6 +12,8 @@ import { cloudFolder } from './folder.mts';
 import { CLOUD_ADDRESS } from '../../shared/cloud-address.mts';
 import { HOSTED_SERVICES } from '../../shared/hosted-services.mts';
 import { replaceFileSync } from '../replace-file.mts';
+import { cloudMachineFrom } from '../../shared/cloud-machine.mts';
+import type { CloudMachine } from '../../shared/cloud-machine.mts';
 import type { CloudAccountConfig } from './account.mts';
 import type { CloudConfig } from './clients.mts';
 
@@ -86,18 +88,45 @@ export function imageCapsToTry(config: CloudConfig | null | undefined, env: Env 
   return heardCaps(config, env, home) ?? ['plain'];
 }
 
-export function noteImageCaps(config: CloudConfig | null | undefined, caps: string[], env: Env = process.env, home: string = os.homedir()): void {
+interface HeardImage { caps?: string[]; at?: number; machine?: CloudMachine }
+
+function heardImages(env: Env, home: string): Record<string, HeardImage> {
+  try { return JSON.parse(fs.readFileSync(capsPath(env, home), 'utf8')) || {}; } catch { return {}; }
+}
+
+function writeHeard(all: Record<string, HeardImage>, env: Env, home: string): void {
   const file = capsPath(env, home);
-  let all: Record<string, { caps: string[]; at: number }> = {};
-  try { all = JSON.parse(fs.readFileSync(file, 'utf8')) || {}; } catch { /* first */ }
-  const id = cloudId(config);
-  const now = [...new Set(caps)].sort();
-  if (JSON.stringify(all[id]?.caps) === JSON.stringify(now)) return;
-  all[id] = { caps: now, at: Date.now() };
   fs.mkdirSync(path.dirname(file), { recursive: true });
   const tmp = `${file}.${process.pid}.${Math.random().toString(36).slice(2)}.tmp`;
   fs.writeFileSync(tmp, JSON.stringify(all, null, 2));
   replaceFileSync(tmp, file);
+}
+
+export function noteImageCaps(config: CloudConfig | null | undefined, caps: string[], env: Env = process.env, home: string = os.homedir()): void {
+  const all = heardImages(env, home);
+  const id = cloudId(config);
+  const now = [...new Set(caps)].sort();
+  if (JSON.stringify(all[id]?.caps) === JSON.stringify(now)) return;
+  all[id] = { ...all[id], caps: now, at: Date.now() };
+  writeHeard(all, env, home);
+}
+
+// THE MACHINE A RUN HAS on this cloud, as its sandbox measured it at its last
+// start (cloud/sandbox/machine.mjs), so the next run's agent is told what it
+// will really have (main/cloud/run.mts cloudNote). Null when this cloud has
+// not said: its agent is told the managed cloud's machine.
+export function cloudMachine(config: CloudConfig | null | undefined, env: Env = process.env, home: string = os.homedir()): CloudMachine | null {
+  return cloudMachineFrom(heardImages(env, home)[cloudId(config)]?.machine);
+}
+
+export function noteCloudMachine(config: CloudConfig | null | undefined, machine: unknown, env: Env = process.env, home: string = os.homedir()): void {
+  const m = cloudMachineFrom(machine);
+  if (!m) return;
+  const all = heardImages(env, home);
+  const id = cloudId(config);
+  if (JSON.stringify(all[id]?.machine) === JSON.stringify(m)) return;
+  all[id] = { ...all[id], machine: m };
+  writeHeard(all, env, home);
 }
 
 export function readCloudKey(env: Env = process.env, home: string = os.homedir()): string | null {
