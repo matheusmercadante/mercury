@@ -1018,7 +1018,12 @@ a{display:inline-block;padding:9px 18px;border:1px solid #ee6018;border-radius:3
 
 /** The server over plain HTTP, for tests and for running it on one machine. */
 export function gatewayServer(gw) {
-  return http.createServer((req, res) => {
+  return http.createServer(gatewayRequestHandler(gw));
+}
+
+/** Answers one HTTP request with the gateway, as its function URL did. */
+export function gatewayRequestHandler(gw) {
+  return (req, res) => {
     const chunks = [];
     let size = 0;
     req.on('data', (c) => { size += c.length; if (size <= BODY_LIMIT) chunks.push(c); });
@@ -1029,5 +1034,5 @@ export function gatewayServer(gw) {
       res.writeHead(out.status, { 'content-type': out.type === 'html' ? 'text/html; charset=utf-8' : 'application/json' });
       res.end(out.type === 'html' ? out.body : JSON.stringify(out.body));
     });
-  });
+  };
 }

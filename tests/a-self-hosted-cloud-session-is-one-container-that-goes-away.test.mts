@@ -85,6 +85,16 @@ describe('a self-hosted cloud session', () => {
     expect(box.calls).toEqual([{ action: 'start', n: 1 }, { action: 'status' }]);
   });
 
+  // The links the server signs name it by one address, so a container must
+  // reach the server by the name the Mac uses for it.
+  it('a container knows the server by the name its links use', async () => {
+    const s = make({ addHosts: ['cloud-server:10.9.8.1'] });
+    await s.invoke('u-p-s1', { action: 'status' });
+    expect(ran[0]).toEqual(expect.arrayContaining(['--add-host', 'cloud-server:10.9.8.1']));
+    await make().invoke('u-p-s2', { action: 'status' });
+    expect(ran[1]).not.toContain('--add-host');
+  });
+
   it('gives each session its own container, and stop ends only its own', async () => {
     const s = make();
     await s.invoke('u-p-s1', { action: 'status' });

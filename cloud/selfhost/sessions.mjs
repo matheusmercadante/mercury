@@ -22,7 +22,7 @@ export function dockerCli({ bin = 'docker', timeoutMs = 120_000 } = {}) {
 }
 
 export function dockerSessions({
-  docker, image, network, memory, cpus, pids, runtime = null,
+  docker, image, network, memory, cpus, pids, runtime = null, addHosts = [],
   addressOf = (name) => `http://${name}:8080`,
   now = Date.now, idleMs = IDLE_MS, maxMs = MAX_MS,
   readyMs = 60_000, pollMs = 500, timeoutMs = 75_000, fetchImpl = fetch, log = () => {},
@@ -31,7 +31,7 @@ export function dockerSessions({
 
   async function pingOf(name) {
     try {
-      const res = await fetchImpl(`${addressOf(name)}/ping`, { signal: AbortSignal.timeout(Math.min(timeoutMs, 5000)) });
+      const res = await fetchImpl(`${await addressOf(name)}/ping`, { signal: AbortSignal.timeout(Math.min(timeoutMs, 5000)) });
       return res.ok ? await res.json() : null;
     } catch {
       return null;
@@ -58,6 +58,7 @@ export function dockerSessions({
       '--memory', memory, '--memory-swap', memory, '--cpus', String(cpus), '--pids-limit', String(pids),
       '--security-opt', 'no-new-privileges',
       ...(runtime ? ['--runtime', runtime] : []),
+      ...addHosts.flatMap((h) => ['--add-host', h]),
       image,
     ]);
     if (out.code !== 0) throw new Error(`could not start the session's container: ${out.stderr.trim()}`);
@@ -76,7 +77,7 @@ export function dockerSessions({
   async function invoke(sessionId, payload) {
     const name = nameOf(sessionId);
     await ensure(sessionId, name);
-    const res = await fetchImpl(`${addressOf(name)}/invocations`, {
+    const res = await fetchImpl(`${await addressOf(name)}/invocations`, {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload), signal: AbortSignal.timeout(timeoutMs),
     });
     if (!res.ok) throw new Error(`the session's container answered ${res.status}`);
