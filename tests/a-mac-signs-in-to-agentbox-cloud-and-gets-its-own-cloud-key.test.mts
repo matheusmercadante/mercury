@@ -4,7 +4,7 @@
 // (w-6633e825a7), but no Mac could reach it: the only way to get a cloud key
 // was to hand the server a database session, and nothing in the app did. This
 // is the app's half. A Google sign-in is traded once for a cloud key, kept at
-// ~/.agentbox/cloud-key; the Mac's cloud.json then names the server, so its
+// ~/.mercury/cloud-key; the Mac's cloud.json then names the server, so its
 // runs go there (main/cloud/clients.mts). The owner's own AWS setup is never
 // replaced by it, and signing out lets the key go on the server too.
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
@@ -50,8 +50,8 @@ describe('where the Mac finds Agentbox Cloud', () => {
     const app = fs.mkdtempSync(path.join(os.tmpdir(), 'cloudapp-'));
     try {
       expect(cloudAccountConfig(app, { home })).toEqual(CLOUD_ADDRESS);
-      fs.mkdirSync(path.join(home, '.agentbox'), { recursive: true });
-      fs.writeFileSync(path.join(home, '.agentbox', 'cloud.public.json'), JSON.stringify({ gateway: 'https://home', supabaseUrl: 'https://db', anonKey: 'k' }));
+      fs.mkdirSync(path.join(home, '.mercury'), { recursive: true });
+      fs.writeFileSync(path.join(home, '.mercury', 'cloud.public.json'), JSON.stringify({ gateway: 'https://home', supabaseUrl: 'https://db', anonKey: 'k' }));
       expect(cloudAccountConfig(app, { home })?.gateway).toBe('https://home');
       fs.mkdirSync(path.join(app, 'cloud'));
       fs.writeFileSync(path.join(app, 'cloud', 'cloud.public.json'), JSON.stringify({ gateway: 'https://app', supabaseUrl: 'https://db', anonKey: 'k' }));
@@ -115,7 +115,7 @@ describe('signing in', () => {
   });
 
   it('a Mac that runs the cloud in its own AWS account is never moved onto the server', async () => {
-    fs.mkdirSync(path.join(home, '.agentbox'), { recursive: true });
+    fs.mkdirSync(path.join(home, '.mercury'), { recursive: true });
     const own = { region: 'us-east-1', bucket: 'b', runtimeArn: 'arn:x' };
     fs.writeFileSync(cloudConfigPath(env, home), JSON.stringify(own));
     let asked = false;
@@ -139,7 +139,7 @@ describe('signing out', () => {
   });
 
   it('never touches the owner\'s own AWS setup', async () => {
-    fs.mkdirSync(path.join(home, '.agentbox'), { recursive: true });
+    fs.mkdirSync(path.join(home, '.mercury'), { recursive: true });
     const own = { region: 'us-east-1', bucket: 'b', runtimeArn: 'arn:x' };
     fs.writeFileSync(cloudConfigPath(env, home), JSON.stringify(own));
     await signOutOfCloud({ env, home });

@@ -10,7 +10,7 @@
 // docs/cloud/PLAN.md, "Sign-ins live in the cloud". A person signs in to
 // Claude or Codex inside a cloud sandbox, through the vendor's own sign-in,
 // and the login is kept in the cloud bucket as `logins/<engine>/<id>.json`.
-// The Mac keeps only a note per account in ~/.agentbox/cloud-logins.json:
+// The Mac keeps only a note per account in ~/.mercury/cloud-logins.json:
 // which object is current, when it was saved, when a Codex one runs out, and
 // whether it stopped working. Nothing here ever reads a login object; it only
 // asks for links to one, which the sandbox uses.
@@ -28,6 +28,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { wayBack, listenForWayBack } from './browser-return.mts';
 import type { CloudPayload, CloudReply, CloudStorage, CloudTransport } from './managed.mts';
+import { cloudFolder } from './folder.mts';
 
 export interface CloudLoginRenewing {
   at: number;
@@ -152,7 +153,7 @@ const OLD_LOGIN_GRACE_MS = 60 * 60_000;
 const LINK_SECONDS = 30 * 60;
 
 export const loginObjectKey = (engine: string, id: string) => `logins/${engine}/${id}.json`;
-export const cloudLoginsPath = (home = os.homedir()) => path.join(home, '.agentbox', 'cloud-logins.json');
+export const cloudLoginsPath = (home = os.homedir()) => path.join(cloudFolder(home), 'cloud-logins.json');
 // The key is the account's own (`acct-…`), or, in older notes and tests, a
 // folder; either way it is used exactly as given.
 const accountOf = (engine: string, key: string | undefined) => `${engine}:${key}`;
@@ -647,12 +648,12 @@ export async function lookAtCloudLogin({ transport, storage, key, home = os.home
 
 /* ------------------------ the first build's tokens ----------------------- */
 // The first cloud build kept a Claude token per account in the macOS keychain
-// (service below) or, elsewhere, in ~/.agentbox/cloud-tokens.json. Those were
+// (service below) or, elsewhere, in ~/.mercury/cloud-tokens.json. Those were
 // the app's own copies for the cloud, never Claude Code's own login, and
 // nothing reads them now. Deleted once, on start.
 export const OLD_KEYCHAIN_SERVICE_SUFFIX = 'cloud: Claude sign-in';
 export function forgetOldCloudTokens({ home = os.homedir(), platform = process.platform, service, exec }: { home?: string; platform?: NodeJS.Platform; service?: string; exec?: (cmd: string, args: string[]) => unknown } = {}) {
-  try { fs.rmSync(path.join(home, '.agentbox', 'cloud-tokens.json'), { force: true }); } catch { /* none */ }
+  try { fs.rmSync(path.join(cloudFolder(home), 'cloud-tokens.json'), { force: true }); } catch { /* none */ }
   if (platform !== 'darwin' || !service || !exec) return;
   // One entry per account; delete until there are none (at most 20).
   for (let i = 0; i < 20; i += 1) {

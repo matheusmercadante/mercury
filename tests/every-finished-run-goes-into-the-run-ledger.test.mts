@@ -210,7 +210,7 @@ describe('my hours, as my presence row reads them', () => {
 
 describe('whose cloud runs count', () => {
   // Measured 2026-10-20 on three copies run side by side: each read this Mac's
-  // own ~/.agentbox/cloud-usage.jsonl and wore its owner's level, 18.
+  // own ~/.mercury/cloud-usage.jsonl and wore its owner's level, 18.
   it('a copy with a home of its own reads the cloud runs in that home, not this Mac’s', async () => {
     const { roomsSetup } = await import('../main/team/room-setup.mts');
     const { envName } = await import('../shared/product-name.mjs');

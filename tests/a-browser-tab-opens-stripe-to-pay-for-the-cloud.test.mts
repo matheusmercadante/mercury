@@ -52,9 +52,9 @@ beforeEach(async () => {
   paying = null;
   // The copy reads its cloud settings from its own home, never the real one.
   realHome = process.env.HOME;
-  realCloud = process.env.AGENTBOX_CLOUD_CONFIG;
+  realCloud = process.env.MERCURY_CLOUD_CONFIG;
   process.env.HOME = dir;
-  process.env.AGENTBOX_CLOUD_CONFIG = path.join(dir, '.agentbox', 'cloud.json');
+  process.env.MERCURY_CLOUD_CONFIG = path.join(dir, '.mercury', 'cloud.json');
   fs.writeFileSync(path.join(dir, 'zero.config.json'), JSON.stringify({ storeRoot: path.join(dir, 'store') }));
 });
 
@@ -62,7 +62,7 @@ afterEach(async () => {
   booted?.host.app.quit();
   booted = null;
   process.env.HOME = realHome;
-  if (realCloud === undefined) delete process.env.AGENTBOX_CLOUD_CONFIG; else process.env.AGENTBOX_CLOUD_CONFIG = realCloud;
+  if (realCloud === undefined) delete process.env.MERCURY_CLOUD_CONFIG; else process.env.MERCURY_CLOUD_CONFIG = realCloud;
   if (server) { server.closeAllConnections(); await new Promise((r) => server.close(r)); server = null; }
   fs.rmSync(dir, { recursive: true, force: true });
 });

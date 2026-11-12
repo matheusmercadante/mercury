@@ -21,7 +21,7 @@ import { Supervisor } from '../main/supervisor.mts';
 import { taskFolderPath } from '../main/task-folders.mts';
 
 let tmp; let repo; let folder; let product; let sup;
-const savedConfigEnv = process.env.AGENTBOX_CLOUD_CONFIG;
+const savedConfigEnv = process.env.MERCURY_CLOUD_CONFIG;
 
 const build = ({ cloudRuns = null, slots = 2, maxCloudSessions = 10, personal = [], memory = true } = {}) => {
   sup = new Supervisor(
@@ -52,10 +52,10 @@ beforeEach(() => {
   folder = taskFolderPath(repo, 'w-1');
   const cfg = path.join(tmp, 'cloud.json');
   fs.writeFileSync(cfg, JSON.stringify({ region: 'us-east-1', bucket: 'b', runtimeArn: 'arn:aws:bedrock-agentcore:us-east-1:000000000000:runtime/x' }));
-  process.env.AGENTBOX_CLOUD_CONFIG = cfg;
+  process.env.MERCURY_CLOUD_CONFIG = cfg;
 });
 afterEach(() => {
-  if (savedConfigEnv === undefined) delete process.env.AGENTBOX_CLOUD_CONFIG; else process.env.AGENTBOX_CLOUD_CONFIG = savedConfigEnv;
+  if (savedConfigEnv === undefined) delete process.env.MERCURY_CLOUD_CONFIG; else process.env.MERCURY_CLOUD_CONFIG = savedConfigEnv;
   fs.rmSync(tmp, { recursive: true, force: true });
 });
 

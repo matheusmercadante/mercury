@@ -137,7 +137,7 @@ describe('the deploy script', () => {
     const at = (s) => deploy.indexOf(s);
     expect(at("'scripts/cloud-setup.mjs'")).toBeGreaterThan(at("'scripts/publish-download.mjs'"));
     expect(at("'scripts/cloud-setup.mjs'")).toBeLessThan(at("'scripts/cloud-gateway-setup.mjs'"));
-    expect(deploy).toMatch(/live\('node', \['scripts\/cloud-setup\.mjs'\], \{ AGENTBOX_CLOUD_CONFIG: serverFile \}\)/);
+    expect(deploy).toMatch(/live\('node', \['scripts\/cloud-setup\.mjs'\], \{ MERCURY_CLOUD_CONFIG: serverFile \}\)/);
   });
 
   it('never handles the Apple password: Apple\'s own tool keeps it in the Keychain', () => {

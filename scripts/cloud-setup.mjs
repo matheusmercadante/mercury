@@ -15,7 +15,7 @@
 //     runtime and to read and write that one bucket; its key is written to
 //     ~/.aws/credentials as the `agentbox-cloud` profile, so the app never
 //     runs on the 12-hour sign-in
-// and it writes what it made to ~/.agentbox/cloud.json (never to git: an AWS
+// and it writes what it made to ~/.mercury/cloud.json (never to git: an AWS
 // account id is not committed here).
 //
 // Flags: --rebuild builds the image even when nothing in it changed.

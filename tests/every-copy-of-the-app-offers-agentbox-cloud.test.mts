@@ -20,18 +20,18 @@ import { loadCloudConfig } from '../main/team/session.mts';
 vi.mock('../shared/hosted-services.mts', () => ({ HOSTED_SERVICES: Object.freeze({ cloud: true, feedback: true }) }));
 
 let home; let app; let setUpFile;
-const suiteSetUpFile = process.env.AGENTBOX_CLOUD_CONFIG;
+const suiteSetUpFile = process.env.MERCURY_CLOUD_CONFIG;
 
 beforeEach(() => {
   home = fs.mkdtempSync(path.join(os.tmpdir(), 'cloudhome-'));
   app = fs.mkdtempSync(path.join(os.tmpdir(), 'cloudapp-'));
   fs.writeFileSync(path.join(app, 'package.json'), JSON.stringify({ name: 'agentbox-app' }));
-  setUpFile = path.join(home, '.agentbox', 'cloud.json');
-  process.env.AGENTBOX_CLOUD_CONFIG = setUpFile;
+  setUpFile = path.join(home, '.mercury', 'cloud.json');
+  process.env.MERCURY_CLOUD_CONFIG = setUpFile;
 });
 
 afterEach(() => {
-  process.env.AGENTBOX_CLOUD_CONFIG = suiteSetUpFile;
+  process.env.MERCURY_CLOUD_CONFIG = suiteSetUpFile;
   fs.rmSync(home, { recursive: true, force: true });
   fs.rmSync(app, { recursive: true, force: true });
 });
@@ -58,7 +58,7 @@ describe('where a copy finds Agentbox Cloud', () => {
   it('a file in the folder, a file on this computer, or a baked release still points a copy elsewhere', () => {
     write(path.join(app, 'package.json'), { name: 'agentbox-app', bakedCloud: { gateway: 'https://baked', supabaseUrl: 'https://db', anonKey: 'k' } });
     expect(cloudAccountConfig(app, { home }).gateway).toBe('https://baked');
-    write(path.join(home, '.agentbox', 'cloud.public.json'), { gateway: 'https://home', supabaseUrl: 'https://db', anonKey: 'k' });
+    write(path.join(home, '.mercury', 'cloud.public.json'), { gateway: 'https://home', supabaseUrl: 'https://db', anonKey: 'k' });
     expect(cloudAccountConfig(app, { home }).gateway).toBe('https://home');
     write(path.join(app, 'cloud', 'cloud.public.json'), { gateway: 'https://app', supabaseUrl: 'https://db', anonKey: 'k' });
     expect(cloudAccountConfig(app, { home }).gateway).toBe('https://app');
@@ -66,7 +66,7 @@ describe('where a copy finds Agentbox Cloud', () => {
 
   it('half a setting anywhere is passed over, down to the one that ships', () => {
     write(path.join(app, 'cloud', 'cloud.public.json'), { gateway: 'https://app' });
-    write(path.join(home, '.agentbox', 'cloud.public.json'), { supabaseUrl: 'https://db', anonKey: 'k' });
+    write(path.join(home, '.mercury', 'cloud.public.json'), { supabaseUrl: 'https://db', anonKey: 'k' });
     write(path.join(app, 'package.json'), { name: 'agentbox-app', bakedCloud: { gateway: 'https://baked' } });
     expect(cloudAccountConfig(app, { home })).toEqual(CLOUD_ADDRESS);
   });

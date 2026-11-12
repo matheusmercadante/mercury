@@ -41,10 +41,10 @@ keepAnswerModesIn({ userDir, storeRoot: home });
 process.env.TZ = 'America/Los_Angeles';
 
 // AND NO TEST SEES THIS MAC'S CLOUD RUNS. A Mac that has run
-// scripts/cloud-setup.mjs keeps ~/.agentbox/cloud.json, and a supervisor
+// scripts/cloud-setup.mjs keeps ~/.mercury/cloud.json, and a supervisor
 // built in a test would otherwise send its overflow to the developer's real
 // AWS account (docs/cloud/PLAN.md). A test that wants cloud runs names its own.
-process.env.AGENTBOX_CLOUD_CONFIG = path.join(home, 'no-cloud-runs-here.json');
+process.env.MERCURY_CLOUD_CONFIG = path.join(home, 'no-cloud-runs-here.json');
 
 // A PAGE TEST RUNS ONLY WHERE PLAYWRIGHT HAS THE BROWSER IT STARTS. The tests
 // that draw a page skip themselves when `chromium.executablePath()` is missing,

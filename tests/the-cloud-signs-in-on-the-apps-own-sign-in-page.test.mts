@@ -29,8 +29,8 @@ let tmp; let server; let gateway; let configBefore;
 beforeEach(async () => {
   tmp = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'cloudsignin-')));
   // The supervisor reads this Mac's cloud.json where the environment says.
-  configBefore = process.env.AGENTBOX_CLOUD_CONFIG;
-  process.env.AGENTBOX_CLOUD_CONFIG = path.join(tmp, '.agentbox', 'cloud.json');
+  configBefore = process.env.MERCURY_CLOUD_CONFIG;
+  process.env.MERCURY_CLOUD_CONFIG = path.join(tmp, '.mercury', 'cloud.json');
   const gw = createGateway({
     agentcore: { async invoke() { return { ok: true }; }, async stop() {} },
     links: { get: async (k) => k, put: async (k) => k, head: async (k) => k },
@@ -44,7 +44,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
-  if (configBefore === undefined) delete process.env.AGENTBOX_CLOUD_CONFIG; else process.env.AGENTBOX_CLOUD_CONFIG = configBefore;
+  if (configBefore === undefined) delete process.env.MERCURY_CLOUD_CONFIG; else process.env.MERCURY_CLOUD_CONFIG = configBefore;
   server.closeAllConnections();
   await new Promise((r) => server.close(r));
   fs.rmSync(tmp, { recursive: true, force: true });
@@ -85,7 +85,7 @@ describe('whether the cloud is offered on this Mac', () => {
     fs.mkdirSync(app, { recursive: true });
     expect(supervisor(app).cloudStatus()).toMatchObject({ setUp: false, offered: true });
     offerIn(app);
-    fs.mkdirSync(path.join(tmp, '.agentbox'), { recursive: true });
+    fs.mkdirSync(path.join(tmp, '.mercury'), { recursive: true });
     fs.writeFileSync(cloudConfigPath({}, tmp), JSON.stringify({ region: 'us-east-1', bucket: 'b', runtimeArn: 'arn:x' }));
     expect(supervisor(app).cloudStatus()).toMatchObject({ setUp: true, offered: false, managed: false });
   });
@@ -93,7 +93,7 @@ describe('whether the cloud is offered on this Mac', () => {
   it('once signed in, the Mac is set up, through the cloud server', () => {
     const app = path.join(tmp, 'app');
     offerIn(app);
-    fs.mkdirSync(path.join(tmp, '.agentbox'), { recursive: true });
+    fs.mkdirSync(path.join(tmp, '.mercury'), { recursive: true });
     fs.writeFileSync(cloudConfigPath({}, tmp), JSON.stringify({ gateway }));
     writeCloudKey('abk_x', {}, tmp);
     expect(supervisor(app).cloudStatus()).toMatchObject({ setUp: true, offered: false, managed: true });

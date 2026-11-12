@@ -59,7 +59,7 @@ import { execFile as execFileCb } from 'node:child_process';
 import { CLOSED_UNSHIPPED, closedBeforeItShipped, shippedAs } from '../shared/not-shipped.mts';
 import { asksForCloud, handBackWhat, handsBack, SEND_TO_CLOUD } from '../shared/cloud-hand-back.mts';
 import { CLOUD_SENT, readSent } from '../shared/cloud-start.mts';
-import { readCloudConfig, cloudAccountConfig, OLD_TOKEN_SERVICE, imageCapsToTry } from './cloud/config.mts';
+import { readCloudConfig, cloudAccountConfig, cloudFolder, OLD_TOKEN_SERVICE, imageCapsToTry } from './cloud/config.mts';
 import { cloudVersionGaps } from '../shared/cloud-versions.mts';
 import { saveCloudKey, removeCloudKey, cloudKeyNames } from './cloud/keys.mts';
 import { threadsKeysFree } from '../shared/cloud-needs.mts';
@@ -6430,7 +6430,7 @@ export class Supervisor {
   // docs/cloud/PLAN.md. A Claude Code thread that would wait for a slot on
   // this Mac runs in an AWS AgentCore sandbox instead, through
   // main/cloud/run-cli.mts, when cloud runs are on (`cloudRuns`), set up
-  // (~/.agentbox/cloud.json) and under their own cap (`maxCloudSessions`).
+  // (~/.mercury/cloud.json) and under their own cap (`maxCloudSessions`).
 
   // Picked-back-up runs count: they hold a cloud slot, and their rows show
   // them working there.
@@ -6849,7 +6849,7 @@ export class Supervisor {
   _forgetOldCloudTokens() {
     if (this._forgotOldCloudTokens) return;
     this._forgotOldCloudTokens = true;
-    const flag = path.join(this.config.home || os.homedir(), '.agentbox', '.old-cloud-tokens-forgotten');
+    const flag = path.join(cloudFolder(this.config.home || os.homedir()), '.old-cloud-tokens-forgotten');
     try { if (fs.existsSync(flag)) return; } catch { return; }
     try {
       forgetOldCloudTokens({ home: this.config.home || os.homedir(), service: OLD_TOKEN_SERVICE, exec: (cmd: string, args: string[]) => execFileSync(cmd, args, { stdio: 'ignore' }) });

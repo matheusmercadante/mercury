@@ -19,13 +19,13 @@ beforeEach(() => {
   home = path.join(tmp, 'home');
   userDir = path.join(tmp, 'user');
   repo = path.join(tmp, 'repo');
-  fs.mkdirSync(path.join(home, '.agentbox'), { recursive: true });
+  fs.mkdirSync(path.join(home, '.mercury'), { recursive: true });
   fs.mkdirSync(userDir, { recursive: true });
   fs.mkdirSync(path.join(repo, 'scripts'), { recursive: true });
   fs.writeFileSync(path.join(repo, 'scripts', 'cloud-gateway-setup.mjs'), '');
 });
 
-const operator = () => fs.writeFileSync(path.join(home, '.agentbox', 'cloud.own-aws.json'), JSON.stringify({ region: 'us-east-1', bucket: 'b', runtimeArn: 'r' }));
+const operator = () => fs.writeFileSync(path.join(home, '.mercury', 'cloud.own-aws.json'), JSON.stringify({ region: 'us-east-1', bucket: 'b', runtimeArn: 'r' }));
 function fakeStore(products = [{ slug: 'app', repoPath: null }, { slug: 'agentbox', repoPath: repo }]) {
   const filed = []; const notes = [];
   return {
@@ -54,7 +54,7 @@ describe('what counts as the cloud server itself erroring', () => {
 describe('which Mac says so', () => {
   it('is one with the server\'s AWS bucket and runtime, not one that only knows its address', () => {
     expect(runsACloudServer(home)).toBe(false);
-    fs.writeFileSync(path.join(home, '.agentbox', 'cloud.json'), JSON.stringify({ gateway: 'https://x' }));
+    fs.writeFileSync(path.join(home, '.mercury', 'cloud.json'), JSON.stringify({ gateway: 'https://x' }));
     expect(runsACloudServer(home)).toBe(false);
     operator();
     expect(runsACloudServer(home)).toBe(true);

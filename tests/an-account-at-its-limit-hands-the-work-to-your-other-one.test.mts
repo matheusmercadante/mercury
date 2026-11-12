@@ -2,7 +2,7 @@
 //
 // What broke: on 2026-11-09 the Claude account the Mac was set to reached 100%
 // of its weekly limit at 6:28pm (the cloud's usage reading in
-// ~/.agentbox/cloud-logins.json; the Mac's own login filed the limit at 6:41pm,
+// ~/.mercury/cloud-logins.json; the Mac's own login filed the limit at 6:41pm,
 // reset Nov 12). The cloud runs only on the Mac's account, so from 6:28 it took
 // no Claude threads, while another login on the same Mac, signed in to the
 // cloud, sat at 19% of its week. Replies waited up to 18 minutes, and the

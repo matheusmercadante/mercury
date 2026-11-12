@@ -1,6 +1,6 @@
 // A SELF-HOSTED CLOUD: the managed cloud's server (cloud/gateway/) on a machine
 // of the owner's own, for the people it is set up for. A Mac reaches it as it
-// reaches the managed cloud (~/.agentbox/cloud.json names it as `gateway`).
+// reaches the managed cloud (~/.mercury/cloud.json names it as `gateway`).
 // What AWS did is here: the bucket on this machine's disk, a container of the
 // sandbox image a session, the clock's sweeps, and a door that checks the
 // database's signature. Paying, the phone and teams are not.

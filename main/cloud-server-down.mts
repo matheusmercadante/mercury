@@ -3,13 +3,14 @@
 // From 2026-11-04 the cloud server answered 502 to every call for more than
 // two days. Every Mac saw its cloud runs fail and quietly ran threads here, so
 // nobody was told. The Mac that deploys the server (it has the server's AWS
-// settings in ~/.agentbox) now files one thread when cloud starts keep dying
+// settings in ~/.mercury) now files one thread when cloud starts keep dying
 // on the server's own error, and notes on that same thread when a cloud run
 // starts again. One outage is one thread, across restarts.
 
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { cloudFolder } from './cloud/folder.mts';
 
 const STATE = 'cloud-server-down.json';
 // The files that hold the server's AWS settings (scripts/lib/deploy-rules.mjs `serverConfig`).
@@ -31,7 +32,7 @@ export function serverError(tail: unknown[] | null | undefined): string | null {
 export function runsACloudServer(home: string = os.homedir()): boolean {
   return SERVER_FILES.some((name) => {
     try {
-      const c = JSON.parse(fs.readFileSync(path.join(home, '.agentbox', name), 'utf8'));
+      const c = JSON.parse(fs.readFileSync(path.join(cloudFolder(home), name), 'utf8'));
       return !!(c?.bucket && c?.runtimeArn);
     } catch { return false; }
   });

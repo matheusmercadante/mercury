@@ -23,7 +23,7 @@ import { taskFolderPath } from '../main/task-folders.mts';
 import { SEND_TO_CLOUD, asksForCloud } from '../shared/cloud-hand-back.mts';
 
 let tmp; let repo; let folder; let product; let sup;
-const savedConfigEnv = process.env.AGENTBOX_CLOUD_CONFIG;
+const savedConfigEnv = process.env.MERCURY_CLOUD_CONFIG;
 
 const build = ({ cloudRuns = true, slots = 2, signedIn = true, root = null } = {}) => {
   sup = new Supervisor(
@@ -60,10 +60,10 @@ beforeEach(() => {
   execFileSync('git', ['worktree', 'add', '-q', '-b', 'agentbox/w-1', folder], { cwd: repo });
   const cfg = path.join(tmp, 'cloud.json');
   fs.writeFileSync(cfg, JSON.stringify({ region: 'us-east-1', bucket: 'b', runtimeArn: 'arn:aws:bedrock-agentcore:us-east-1:000000000000:runtime/x' }));
-  process.env.AGENTBOX_CLOUD_CONFIG = cfg;
+  process.env.MERCURY_CLOUD_CONFIG = cfg;
 });
 afterEach(() => {
-  if (savedConfigEnv === undefined) delete process.env.AGENTBOX_CLOUD_CONFIG; else process.env.AGENTBOX_CLOUD_CONFIG = savedConfigEnv;
+  if (savedConfigEnv === undefined) delete process.env.MERCURY_CLOUD_CONFIG; else process.env.MERCURY_CLOUD_CONFIG = savedConfigEnv;
   fs.rmSync(tmp, { recursive: true, force: true });
 });
 

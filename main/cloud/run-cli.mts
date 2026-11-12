@@ -5,7 +5,7 @@
 //
 // Same argv, env and cwd as the local run would have had. Everything it does
 // is main/cloud/run.mts; this only connects it to the real AWS account named
-// in ~/.agentbox/cloud.json and names this account's cloud sign-in, which
+// in ~/.mercury/cloud.json and names this account's cloud sign-in, which
 // lives in the cloud and is never read here (main/cloud/logins.mts).
 // `cloudRunFromArgs` is the same, for one of many runs sharing a process
 // (main/cloud/host.mts).

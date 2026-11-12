@@ -7,7 +7,7 @@
 // cloud: no Claude account is signed in for the cloud yet". Several other
 // threads did the same.
 //
-// Measured off ~/.agentbox/cloud-logins.json and the app's config that day:
+// Measured off ~/.mercury/cloud-logins.json and the app's config that day:
 // the first cloud Claude account (personal) read 100% of its session, limited
 // until 3:40pm; the second (work) read 0%; `activeAccount.claude` named the
 // work login. Two rules disagreed. The app's check before sending a thread up

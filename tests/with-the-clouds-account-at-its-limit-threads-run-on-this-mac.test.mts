@@ -7,7 +7,7 @@
 // "Queued" for the cloud while this Mac had two free slots and a working
 // account. The account she switched to is not signed in to the cloud, so the
 // switch moved nothing there. Read off the app's saved state that evening:
-// ~/.agentbox/cloud-logins.json had one usable Claude login, limitedUntil
+// ~/.mercury/cloud-logins.json had one usable Claude login, limitedUntil
 // 5:35pm, and `_waitsForCloud` held every thread for it.
 //
 // Now a cloud whose account is at its limit is not a slot worth waiting for:

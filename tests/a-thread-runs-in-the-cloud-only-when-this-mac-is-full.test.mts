@@ -28,7 +28,7 @@ import { taskFolderPath } from '../main/task-folders.mts';
 
 const ONE_ACCOUNT_HOME = '/nonexistent-home-with-no-second-account';
 let tmp; let repo; let folder; let product; let sup;
-const savedConfigEnv = process.env.AGENTBOX_CLOUD_CONFIG;
+const savedConfigEnv = process.env.MERCURY_CLOUD_CONFIG;
 
 const build = ({ cloudRuns = true, slots = 2, maxCloudSessions = 10, personal = [], signedIn = true } = {}) => {
   sup = new Supervisor(
@@ -64,10 +64,10 @@ beforeEach(() => {
   execFileSync('git', ['worktree', 'add', '-q', '-b', 'agentbox/w-1', folder], { cwd: repo });
   const cfg = path.join(tmp, 'cloud.json');
   fs.writeFileSync(cfg, JSON.stringify({ region: 'us-east-1', bucket: 'b', runtimeArn: 'arn:aws:bedrock-agentcore:us-east-1:000000000000:runtime/x' }));
-  process.env.AGENTBOX_CLOUD_CONFIG = cfg;
+  process.env.MERCURY_CLOUD_CONFIG = cfg;
 });
 afterEach(() => {
-  if (savedConfigEnv === undefined) delete process.env.AGENTBOX_CLOUD_CONFIG; else process.env.AGENTBOX_CLOUD_CONFIG = savedConfigEnv;
+  if (savedConfigEnv === undefined) delete process.env.MERCURY_CLOUD_CONFIG; else process.env.MERCURY_CLOUD_CONFIG = savedConfigEnv;
   fs.rmSync(tmp, { recursive: true, force: true });
 });
 
@@ -93,7 +93,7 @@ describe('where a thread runs', () => {
   });
 
   it('waits when cloud runs are on but this Mac was never set up for them', () => {
-    process.env.AGENTBOX_CLOUD_CONFIG = path.join(tmp, 'missing.json');
+    process.env.MERCURY_CLOUD_CONFIG = path.join(tmp, 'missing.json');
     build();
     fill(2);
     expect(sup._hasSlotFor('claude')).toBe(false);

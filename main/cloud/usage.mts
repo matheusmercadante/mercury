@@ -1,12 +1,13 @@
 // WHAT THE CLOUD RUNS USED, KEPT ON THE MAC (tests/a-cloud-run-records-what-it-really-used).
 //
-// One line per run in ~/.agentbox/cloud-usage.jsonl, beside cloud.json: when,
+// One line per run in ~/.mercury/cloud-usage.jsonl, beside cloud.json: when,
 // which row, which engine, and what the sandbox measured (cloud/sandbox/usage.mjs).
 // The plan limits are set from these lines, so nothing here is estimated
 // except the cost, and that says so in its name.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { cloudFolder } from './folder.mts';
 
 // AgentCore Runtime's published rates (us-east-1, 2026-10), per vCPU-hour of
 // CPU actually used and per GB-hour of memory. Runtime v1, which this account
@@ -41,7 +42,7 @@ export interface CloudUsageRun {
 }
 
 export function cloudUsagePath({ home = os.homedir() }: { home?: string } = {}) {
-  return path.join(home || os.homedir(), '.agentbox', 'cloud-usage.jsonl');
+  return path.join(cloudFolder(home), 'cloud-usage.jsonl');
 }
 
 export function appendCloudUsage({ runId, item, engine, exitCode, usage }: CloudUsageRun, { home, now = Date.now }: { home?: string; now?: () => number } = {}) {

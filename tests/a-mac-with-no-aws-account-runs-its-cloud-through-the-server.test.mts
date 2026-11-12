@@ -1,7 +1,7 @@
 // A MAC WITH NO AWS ACCOUNT RUNS ITS CLOUD THROUGH THE SERVER.
 //
 // Until 2026-10-19 a Mac counted as set up for the cloud only when
-// ~/.agentbox/cloud.json named a bucket, a runtime and a region from the
+// ~/.mercury/cloud.json named a bucket, a runtime and a region from the
 // owner's own AWS account (scripts/cloud-setup.mjs). Nobody else has one
 // (w-6633e825a7). A Mac on the managed cloud has a cloud.json that names the
 // cloud server instead, and a cloud key beside it. Both kinds must keep
@@ -20,7 +20,7 @@ const env = {};
 
 beforeEach(async () => {
   home = fs.mkdtempSync(path.join(os.tmpdir(), 'managedmac-'));
-  fs.mkdirSync(path.join(home, '.agentbox'), { recursive: true });
+  fs.mkdirSync(path.join(home, '.mercury'), { recursive: true });
   asked = [];
   server = http.createServer((req, res) => {
     let body = ''; req.on('data', (c) => { body += c; });
@@ -57,7 +57,7 @@ describe('whether this Mac is set up for the cloud', () => {
 describe('the cloud key', () => {
   it('is kept beside cloud.json, readable by this user only, and read back as written', () => {
     writeCloudKey('abk_secret', env, home);
-    expect(cloudKeyPath(env, home)).toBe(path.join(home, '.agentbox', 'cloud-key'));
+    expect(cloudKeyPath(env, home)).toBe(path.join(home, '.mercury', 'cloud-key'));
     expect(fs.statSync(cloudKeyPath(env, home)).mode & 0o777).toBe(0o600);
     expect(readCloudKey(env, home)).toBe('abk_secret');
   });

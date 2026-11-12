@@ -116,8 +116,8 @@ describe('what the cloud account does with it', () => {
 
   beforeEach(async () => {
     tmp = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'cloudreset-')));
-    configBefore = process.env.AGENTBOX_CLOUD_CONFIG;
-    process.env.AGENTBOX_CLOUD_CONFIG = path.join(tmp, '.agentbox', 'cloud.json');
+    configBefore = process.env.MERCURY_CLOUD_CONFIG;
+    process.env.MERCURY_CLOUD_CONFIG = path.join(tmp, '.mercury', 'cloud.json');
     const gw = createGateway({
       agentcore: { async invoke() { return { ok: true }; }, async stop() {} },
       links: { get: async (k) => k, put: async (k) => k, head: async (k) => k },
@@ -132,7 +132,7 @@ describe('what the cloud account does with it', () => {
 
   afterEach(async () => {
     cancelGoogleSignIn();
-    if (configBefore === undefined) delete process.env.AGENTBOX_CLOUD_CONFIG; else process.env.AGENTBOX_CLOUD_CONFIG = configBefore;
+    if (configBefore === undefined) delete process.env.MERCURY_CLOUD_CONFIG; else process.env.MERCURY_CLOUD_CONFIG = configBefore;
     server.closeAllConnections();
     await new Promise((r) => server.close(r));
     fs.rmSync(tmp, { recursive: true, force: true });

@@ -22,15 +22,15 @@ import { CLOUD_MODES, cloudModeOf, cloudButtonCount, cloudMonthLine, pageToOpen,
 import { recordCloudLogin, markCloudLogin } from '../main/cloud/logins.mts';
 
 let dir; let config; let supervisor;
-const savedConfigEnv = process.env.AGENTBOX_CLOUD_CONFIG;
+const savedConfigEnv = process.env.MERCURY_CLOUD_CONFIG;
 beforeEach(() => {
   dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'cloudbutton-')));
   config = { home: dir, appDir: dir, storeRoot: dir, authProfiles: ['default'] };
   supervisor = new Supervisor(config, { listItems: () => [], listProducts: () => [], isDue: () => true, settleAnswer() {}, readItem: () => null }, dir);
-  delete process.env.AGENTBOX_CLOUD_CONFIG;
+  delete process.env.MERCURY_CLOUD_CONFIG;
 });
 afterEach(() => {
-  if (savedConfigEnv === undefined) delete process.env.AGENTBOX_CLOUD_CONFIG; else process.env.AGENTBOX_CLOUD_CONFIG = savedConfigEnv;
+  if (savedConfigEnv === undefined) delete process.env.MERCURY_CLOUD_CONFIG; else process.env.MERCURY_CLOUD_CONFIG = savedConfigEnv;
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
@@ -91,7 +91,7 @@ describe('what the snapshot carries', () => {
   it('says the mode, how many run there now, and this month\'s use', () => {
     const cfg = path.join(dir, 'cloud.json');
     fs.writeFileSync(cfg, JSON.stringify({ region: 'us-east-1', bucket: 'b', runtimeArn: 'arn:aws:bedrock-agentcore:us-east-1:000000000000:runtime/x' }));
-    process.env.AGENTBOX_CLOUD_CONFIG = cfg;
+    process.env.MERCURY_CLOUD_CONFIG = cfg;
     config.cloudRuns = 'all';
     supervisor.sessions.set('w-c', { itemId: 'w-c', engine: 'claude', cloud: true, tail: [] });
     supervisor.sessions.set('w-l', { itemId: 'w-l', engine: 'claude', cloud: false, tail: [] });
@@ -134,7 +134,7 @@ describe('the supervisor\'s side of it', () => {
   const setUp = () => {
     const cfg = path.join(dir, 'cloud.json');
     fs.writeFileSync(cfg, JSON.stringify({ region: 'us-east-1', bucket: 'b', runtimeArn: 'arn:aws:bedrock-agentcore:us-east-1:000000000000:runtime/x' }));
-    process.env.AGENTBOX_CLOUD_CONFIG = cfg;
+    process.env.MERCURY_CLOUD_CONFIG = cfg;
   };
 
   it('lists the accounts she added for the cloud, not this Mac\'s, and none on a Mac not set up', () => {

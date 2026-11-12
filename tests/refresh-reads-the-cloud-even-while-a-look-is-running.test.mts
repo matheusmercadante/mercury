@@ -16,14 +16,14 @@ import { cloudLoginFor, lookAtCloudLogin, recordCloudLogin } from '../main/cloud
 import { Supervisor } from '../main/supervisor.mts';
 
 let home;
-const savedConfig = process.env.AGENTBOX_CLOUD_CONFIG;
+const savedConfig = process.env.MERCURY_CLOUD_CONFIG;
 beforeEach(() => {
   home = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'cloud-refresh-')));
-  process.env.AGENTBOX_CLOUD_CONFIG = path.join(home, 'cloud.json');
-  fs.writeFileSync(process.env.AGENTBOX_CLOUD_CONFIG, JSON.stringify({ gateway: 'https://cloud.example.test' }));
+  process.env.MERCURY_CLOUD_CONFIG = path.join(home, 'cloud.json');
+  fs.writeFileSync(process.env.MERCURY_CLOUD_CONFIG, JSON.stringify({ gateway: 'https://cloud.example.test' }));
 });
 afterEach(() => {
-  if (savedConfig === undefined) delete process.env.AGENTBOX_CLOUD_CONFIG; else process.env.AGENTBOX_CLOUD_CONFIG = savedConfig;
+  if (savedConfig === undefined) delete process.env.MERCURY_CLOUD_CONFIG; else process.env.MERCURY_CLOUD_CONFIG = savedConfig;
   fs.rmSync(home, { recursive: true, force: true });
 });
 

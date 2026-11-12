@@ -39,7 +39,7 @@ const FAKE_STORE = here('./fixtures/cloud/fake-store-server.mjs');
 const STUB = here('../cloud/sandbox/mcp-stub.mjs');
 const LOGIN = { engine: 'claude', id: 'L1', key: 'logins/claude/L1.json' };
 const NOW_CAPS = ['offline', 'setup', 'kept', 'base', 'plain'];
-const savedConfigEnv = process.env.AGENTBOX_CLOUD_CONFIG;
+const savedConfigEnv = process.env.MERCURY_CLOUD_CONFIG;
 
 let tmp; let docs; let notes; let coded; let folder; let sup; let cloudConfig;
 const put = (p, body) => { fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, body); };
@@ -61,10 +61,10 @@ beforeEach(() => {
   const cfg = path.join(tmp, 'cloud.json');
   cloudConfig = { region: 'us-east-1', bucket: 'b', runtimeArn: 'arn:aws:bedrock-agentcore:us-east-1:000000000000:runtime/x' };
   fs.writeFileSync(cfg, JSON.stringify(cloudConfig));
-  process.env.AGENTBOX_CLOUD_CONFIG = cfg;
+  process.env.MERCURY_CLOUD_CONFIG = cfg;
 });
 afterEach(() => {
-  if (savedConfigEnv === undefined) delete process.env.AGENTBOX_CLOUD_CONFIG; else process.env.AGENTBOX_CLOUD_CONFIG = savedConfigEnv;
+  if (savedConfigEnv === undefined) delete process.env.MERCURY_CLOUD_CONFIG; else process.env.MERCURY_CLOUD_CONFIG = savedConfigEnv;
   fs.rmSync(tmp, { recursive: true, force: true });
 });
 

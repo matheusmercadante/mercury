@@ -1,13 +1,14 @@
 // WHERE A MAC'S CLOUD RUNS ARE SET UP, AND WHETHER THEY CAN RUN AT ALL.
 //
-// scripts/cloud-setup.mjs writes ~/.agentbox/cloud.json (the bucket, the
+// scripts/cloud-setup.mjs writes ~/.mercury/cloud.json (the bucket, the
 // runtime, the profile it signs as); it is never in git, because it names an
 // AWS account. Each account's sign-in for the cloud is made and kept in the
 // cloud, never on this Mac (main/cloud/logins.mts).
 import os from 'node:os';
 import fs from 'node:fs';
 import path from 'node:path';
-import { Name } from '../../shared/product-name.mjs';
+import { Name, envName } from '../../shared/product-name.mjs';
+import { cloudFolder } from './folder.mts';
 import { CLOUD_ADDRESS } from '../../shared/cloud-address.mts';
 import { HOSTED_SERVICES } from '../../shared/hosted-services.mts';
 import { replaceFileSync } from '../replace-file.mts';
@@ -16,11 +17,13 @@ import type { CloudConfig } from './clients.mts';
 
 type Env = NodeJS.ProcessEnv;
 
+export { cloudFolder };
+
 // `home` is the supervisor's own idea of the home folder (config.home), so a
 // supervisor built for a test, with a home that is not the developer's, never
 // reads the developer's real setup.
 export function cloudConfigPath(env: Env = process.env, home: string = os.homedir()): string {
-  return env.AGENTBOX_CLOUD_CONFIG || path.join(home || os.homedir(), '.agentbox', 'cloud.json');
+  return env[envName('CLOUD_CONFIG')] || path.join(cloudFolder(home), 'cloud.json');
 }
 
 // Either the owner's own AWS account (bucket, runtime, region), or the
@@ -43,7 +46,7 @@ export function readCloudConfig(env: Env = process.env, home: string = os.homedi
  */
 export function cloudAccountConfig(appDir: string, { home = os.homedir(), hosted = HOSTED_SERVICES }: { home?: string; hosted?: { cloud: boolean } } = {}): CloudAccountConfig | null {
   const whole = (c: Partial<CloudAccountConfig> | null | undefined): c is CloudAccountConfig => typeof c?.gateway === 'string' && typeof c.supabaseUrl === 'string' && typeof c.anonKey === 'string';
-  for (const file of [path.join(appDir, 'cloud', 'cloud.public.json'), path.join(home, '.agentbox', 'cloud.public.json')]) {
+  for (const file of [path.join(appDir, 'cloud', 'cloud.public.json'), path.join(cloudFolder(home), 'cloud.public.json')]) {
     try {
       const c = JSON.parse(fs.readFileSync(file, 'utf8'));
       if (whole(c)) return c;

@@ -3,7 +3,7 @@
 // values are public: the server's address, and the database's address and its
 // anon key, which Supabase issues to be shipped inside apps (row level
 // security guards the data). cloud/cloud.public.json,
-// ~/.agentbox/cloud.public.json or a release's baked package.json still point
+// ~/.mercury/cloud.public.json or a release's baked package.json still point
 // a copy at another cloud (main/cloud/config.mts cloudAccountConfig).
 export const CLOUD_ADDRESS = Object.freeze({
   gateway: 'https://ob5zqpdpqy4ewdan6inzpbjpxi0nurue.lambda-url.us-east-1.on.aws',

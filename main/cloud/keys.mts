@@ -3,13 +3,14 @@
 // A key is pasted once, put in the cloud bucket as its own object
 // (`logins/keys/<id>.json`, `{ name, value }`), and every cloud run carries a
 // link to each one (main/cloud/run.mts `keys`). The Mac keeps only
-// ~/.agentbox/cloud-keys.json: each name, its object and when it was saved.
+// ~/.mercury/cloud-keys.json: each name, its object and when it was saved.
 // Nothing here reads a key back.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { keyNameRefused, keyObjectKey, KEY_VALUE_MAX, keyLabel } from '../../shared/cloud-keys.mts';
+import { cloudFolder } from './folder.mts';
 
 export { keyLabel };
 
@@ -31,7 +32,7 @@ interface KeyNote {
   retired: { id: string; at: number }[];
 }
 
-export const cloudKeysPath = (home: string = os.homedir()): string => path.join(home, '.agentbox', 'cloud-keys.json');
+export const cloudKeysPath = (home: string = os.homedir()): string => path.join(cloudFolder(home), 'cloud-keys.json');
 
 function readNote(home: string): KeyNote {
   try {

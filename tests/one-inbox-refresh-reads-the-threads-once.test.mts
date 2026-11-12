@@ -22,11 +22,11 @@ let tmp;
 let envBefore;
 beforeEach(() => {
   tmp = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'one-read-')));
-  envBefore = process.env.AGENTBOX_CLOUD_CONFIG;
-  delete process.env.AGENTBOX_CLOUD_CONFIG;
+  envBefore = process.env.MERCURY_CLOUD_CONFIG;
+  delete process.env.MERCURY_CLOUD_CONFIG;
 });
 afterEach(() => {
-  if (envBefore === undefined) delete process.env.AGENTBOX_CLOUD_CONFIG; else process.env.AGENTBOX_CLOUD_CONFIG = envBefore;
+  if (envBefore === undefined) delete process.env.MERCURY_CLOUD_CONFIG; else process.env.MERCURY_CLOUD_CONFIG = envBefore;
   fs.rmSync(tmp, { recursive: true, force: true });
 });
 
@@ -40,8 +40,8 @@ function supervisor(threads) {
 }
 
 function withACloudAndARun(sup) {
-  fs.mkdirSync(path.join(tmp, '.agentbox'), { recursive: true });
-  fs.writeFileSync(path.join(tmp, '.agentbox', 'cloud.json'), JSON.stringify({ gateway: 'https://cloud.invalid' }));
+  fs.mkdirSync(path.join(tmp, '.mercury'), { recursive: true });
+  fs.writeFileSync(path.join(tmp, '.mercury', 'cloud.json'), JSON.stringify({ gateway: 'https://cloud.invalid' }));
   sup.sessions.set('w-aaaaaa', { itemId: 'w-aaaaaa', engine: 'claude', profile: 'default' });
   sup._cloudUsable = () => true;
   sup._movableToCloud = () => true;

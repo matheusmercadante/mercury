@@ -1,4 +1,4 @@
-// WHETHER THIS MAC IS A WINDOW ONTO A HUB, and which one. `~/.agentbox/hub.json`
+// WHETHER THIS MAC IS A WINDOW ONTO A HUB, and which one. `~/.mercury/hub.json`
 // holds `{ url, key }`; no file means the app runs everything here, as it always
 // has. Whoever holds the key can run agents on the hub, so it never crosses a
 // network in the clear.
@@ -6,6 +6,8 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { cloudFolder } from './cloud/folder.mts';
+import { envName } from '../shared/product-name.mjs';
 
 const LOOPBACK = /^(127\.\d+\.\d+\.\d+|localhost|\[::1\])$/;
 const KEY_AT_LEAST = 24;
@@ -24,8 +26,8 @@ function checked(url: unknown, key: unknown): HubReading {
 
 /** `null` when this Mac names no hub; `{ url, key }`; or `{ invalid }` when it names one that cannot be used. */
 export function readHubAddress(env: NodeJS.ProcessEnv = process.env, home: string = os.homedir()): HubReading | null {
-  if (env.AGENTBOX_HUB) return checked(env.AGENTBOX_HUB, env.AGENTBOX_HUB_KEY);
-  const file = path.join(home, '.agentbox', 'hub.json');
+  if (env[envName('HUB')]) return checked(env[envName('HUB')], env[envName('HUB_KEY')]);
+  const file = path.join(cloudFolder(home), 'hub.json');
   let text;
   try { text = fs.readFileSync(file, 'utf8'); } catch (err) {
     return (err as NodeJS.ErrnoException).code === 'ENOENT' ? null : { invalid: `${file} cannot be read` };

@@ -23,7 +23,7 @@ import { stripTypesFlags } from '../main/strip-types.mts';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const home = () => fs.mkdtempSync(path.join(os.tmpdir(), 'hub-'));
-const write = (dir, data) => { fs.mkdirSync(path.join(dir, '.agentbox'), { recursive: true }); fs.writeFileSync(path.join(dir, '.agentbox', 'hub.json'), JSON.stringify(data)); };
+const write = (dir, data) => { fs.mkdirSync(path.join(dir, '.mercury'), { recursive: true }); fs.writeFileSync(path.join(dir, '.mercury', 'hub.json'), JSON.stringify(data)); };
 const KEY = 'k'.repeat(32);
 
 describe('whether this Mac has a hub', () => {
@@ -53,8 +53,8 @@ describe('whether this Mac has a hub', () => {
 
   it('a damaged file, a missing or short key, or another scheme is refused, and is not the same as no hub', () => {
     const dir = home();
-    fs.mkdirSync(path.join(dir, '.agentbox'), { recursive: true });
-    fs.writeFileSync(path.join(dir, '.agentbox', 'hub.json'), '{not json');
+    fs.mkdirSync(path.join(dir, '.mercury'), { recursive: true });
+    fs.writeFileSync(path.join(dir, '.mercury', 'hub.json'), '{not json');
     expect(readHubAddress({}, dir).invalid).toMatch(/hub\.json/);
     write(dir, { url: 'https://hub.example.com' });
     expect(readHubAddress({}, dir).invalid).toBeTruthy();
@@ -62,7 +62,7 @@ describe('whether this Mac has a hub', () => {
     expect(readHubAddress({}, dir).invalid).toBeTruthy();
     write(dir, { url: 'file:///etc/passwd', key: KEY });
     expect(readHubAddress({}, dir).invalid).toBeTruthy();
-    expect(readHubAddress({ AGENTBOX_HUB: 'nonsense' }, home()).invalid).toBeTruthy();
+    expect(readHubAddress({ MERCURY_HUB: 'nonsense' }, home()).invalid).toBeTruthy();
   });
 
   it('a Mac that names a hub it cannot use starts no agents: two copies must never own one store', () => {
@@ -86,7 +86,7 @@ describe('whether this Mac has a hub', () => {
   it('the environment names one for a test copy, ahead of the file', () => {
     const dir = home();
     write(dir, { url: 'https://hub.example.com', key: KEY });
-    expect(readHubAddress({ AGENTBOX_HUB: 'http://localhost:5000', AGENTBOX_HUB_KEY: KEY }, dir)?.url).toBe('http://localhost:5000');
+    expect(readHubAddress({ MERCURY_HUB: 'http://localhost:5000', MERCURY_HUB_KEY: KEY }, dir)?.url).toBe('http://localhost:5000');
   });
 });
 

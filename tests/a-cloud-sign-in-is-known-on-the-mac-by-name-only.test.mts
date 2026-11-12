@@ -3,7 +3,7 @@
 // The Mac's half of docs/cloud/PLAN.md, "Sign-ins live in the cloud" (the
 // founder's decision, 2026-10-14: one sign-in per account, made in the cloud
 // through each vendor's own sign-in, kept between runs). The Mac keeps a note
-// per account in ~/.agentbox/cloud-logins.json and never reads a login. What
+// per account in ~/.mercury/cloud-logins.json and never reads a login. What
 // each case here guards came out of Codex's review of the plan that day:
 //
 //   - an old run reporting trouble must not undo a new sign-in (finding 10);
@@ -96,10 +96,10 @@ const until = async (fn, what, ms = 15_000) => {
 describe('the note the Mac keeps', () => {
   it('names the login and holds no secret', () => {
     recordCloudLogin('claude', '/Users/x/.claude-2', { id: 'L1', savedAt: 5 }, { home });
-    const text = fs.readFileSync(path.join(home, '.agentbox', 'cloud-logins.json'), 'utf8');
+    const text = fs.readFileSync(path.join(home, '.mercury', 'cloud-logins.json'), 'utf8');
     expect(cloudLoginFor('claude', '/Users/x/.claude-2', { home })).toMatchObject({ id: 'L1', savedAt: 5, broken: null });
     expect(text).not.toMatch(/token|sk-ant|refresh/i);
-    expect((fs.statSync(path.join(home, '.agentbox', 'cloud-logins.json')).mode & 0o777).toString(8)).toBe('600');
+    expect((fs.statSync(path.join(home, '.mercury', 'cloud-logins.json')).mode & 0o777).toString(8)).toBe('600');
   });
 
   it('lets trouble from an old run mark only the login it ran on, never a newer sign-in', () => {
@@ -324,7 +324,7 @@ describe('renewing a Codex login', () => {
 describe('what the review found', () => {
   it('writes the note under a lock, and takes over one a dead process left (finding 2)', () => {
     recordCloudLogin('claude', '/a', { id: 'new' }, { home });
-    const lock = path.join(home, '.agentbox', 'cloud-logins.json.lock');
+    const lock = path.join(home, '.mercury', 'cloud-logins.json.lock');
     expect(fs.existsSync(lock)).toBe(false);
     fs.writeFileSync(lock, '');
     const old = (Date.now() - 60_000) / 1000;
@@ -487,13 +487,13 @@ describe('a run whose cloud sign-in is gone', () => {
 
 describe('the first build\'s own tokens', () => {
   it('are deleted from the keychain and the file, and nothing else is touched', () => {
-    fs.mkdirSync(path.join(home, '.agentbox'), { recursive: true });
-    fs.writeFileSync(path.join(home, '.agentbox', 'cloud-tokens.json'), '{"/a":"x"}');
+    fs.mkdirSync(path.join(home, '.mercury'), { recursive: true });
+    fs.writeFileSync(path.join(home, '.mercury', 'cloud-tokens.json'), '{"/a":"x"}');
     recordCloudLogin('claude', '/a', { id: 'keep' }, { home });
     const calls = [];
     let left = 2;
     forgetOldCloudTokens({ home, platform: 'darwin', service: 'Agentbox cloud: Claude sign-in', exec: (cmd, args) => { calls.push([cmd, ...args]); if (left-- <= 0) throw new Error('none left'); } });
-    expect(fs.existsSync(path.join(home, '.agentbox', 'cloud-tokens.json'))).toBe(false);
+    expect(fs.existsSync(path.join(home, '.mercury', 'cloud-tokens.json'))).toBe(false);
     expect(calls.every((c) => c.join(' ') === 'security delete-generic-password -s Agentbox cloud: Claude sign-in')).toBe(true);
     expect(calls.length).toBe(3);
     expect(readCloudLogins({ home })['claude:/a'].id).toBe('keep');

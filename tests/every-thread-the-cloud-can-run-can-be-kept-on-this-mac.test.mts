@@ -20,7 +20,7 @@ import { noteImageCaps } from '../main/cloud/config.mts';
 import { threadPlace } from '../renderer/src/cloud-menu.ts';
 
 const CAPS = ['offline', 'setup', 'kept', 'base', 'plain'];
-const savedConfigEnv = process.env.AGENTBOX_CLOUD_CONFIG;
+const savedConfigEnv = process.env.MERCURY_CLOUD_CONFIG;
 
 let tmp; let cloudConfig; let products;
 beforeEach(() => {
@@ -34,10 +34,10 @@ beforeEach(() => {
   const cfg = path.join(tmp, 'cloud.json');
   cloudConfig = { region: 'us-east-1', bucket: 'b', runtimeArn: 'arn:aws:bedrock-agentcore:us-east-1:000000000000:runtime/x' };
   fs.writeFileSync(cfg, JSON.stringify(cloudConfig));
-  process.env.AGENTBOX_CLOUD_CONFIG = cfg;
+  process.env.MERCURY_CLOUD_CONFIG = cfg;
 });
 afterEach(() => {
-  if (savedConfigEnv === undefined) delete process.env.AGENTBOX_CLOUD_CONFIG; else process.env.AGENTBOX_CLOUD_CONFIG = savedConfigEnv;
+  if (savedConfigEnv === undefined) delete process.env.MERCURY_CLOUD_CONFIG; else process.env.MERCURY_CLOUD_CONFIG = savedConfigEnv;
   fs.rmSync(tmp, { recursive: true, force: true });
 });
 
@@ -99,7 +99,7 @@ describe('the menu and the cloud', () => {
 
   it('lists no project where the cloud is not set up', () => {
     const sup = build();
-    delete process.env.AGENTBOX_CLOUD_CONFIG;
+    delete process.env.MERCURY_CLOUD_CONFIG;
     const cloud = sup.cloudStatus();
     expect(cloud.setUp).toBe(false);
     expect(cloud.projects).toEqual([]);

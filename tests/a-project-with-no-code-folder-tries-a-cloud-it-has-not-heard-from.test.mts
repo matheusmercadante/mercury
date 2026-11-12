@@ -18,7 +18,7 @@ import path from 'node:path';
 import { Supervisor } from '../main/supervisor.mts';
 import { imageCaps, imageCapsToTry, noteImageCaps } from '../main/cloud/config.mts';
 
-const savedConfigEnv = process.env.AGENTBOX_CLOUD_CONFIG;
+const savedConfigEnv = process.env.MERCURY_CLOUD_CONFIG;
 let tmp; let docs; let notes; let cloudConfig; let env;
 
 beforeEach(() => {
@@ -29,11 +29,11 @@ beforeEach(() => {
   const cfg = path.join(tmp, 'cloud.json');
   cloudConfig = { gateway: 'https://cloud.example' };
   fs.writeFileSync(cfg, JSON.stringify(cloudConfig));
-  process.env.AGENTBOX_CLOUD_CONFIG = cfg;
+  process.env.MERCURY_CLOUD_CONFIG = cfg;
   env = { ...process.env };
 });
 afterEach(() => {
-  if (savedConfigEnv === undefined) delete process.env.AGENTBOX_CLOUD_CONFIG; else process.env.AGENTBOX_CLOUD_CONFIG = savedConfigEnv;
+  if (savedConfigEnv === undefined) delete process.env.MERCURY_CLOUD_CONFIG; else process.env.MERCURY_CLOUD_CONFIG = savedConfigEnv;
   fs.rmSync(tmp, { recursive: true, force: true });
 });
 

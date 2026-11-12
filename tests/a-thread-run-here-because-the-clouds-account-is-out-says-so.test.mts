@@ -17,11 +17,11 @@ import { forgetDiscovery } from '../main/account-discovery.mts';
 import { whyWords } from '../renderer/src/where-why.ts';
 
 const dirs = [];
-const noCloud = process.env.AGENTBOX_CLOUD_CONFIG;
+const noCloud = process.env.MERCURY_CLOUD_CONFIG;
 afterEach(() => {
   while (dirs.length) fs.rmSync(dirs.pop(), { recursive: true, force: true });
   forgetDiscovery?.();
-  process.env.AGENTBOX_CLOUD_CONFIG = noCloud;
+  process.env.MERCURY_CLOUD_CONFIG = noCloud;
 });
 
 // This Mac signed in to one Claude account, the cloud set to Everything, and
@@ -30,9 +30,9 @@ function setUp({ limitedFor = 3_600_000, inCloud = true } = {}) {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'cloud-out-'));
   dirs.push(home);
   fs.writeFileSync(path.join(home, '.claude.json'), JSON.stringify({ oauthAccount: { emailAddress: 'work@example.test', accountUuid: 'uuid-work', organizationUuid: 'org-work' } }));
-  fs.mkdirSync(path.join(home, '.agentbox'), { recursive: true });
-  fs.writeFileSync(path.join(home, '.agentbox', 'cloud.json'), JSON.stringify({ gateway: 'https://cloud.example.test' }));
-  process.env.AGENTBOX_CLOUD_CONFIG = path.join(home, '.agentbox', 'cloud.json');
+  fs.mkdirSync(path.join(home, '.mercury'), { recursive: true });
+  fs.writeFileSync(path.join(home, '.mercury', 'cloud.json'), JSON.stringify({ gateway: 'https://cloud.example.test' }));
+  process.env.MERCURY_CLOUD_CONFIG = path.join(home, '.mercury', 'cloud.json');
   recordCloudLogin('claude', 'cloud-work', { id: 'id-work', savedAt: 1, org: inCloud ? 'org-work' : 'org-someone-else' }, { home });
   if (limitedFor !== null) markCloudLogin('claude', 'cloud-work', 'id-work', { limitedUntil: Date.now() + limitedFor }, { home });
   const product = { slug: 'p', dir: home, repoPath: '/r' };

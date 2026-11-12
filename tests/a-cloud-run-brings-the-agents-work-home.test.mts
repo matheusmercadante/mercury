@@ -161,7 +161,7 @@ describe('a cloud run', () => {
     expect(readMarker(mac)).toBe(null);
     // And what the run used is on record for setting the plan limits
     // (tests/a-cloud-run-records-what-it-really-used).
-    const used = fs.readFileSync(path.join(tmp, 'home', '.agentbox', 'cloud-usage.jsonl'), 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+    const used = fs.readFileSync(path.join(tmp, 'home', '.mercury', 'cloud-usage.jsonl'), 'utf8').trim().split('\n').map((l) => JSON.parse(l));
     expect(used).toHaveLength(1);
     expect(used[0]).toMatchObject({ item: 'w-1', engine: 'claude', exitCode: 0 });
     expect(used[0].wallSeconds).toBeGreaterThan(0);

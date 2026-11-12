@@ -6,7 +6,7 @@
 // thread stayed queued behind its limit. The default account's cloud sign-in
 // was marked broken ("missing"), and `accountInUse` skipped it and fell back to
 // the first sign-in left: the one she had just switched away from. Read off
-// ~/.agentbox/cloud-logins.json and the Mac's account files that evening.
+// ~/.mercury/cloud-logins.json and the Mac's account files that evening.
 //
 // the-cloud-runs-on-the-account-you-switched-to (2026-10-23) kept that
 // fallback on purpose. Now the cloud takes the Mac's account or nothing. With no working cloud
@@ -22,18 +22,18 @@ import { cloudLoginInUse, pickCloudLogin } from '../main/cloud/logins.mts';
 import { cloudFootLine } from '../renderer/src/cloud-menu.ts';
 
 const dirs = [];
-const setUpConfig = process.env.AGENTBOX_CLOUD_CONFIG;
+const setUpConfig = process.env.MERCURY_CLOUD_CONFIG;
 afterEach(() => {
   while (dirs.length) fs.rmSync(dirs.pop(), { recursive: true, force: true });
-  process.env.AGENTBOX_CLOUD_CONFIG = setUpConfig;
+  process.env.MERCURY_CLOUD_CONFIG = setUpConfig;
 });
 const tmp = () => { const d = fs.mkdtempSync(path.join(os.tmpdir(), 'cloud-switch-')); dirs.push(d); return d; };
 
 const login = (key, extra = {}) => ({ engine: 'claude', id: `id-${key}`, key, savedAt: 1, org: `org-${key}`, ...extra });
 function homeWith(...logins) {
   const home = tmp();
-  fs.mkdirSync(path.join(home, '.agentbox'));
-  fs.writeFileSync(path.join(home, '.agentbox', 'cloud-logins.json'), JSON.stringify(Object.fromEntries(logins.map((r) => [`claude:${r.key}`, r]))));
+  fs.mkdirSync(path.join(home, '.mercury'));
+  fs.writeFileSync(path.join(home, '.mercury', 'cloud-logins.json'), JSON.stringify(Object.fromEntries(logins.map((r) => [`claude:${r.key}`, r]))));
   return home;
 }
 const later = Date.now() + 3600_000;
@@ -67,8 +67,8 @@ describe('which cloud account a run takes', () => {
 });
 
 function setUpCloud(home) {
-  process.env.AGENTBOX_CLOUD_CONFIG = path.join(home, '.agentbox', 'cloud.json');
-  fs.writeFileSync(process.env.AGENTBOX_CLOUD_CONFIG, JSON.stringify({ gateway: 'https://example.invalid' }));
+  process.env.MERCURY_CLOUD_CONFIG = path.join(home, '.mercury', 'cloud.json');
+  fs.writeFileSync(process.env.MERCURY_CLOUD_CONFIG, JSON.stringify({ gateway: 'https://example.invalid' }));
 }
 function supervisor(home) {
   const product = { slug: 'p', dir: home, repoPath: '/r' };

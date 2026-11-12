@@ -257,11 +257,11 @@ if (!live('node', ['scripts/publish-download.mjs', `release/Agentbox-${version}-
 // 6. THE CLOUD MACHINE'S IMAGE, which every cloud run starts from. Built only
 // when cloud/sandbox/ or this Mac's Claude Code or Codex version changed.
 say('updating the cloud machine (a few minutes when it changed)');
-const imageOk = live('node', ['scripts/cloud-setup.mjs'], { AGENTBOX_CLOUD_CONFIG: serverFile });
+const imageOk = live('node', ['scripts/cloud-setup.mjs'], { MERCURY_CLOUD_CONFIG: serverFile });
 
 // The cloud server, from the same commit.
 say('updating the cloud server');
-const serverOk = live('node', ['scripts/cloud-gateway-setup.mjs'], { AGENTBOX_CLOUD_CONFIG: serverFile });
+const serverOk = live('node', ['scripts/cloud-gateway-setup.mjs'], { MERCURY_CLOUD_CONFIG: serverFile });
 
 // ---------------------------------------------------------------------------
 // 7. NPM. The checks before-publish.mjs makes were made at step 1, against
@@ -299,6 +299,6 @@ if (lines.every((l) => l.ok) && imageOk) {
 } else {
   stop('Not every place has the new version yet; the ✗ lines above say which.',
     lines.find((l) => l.part === 'npm' && !l.ok) ? 'npm gets the next release. Run npm login before then.' : '',
-    imageOk ? '' : `For the cloud machine, run: AGENTBOX_CLOUD_CONFIG=${serverFile} node scripts/cloud-setup.mjs`,
-    lines.find((l) => l.part === 'cloud server' && !l.ok) ? `For the cloud server, run: AGENTBOX_CLOUD_CONFIG=${serverFile} node scripts/cloud-gateway-setup.mjs` : '');
+    imageOk ? '' : `For the cloud machine, run: MERCURY_CLOUD_CONFIG=${serverFile} node scripts/cloud-setup.mjs`,
+    lines.find((l) => l.part === 'cloud server' && !l.ok) ? `For the cloud server, run: MERCURY_CLOUD_CONFIG=${serverFile} node scripts/cloud-gateway-setup.mjs` : '');
 }

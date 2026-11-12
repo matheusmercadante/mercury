@@ -4,7 +4,7 @@
 // on Codex ten times, 10:10pm to 10:47pm, and every turn failed in under 20
 // seconds with "workspace routing discovery unauthorized (401)" (the first five
 // wrapped as "Error running remote compact task: ..."). All ten are in
-// ~/.agentbox/cloud-usage.jsonl; the same thread on this Mac's own Codex login
+// ~/.mercury/cloud-usage.jsonl; the same thread on this Mac's own Codex login
 // worked, and a fresh `codex exec` there answered. The cloud's Codex sign-in
 // was being refused, but the cloud only checks a Codex sign-in's expiry date,
 // never a refusal, so it stayed "ready" and kept taking Codex threads. The

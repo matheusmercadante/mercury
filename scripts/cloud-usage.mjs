@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// What the cloud runs on this Mac have used, from ~/.agentbox/cloud-usage.jsonl
+// What the cloud runs on this Mac have used, from ~/.mercury/cloud-usage.jsonl
 // (main/cloud/usage.mts): agent-hours, the estimated AWS cost, and the cost per
 // agent-hour the plan limits are set from.
 //   node scripts/cloud-usage.mjs            this month

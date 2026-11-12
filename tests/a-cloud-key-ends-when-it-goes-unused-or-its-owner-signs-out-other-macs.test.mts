@@ -1,7 +1,7 @@
 // A CLOUD KEY ENDS WHEN IT GOES UNUSED, OR WHEN ITS OWNER SIGNS OUT OTHER MACS.
 //
 // What was wrong (2026-10-22, before Agentbox Cloud opened to strangers): a
-// cloud key (`POST /v1/devices`, kept at ~/.agentbox/cloud-key) lasted for
+// cloud key (`POST /v1/devices`, kept at ~/.mercury/cloud-key) lasted for
 // ever. Only the Mac holding it could end it (`DELETE /v1/devices`), or the
 // owner, by turning the whole person off. A key copied off a lost or sold Mac,
 // or out of a backup, could start runs on its owner's plan, read their runs'
@@ -161,7 +161,7 @@ describe('the Mac, told its key is not known', () => {
     server = gatewayServer({ handle: (r) => gw.gw.handle(r) });
     await new Promise((r) => server.listen(0, '127.0.0.1', r));
     gateway = `http://127.0.0.1:${server.address().port}`;
-    fs.mkdirSync(path.join(home, '.agentbox'), { recursive: true });
+    fs.mkdirSync(path.join(home, '.mercury'), { recursive: true });
     fs.writeFileSync(cloudConfigPath(env, home), JSON.stringify({ gateway }));
   });
   afterEach(async () => {

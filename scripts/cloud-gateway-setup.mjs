@@ -6,7 +6,7 @@
 //   node scripts/cloud-gateway-setup.mjs --bundle-only   # build it, deploy nothing
 //
 // It needs what scripts/cloud-setup.mjs made (the bucket and the runtime, in
-// ~/.agentbox/cloud.json) and the team database's address and public key
+// ~/.mercury/cloud.json) and the team database's address and public key
 // (cloud/team.config.json or ~/.agentbox/team.config.json). It makes, all
 // named agentbox-gateway*:
 //   - the signer, an IAM user whose key signs the links (`runs/`, `logins/`),

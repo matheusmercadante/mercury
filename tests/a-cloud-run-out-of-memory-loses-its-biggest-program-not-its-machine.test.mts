@@ -4,7 +4,7 @@
 // cloud machine 18 times, 9 minutes to 5 hours into each run, and every time
 // the run's commits, files and conversation went with it and the thread
 // started over. The runs of that thread that did finish peaked at 7.47 to
-// 7.59 GB of the machine's 8 GB (~/.agentbox/cloud-usage.jsonl); the ones that
+// 7.59 GB of the machine's 8 GB (~/.mercury/cloud-usage.jsonl); the ones that
 // died report nothing. A machine that close to its ceiling thrashes until its
 // server stops answering, and the server is the machine's first process.
 //

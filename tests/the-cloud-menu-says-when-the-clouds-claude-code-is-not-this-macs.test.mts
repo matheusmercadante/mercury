@@ -47,14 +47,14 @@ describe('the supervisor', () => {
   function supervisor(image) {
     const cfg = path.join(tmp, 'cloud.json');
     fs.writeFileSync(cfg, JSON.stringify({ region: 'r', bucket: 'b', runtimeArn: 'arn', ...image }));
-    process.env.AGENTBOX_CLOUD_CONFIG = cfg;
+    process.env.MERCURY_CLOUD_CONFIG = cfg;
     const sup = new Supervisor({ storeRoot: tmp, home: tmp, authProfiles: ['default'] }, { listItems: () => [], listProducts: () => [], isDue: () => true }, tmp);
     sup._saveState = () => {};
     sup._cloudRoom = () => true;
     sup._cloudStarting = () => 0;
     return sup;
   }
-  afterEach(() => { delete process.env.AGENTBOX_CLOUD_CONFIG; });
+  afterEach(() => { delete process.env.MERCURY_CLOUD_CONFIG; });
 
   it('reads this Mac\'s versions off the thread and says the gap in its status, without stopping runs', async () => {
     const sup = supervisor({ claudeCodeVersion: '2.1.4', codexVersion: '0.41.0' });

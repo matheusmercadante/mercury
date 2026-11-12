@@ -11,7 +11,7 @@
 //     water mark from memory.peak (else sampled memory.current, else
 //     /proc/meminfo); a machine with none of them still reports its time;
 //   - done.json carries it home, and the proxy appends one line per run to
-//     ~/.agentbox/cloud-usage.jsonl on the Mac;
+//     ~/.mercury/cloud-usage.jsonl on the Mac;
 //   - a summary turns those lines into agent-hours and an estimated cost at
 //     AgentCore's published rates.
 // Measured with a fake /sys/fs/cgroup and /proc, and one real proxy run.
@@ -74,7 +74,7 @@ describe('the record on the Mac', () => {
     const home = path.join(tmp, 'home');
     appendCloudUsage({ runId: 'r1', item: 'w-1', engine: 'claude', exitCode: 0, usage: { wallSeconds: 3600, cpuSeconds: 900, peakMemoryBytes: 2 * 1024 ** 3, source: 'cgroup' } }, { home, now: () => Date.parse('2026-10-14T10:00:00Z') });
     appendCloudUsage({ runId: 'r2', item: 'w-2', engine: 'codex', exitCode: 1, usage: null }, { home, now: () => Date.parse('2026-10-14T11:00:00Z') });
-    expect(cloudUsagePath({ home })).toBe(path.join(home, '.agentbox', 'cloud-usage.jsonl'));
+    expect(cloudUsagePath({ home })).toBe(path.join(home, '.mercury', 'cloud-usage.jsonl'));
     const lines = readCloudUsage({ home });
     expect(lines.map((l) => l.runId)).toEqual(['r1', 'r2']);
     expect(lines[0]).toMatchObject({ at: '2026-10-14T10:00:00.000Z', item: 'w-1', engine: 'claude', wallSeconds: 3600, cpuSeconds: 900 });
@@ -92,7 +92,7 @@ describe('the record on the Mac', () => {
 
   it('skips a broken line instead of losing the rest', () => {
     const home = path.join(tmp, 'home');
-    fs.mkdirSync(path.join(home, '.agentbox'), { recursive: true });
+    fs.mkdirSync(path.join(home, '.mercury'), { recursive: true });
     fs.writeFileSync(cloudUsagePath({ home }), '{"runId":"a","wallSeconds":60}\nnot json\n{"runId":"b","wallSeconds":120}\n');
     expect(readCloudUsage({ home }).map((l) => l.runId)).toEqual(['a', 'b']);
     expect(readCloudUsage({ home: path.join(tmp, 'nobody') })).toEqual([]);

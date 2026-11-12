@@ -543,7 +543,7 @@ describe('the cloud image', () => {
 
 describe('what the Mac remembers of the image', () => {
   it('is kept per cloud, and an image that stops saying it takes a base is believed', () => {
-    const env = { AGENTBOX_CLOUD_CONFIG: path.join(tmp, 'home', '.agentbox', 'cloud.json') };
+    const env = { MERCURY_CLOUD_CONFIG: path.join(tmp, 'home', '.mercury', 'cloud.json') };
     const mine = { runtimeArn: 'arn:one', bucket: 'b', region: 'r' };
     const managed = { gateway: 'https://cloud.example' };
     expect(imageCaps(mine, env)).toEqual([]);
