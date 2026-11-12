@@ -75,7 +75,9 @@ Start it with `node cloud/selfhost/server.mjs /path/to/config.json`.
 
 1. `~/.mercury/cloud.public.json`: `{ "gateway": "<publicUrl>", "supabaseUrl": "https://<the database>", "anonKey": "<its anon key>" }`.
    The Mac signs in for the cloud against that database.
-2. `~/.mercury/cloud.json`: `{ "gateway": "<publicUrl>" }`. Runs now go to
-   this server.
-3. In Settings, sign in for the cloud, then sign in to Claude for the cloud.
-   That sign-in is made inside a sandbox, and is kept on the server.
+2. In Settings, sign in for the cloud. Signing in writes `~/.mercury/cloud.json`
+   and this Mac's key; from then on runs can go to this server. Do not write
+   `cloud.json` by hand: with one there, the app takes the cloud as set up and
+   never shows the sign-in.
+3. Sign in to Claude for the cloud. That sign-in is made inside a sandbox, and
+   is kept on the server.
