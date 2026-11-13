@@ -65,7 +65,7 @@ describe('the npm listing', () => {
   it('points at the repo, so Issues has somewhere to go', () => {
     // Mercury's own repository, the fork. Without these three fields the npm
     // page shows no Repository link and no Issues link at all.
-    const REPO = 'https://github.com/matheusmercadante/mercury';
+    const REPO = 'https://github.com/mercastation/mercury';
     expect(pkg.repository.url).toBe(`git+${REPO}.git`);
     // Agentbox's homepage is its website since w-32efa85cd6; Mercury has no
     // website, so its homepage is the fork's README.
@@ -77,7 +77,7 @@ describe('the npm listing', () => {
     for (const sent of [pkg.repository.url, pkg.homepage, pkg.bugs.url]) {
       expect(sent).not.toMatch(/Astral-Agent/);
     }
-    expect(pkg.build.publish[0].owner).toBe('matheusmercadante');
+    expect(pkg.build.publish[0].owner).toBe('mercastation');
   });
 
   it('credits her by name and does not publish her email', () => {

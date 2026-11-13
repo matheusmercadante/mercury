@@ -55,7 +55,7 @@ describe('the build produces the files an update needs', () => {
     expect(feed.provider).toBe('github');
     // The fork's own releases: Agentbox's feed would install Agentbox over
     // Mercury.app.
-    expect(feed.owner).toBe('matheusmercadante');
+    expect(feed.owner).toBe('mercastation');
     expect(feed.repo).toBe('mercury');
     // The same place scripts/publish-download.mjs uploads to. If these two ever
     // drift the app looks for its updates somewhere nothing is published.

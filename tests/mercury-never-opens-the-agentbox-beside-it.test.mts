@@ -99,7 +99,7 @@ describe('the bundle', () => {
   });
 
   it("updates from Mercury's releases and never from Agentbox's", () => {
-    expect(pkg.build.publish).toEqual([{ provider: 'github', owner: 'matheusmercadante', repo: 'mercury' }]);
+    expect(pkg.build.publish).toEqual([{ provider: 'github', owner: 'mercastation', repo: 'mercury' }]);
   });
 
   it('answers links on its own scheme', () => {

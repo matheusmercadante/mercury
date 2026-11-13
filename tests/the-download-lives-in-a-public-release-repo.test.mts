@@ -28,7 +28,7 @@ const pkg = JSON.parse(read('package.json'));
 describe('where Mercury is downloaded and updated from', () => {
   // Mercury is a fork: Agentbox's release repo would install Agentbox over it.
   it("is the fork's own repo, never Agentbox's", () => {
-    expect(RELEASE_REPO).toBe('matheusmercadante/mercury');
+    expect(RELEASE_REPO).toBe('mercastation/mercury');
     expect(RELEASE_REPO).not.toMatch(/agentbox/i);
     expect(DOWNLOAD_ASSET).toBe(`${Name}.dmg`);
   });

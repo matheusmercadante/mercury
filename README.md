@@ -42,7 +42,7 @@ There are two ways to run it: in the browser, or as a Mac app. Both need Node 22
 **As a desktop app.** Build it from this repo. `npm start` is the desktop command on Omarchy and on a Mac:
 
 ```
-git clone https://github.com/matheusmercadante/mercury.git
+git clone https://github.com/mercastation/mercury.git
 cd mercury
 npm install
 npm start

@@ -6,11 +6,11 @@
   "author": "Savannah Feder",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/matheusmercadante/mercury.git"
+    "url": "git+https://github.com/mercastation/mercury.git"
   },
-  "homepage": "https://github.com/matheusmercadante/mercury#readme",
+  "homepage": "https://github.com/mercastation/mercury#readme",
   "bugs": {
-    "url": "https://github.com/matheusmercadante/mercury/issues"
+    "url": "https://github.com/mercastation/mercury/issues"
   },
   "keywords": [
     "claude-code",
@@ -250,7 +250,7 @@
     "publish": [
       {
         "provider": "github",
-        "owner": "matheusmercadante",
+        "owner": "mercastation",
         "repo": "mercury"
       }
     ]

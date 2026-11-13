@@ -32,7 +32,7 @@ describe('what the command prints when it comes up', () => {
     const printed = launcher.slice(launcher.indexOf(`console.log(\`\\n  ${Name} is running`));
     const said = printed.slice(0, printed.indexOf('`)'));
     expect(said).toMatch(/desktop app/i);
-    expect(said).toMatch(/github\.com\/matheusmercadante\/mercury#install/);
+    expect(said).toMatch(/github\.com\/mercastation\/mercury#install/);
     expect(said.match(/desktop app/gi)).toHaveLength(1);
   });
 

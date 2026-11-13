@@ -15,7 +15,7 @@ import { Name } from '../../shared/product-name.mjs';
 // carried personal details. package.json build.publish must name the same repo;
 // tests/the-download-lives-in-a-public-release-repo checks they agree.
 // Mercury's is the fork itself; Agentbox's would install Agentbox over it.
-export const RELEASE_REPO = 'matheusmercadante/mercury';
+export const RELEASE_REPO = 'mercastation/mercury';
 export const DOWNLOAD_ASSET = `${Name}.dmg`;
 
 // A repo with no release at all yet: gh says exactly this. Nothing is served,

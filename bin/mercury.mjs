@@ -45,7 +45,7 @@ if (args.includes('--help') || args.includes('-h')) {
   Everything stays on this machine. Nothing is uploaded and nothing is hosted.
 
   The desktop app is the other way to run it, built from the repository:
-  https://github.com/matheusmercadante/mercury#install
+  https://github.com/mercastation/mercury#install
 `);
   process.exit(0);
 }
@@ -121,7 +121,7 @@ server.listen(wanted, '127.0.0.1', () => {
   // WHICH OF THE TWO THIS IS. There is a desktop app as well, and somebody who
   // ran this line expecting that one has to be told here: the README is not
   // what they are looking at.
-  console.log(`\n  Mercury is running in your browser.\n\n  ${url}\n\n  Store: ${dataDir}\n  The desktop app is built from the repository: https://github.com/matheusmercadante/mercury#install\n  Stop it with control-C.\n`);
+  console.log(`\n  Mercury is running in your browser.\n\n  ${url}\n\n  Store: ${dataDir}\n  The desktop app is built from the repository: https://github.com/mercastation/mercury#install\n  Stop it with control-C.\n`);
   // The install that skipped node-pty may be one npm cached for this command,
   // run once and long scrolled past, so this is said at every start.
   if (!ptyIsHere()) console.log(`  ${NO_TERMINAL}\n`);
