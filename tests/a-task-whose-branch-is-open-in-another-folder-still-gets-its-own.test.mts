@@ -13,6 +13,11 @@
 // every file left where it is) and the task gets its folder on that branch.
 // A folder elsewhere with uncommitted work, a locked one, or the main checkout
 // itself is never touched, and the refusal is git's, naming that folder.
+//
+// Git words that refusal two ways: "is already checked out at" on 2.39 and
+// "is already used by worktree at" on 2.56, which GitHub's runners have. The
+// refusals here pinned the first, so main went red on every run from
+// 2026-11-12; measured by running this file under a git 2.56 built from source.
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -21,6 +26,8 @@ import path from 'node:path';
 import { ensureTaskFolder, taskFolderPath, taskBranch } from '../main/task-folders.mts';
 
 const git = (cwd: string, ...args: string[]) => execFileSync('git', args, { cwd, encoding: 'utf8' }).trim();
+const escaped = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const openAt = (folder: string) => new RegExp(`already (checked out|used by worktree) at '${escaped(folder)}'`);
 
 let base: string;
 let dir: string;
@@ -50,11 +57,6 @@ afterEach(() => { fs.rmSync(base, { recursive: true, force: true }); });
 
 const branchAt = (folder: string) => git(folder, 'branch', '--show-current');
 
-// MERCURY: git's own refusal, in either of its wordings, as main/task-folders.mts
-// reads it. Git 2.54 (this Mac's, Apple Git-157) says "is already used by
-// worktree at"; older ones say "is already checked out at".
-const refused = (folder?: string) => new RegExp(`already (?:checked out|used by worktree) at${folder ? ` '${folder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}'` : ''}`);
-
 describe('a task whose branch is open in another folder', () => {
   it('gets its own folder on that branch when the other folder has nothing uncommitted', () => {
     const tip = git(elsewhere, 'rev-parse', 'HEAD');
@@ -83,7 +85,7 @@ describe('a task whose branch is open in another folder', () => {
     fs.writeFileSync(path.join(elsewhere, 'work.txt'), 'half done\n');
 
     expect(() => ensureTaskFolder(dir, id, { dependencies: false }))
-      .toThrow(refused(elsewhere));
+      .toThrow(openAt(elsewhere));
     expect(branchAt(elsewhere)).toBe(taskBranch(id));
     expect(fs.readFileSync(path.join(elsewhere, 'work.txt'), 'utf8')).toBe('half done\n');
     expect(fs.existsSync(taskFolderPath(dir, id))).toBe(false);
@@ -92,14 +94,14 @@ describe('a task whose branch is open in another folder', () => {
   it('counts a new file nobody has added as uncommitted work', () => {
     fs.writeFileSync(path.join(elsewhere, 'notes.md'), 'draft\n');
 
-    expect(() => ensureTaskFolder(dir, id, { dependencies: false })).toThrow(refused());
+    expect(() => ensureTaskFolder(dir, id, { dependencies: false })).toThrow(openAt(elsewhere));
     expect(branchAt(elsewhere)).toBe(taskBranch(id));
   }, 30_000);
 
   it('leaves a folder somebody locked alone', () => {
     git(dir, 'worktree', 'lock', '--reason', 'mine', elsewhere);
 
-    expect(() => ensureTaskFolder(dir, id, { dependencies: false })).toThrow(refused());
+    expect(() => ensureTaskFolder(dir, id, { dependencies: false })).toThrow(openAt(elsewhere));
     expect(branchAt(elsewhere)).toBe(taskBranch(id));
   }, 30_000);
 
@@ -107,7 +109,7 @@ describe('a task whose branch is open in another folder', () => {
     git(elsewhere, 'checkout', '-q', '--detach');
     git(dir, 'checkout', '-q', taskBranch(id));
 
-    expect(() => ensureTaskFolder(dir, id, { dependencies: false })).toThrow(refused());
+    expect(() => ensureTaskFolder(dir, id, { dependencies: false })).toThrow(openAt(dir));
     expect(branchAt(dir)).toBe(taskBranch(id));
   }, 30_000);
 });

@@ -160,6 +160,11 @@
     "appId": "io.github.matheusmercadante.mercury",
     "productName": "Mercury",
     "copyright": "Copyright © 2026 Mercury",
+    "electronFuses": {
+      "runAsNode": true,
+      "enableNodeCliInspectArguments": false,
+      "enableNodeOptionsEnvironmentVariable": false
+    },
     "directories": {
       "output": "release",
       "buildResources": "build"

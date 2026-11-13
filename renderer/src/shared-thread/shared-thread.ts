@@ -19,35 +19,40 @@ export type ThreadShown =
   | { state: 'shown'; title: string; owner: string; lines: SaidLine[]; names: Record<string, string> }
   | { state: 'hidden' };
 
-// A row and a line as the cloud sends them, read without trusting their shape.
-interface Row { work?: { lines?: unknown } | null; title?: unknown; id?: unknown; name?: unknown }
-interface Line { uid?: unknown; ts?: unknown; by?: unknown; source?: unknown; patch?: { body?: unknown; answer?: unknown; result?: unknown; note?: unknown; comment?: { text?: unknown } | null } | null }
-interface Select { select(table: string, query: string): Promise<object[]> }
+interface Select { select(table: string, query: string): Promise<readonly object[]> }
+
+interface PublishedLine {
+  patch?: { body?: unknown; answer?: unknown; result?: unknown; note?: unknown; comment?: { text?: unknown } };
+  source?: unknown; uid?: unknown; ts?: unknown; by?: unknown;
+}
+type WorkRow = { work?: { lines?: unknown } };
+type CardRow = { title?: unknown };
+type PersonRow = { id?: string; name?: unknown };
 
 /** What a line of the published work says, and whose it is; null for a line that says nothing. */
-export function saidLine(l: unknown, i: number): SaidLine | null {
-  const line: Line = l && typeof l === 'object' ? l : {};
-  const p = line.patch ?? {};
+export function saidLine(l: PublishedLine | null | undefined, i: number): SaidLine | null {
+  if (!l) return null;
+  const p = l.patch ?? {};
   const text = [p.body, p.answer, p.result, p.note, p.comment?.text].find((t) => typeof t === 'string' && t.trim());
   if (!text) return null;
   const comment = !!p.comment?.text;
-  const agent = !comment && line.source !== 'founder';
-  return { key: String(line.uid ?? `${line.ts}-${i}`), by: typeof line.by === 'string' ? line.by : null, agent, comment, text: String(text), at: Number(line.ts) || 0 };
+  const agent = !comment && l.source !== 'founder';
+  return { key: String(l.uid ?? `${l.ts}-${i}`), by: typeof l.by === 'string' ? l.by : null, agent, comment, text: String(text), at: Number(l.ts) || 0 };
 }
 
 export async function readSharedThread(db: Select, owner: string, id: string): Promise<ThreadShown> {
   if (!PART.test(owner) || !PART.test(id)) return { state: 'hidden' };
   const at = `person_id=eq.${owner}&thread_id=eq.${id}`;
-  const [work, card]: Row[][] = await Promise.all([
-    db.select('thread_work', `${at}&select=work&limit=1`),
-    db.select('thread_cards', `${at}&select=title&limit=1`),
+  const [work, card] = await Promise.all([
+    db.select('thread_work', `${at}&select=work&limit=1`) as Promise<WorkRow[]>,
+    db.select('thread_cards', `${at}&select=title&limit=1`) as Promise<CardRow[]>,
   ]);
   if (!work[0] && !card[0]) return { state: 'hidden' };
-  const said = work[0]?.work?.lines;
-  const lines = (Array.isArray(said) ? said : []).map(saidLine).filter((l): l is SaidLine => l !== null);
+  const published = work[0]?.work?.lines;
+  const lines = (Array.isArray(published) ? published as PublishedLine[] : []).map(saidLine).filter(Boolean) as SaidLine[];
   const ids = [...new Set([owner, ...lines.map((l) => l.by).filter((b): b is string => !!b && PART.test(b))])];
-  const people: Row[] = await db.select('people', `id=in.(${ids.join(',')})&select=id,name`).catch(() => []);
-  const names = Object.fromEntries(people.flatMap((p) => (typeof p?.id === 'string' && p.id ? [[p.id, String(p.name || '').trim() || 'A teammate']] : [])));
+  const people = await (db.select('people', `id=in.(${ids.join(',')})&select=id,name`) as Promise<PersonRow[]>).catch((): PersonRow[] => []);
+  const names = Object.fromEntries(people.filter((p): p is PersonRow & { id: string } => !!p?.id).map((p) => [p.id, String(p.name || '').trim() || 'A teammate']));
   return { state: 'shown', title: String(card[0]?.title || 'A thread'), owner, lines, names };
 }
 
